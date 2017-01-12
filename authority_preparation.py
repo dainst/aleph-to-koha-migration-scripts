@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Written by Simon Hohl (simon.hohl@dainst.org)
 # This script filters duplicate authority data (based on field 001) and
 # copies Aleph's internal control number to 035a (because 001 gets overwritten
 # by Koha on import with its own control number).
