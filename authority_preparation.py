@@ -51,6 +51,7 @@ def run_filter(input_path, output_path):
                     write_record(filtered_authority_file, record)
                     known_authorities.append(str(record['001']))
 
+    logger.info('Internal control numbers (field 001) saved to 035a.')
     logger.info(str(duplicates_counter) + ' duplicates found & filtered out.')
 
 if __name__ == '__main__':
