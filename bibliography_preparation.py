@@ -8,36 +8,45 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+# AUTHORITY_CONTROL_FIELDS_MAPPING, read as:
+# ('marc  authority field number', 'marc bibliographic field number')
+# also see:
+# https://www.loc.gov/marc/authority/
+# https://www.loc.gov/marc/bibliographic/
+
 AUTHORITY_CONTROL_FIELDS_MAPPING = [
-    ('100', '600'), ('110', '610'), ('111', '611'), ('130', '630'),
-    ('150', '650'), ('151', '651')
-    # TODO: 7xx hinzufügen?
+    ('100', '100'), ('100', '600'), ('100', '700'), # Personal Name
+    ('110', '110'), ('110', '610'), ('110', '710'), # Corporate Name
+    ('111', '111'), ('111', '611'), ('111', '711'), # Meeting Name
+    ('130', '130'), ('130', '630'), ('130', '730'), # Uniform Title
+    ('150', '650'),                                 # Topical Term
+    ('151', '651'), ('151', '651')                 # Geographic Name
 ]
 
 LIBRARY_KEY_MAPPING = {
-    'BAYS': 'BASSM',
-    'BSA': 'BBSA',
+    'BAYS':  'BASSM',
+    'BSA':   'BBSA',
     'WINCK': 'BWINCK',
     'ZADAR': 'BICUAZ',
     'ATHEN': 'DAIA',
     'EURAS': 'DAIE',
-    'DAI': 'DAIG',
+    'DAI':   'DAIG',
     'ISTAN': 'DAII',
-    'BONN': 'DAIB',
+    'BONN':  'DAIB',
     'KAIRO': 'DAIK',
     'MADRD': 'DAIM',
     'ORIEN': 'DAIO',
-    'RGK': 'DAIF',
-    'ROM': 'DAIR',
+    'RGK':   'DAIF',
+    'ROM':   'DAIR',
     'ZENTR': 'DAIZ',
     'DAMAS': 'DAID',
-    'PEK': 'DAIP',
+    'PEK':   'DAIP',
     'SANAA': 'DAIS',
     'TEHER': 'DAIT',
-    'DEIA': 'DEAI',
-    'DEIJ': 'DEIJ',
-    'LUBL': 'BIAUL',
-    'SCHW': 'BLDMV'
+    'DEIA':  'DEAI',
+    'DEIJ':  'DEIJ',
+    'LUBL':  'BIAUL',
+    'SCHW':  'BLDMV'
 }
 
 def create_mapping(file_path):
@@ -63,7 +72,7 @@ def update_authority_mapping(record):
 
     return record
 
-def update_library_key_and_site(record):
+def update_library_and_site_key(record):
     for f in record.get_fields('952'):
         if f['a'] != None:
             old_key = str(f['a'])
@@ -85,7 +94,7 @@ def rewrite_bibliographic_data(input_path, output_path, mapping):
             for record in reader:
 
                 record = update_authority_mapping(record)
-                record = update_library_key_and_site(record)
+                record = update_library_and_site_key(record)
 
                 output_file.write(record.as_marc())
 
