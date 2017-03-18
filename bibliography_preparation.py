@@ -20,7 +20,7 @@ AUTHORITY_CONTROL_FIELDS_MAPPING = [
     ('111', '111'), ('111', '611'), ('111', '711'), # Meeting Name
     ('130', '130'), ('130', '630'), ('130', '730'), # Uniform Title
     ('150', '650'),                                 # Topical Term
-    ('151', '651'), ('151', '651')                 # Geographic Name
+    ('151', '651')                  # Geographic Name
 ]
 
 LIBRARY_KEY_MAPPING = {
