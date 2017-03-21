@@ -8,11 +8,18 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+
+# This script currently the following purposes:
+#   1) Mapping viable headings in the bibliographic data via String comparison (what Aleph also does internally)
+#      to the authority data exported from Koha. In case of a match, Koha's interal authority ID gets
+#      added to the bibliographic heading (subfield '9').
+#   2) Library keys are mapped between Aleph and Koha. The keys got refactored in Koha, to add more naming consistency.
+
 # AUTHORITY_CONTROL_FIELDS_MAPPING, read as:
-# ('marc  authority field number', 'marc bibliographic field number')
-# also see:
-# https://www.loc.gov/marc/authority/
-# https://www.loc.gov/marc/bibliographic/
+#   ('marc  authority field number', 'marc bibliographic field number')
+#   see also:
+#   https://www.loc.gov/marc/authority/
+#   https://www.loc.gov/marc/bibliographic/
 
 AUTHORITY_CONTROL_FIELDS_MAPPING = [
     ('100', '100'), ('100', '600'), ('100', '700'), # Personal Name
@@ -22,6 +29,9 @@ AUTHORITY_CONTROL_FIELDS_MAPPING = [
     ('150', '650'),                                 # Topical Term
     ('151', '651')                  # Geographic Name
 ]
+
+# LIBRARY_KEY_MAPPING
+#   Mapping of old library keys in Aleph to the refactored ones in Koha.
 
 LIBRARY_KEY_MAPPING = {
     'BAYS':  'BASSM',
