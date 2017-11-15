@@ -1,1 +1,7 @@
+# IDE files
+
+.idea/
+
+# Test data
+
 /test_data
