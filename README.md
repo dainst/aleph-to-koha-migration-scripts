@@ -1,5 +1,13 @@
 # zenon-migration-scripts
-Collection of scripts used for migrating ZENON from Aleph to Koha.
+A Collection of scripts used for migrating ZENON from Aleph to Koha.
+
+## Prerequisites
+
+All scripts were written and tested using Python 3. 
+
+You may need to install some additional libraries:
+
+* [pymarc](https://github.com/edsu/pymarc) is used to read and write [MARC format](https://www.loc.gov/marc/) data.
 
 ## Workflow
 
