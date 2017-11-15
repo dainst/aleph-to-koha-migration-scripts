@@ -15,10 +15,11 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 def write_record(output_file, record):
     logger.debug('Writing authority with control number ' + str(record['001'].data))
 
-    if record['035'] != None and record['035']['a'] != None:
+    if record['035'] is not None and record['035']['a'] is not None:
         logger.debug('skipping record ' + str(record['001'] + ' it has'))
         logger.debug('field 035 a already set: ' + str(record['035']['a']))
     else:
@@ -30,6 +31,7 @@ def write_record(output_file, record):
                     'a', str(record['001'].data)
                 ]))
         output_file.write(record.as_marc())
+
 
 def run_filter(input_path, output_path):
 
@@ -61,6 +63,6 @@ if __name__ == '__main__':
         logger.info("1) Path to input file.")
         logger.info("2) Path/filename for filtered results.")
 
-        sys.exit();
+        sys.exit()
 
     run_filter(sys.argv[1], sys.argv[2])

@@ -1,4 +1,4 @@
-from pymarc import MARCReader, Record, Field
+from pymarc import MARCReader
 
 import logging
 import sys
@@ -7,7 +7,6 @@ import os
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
 
 # This script currently the following purposes:
 #   1) Mapping viable headings in the bibliographic data via String comparison (what Aleph also does internally)
@@ -59,40 +58,42 @@ LIBRARY_KEY_MAPPING = {
     'SCHW':  'BLDMV'
 }
 
+
 def create_mapping(file_path):
-    mapping = {}
+    new_mapping = {}
     with open(file_path, 'rb') as authority_file:
         reader = MARCReader(authority_file, force_utf8=True)
         for record in reader:
             for field in AUTHORITY_CONTROL_FIELDS_MAPPING:
                 auth_field = field[0]
-                if record[auth_field] != None:
+                if record[auth_field] is not None:
                     key = record[auth_field].as_marc('utf-8')
-                    mapping[key] = record['001'].data
+                    new_mapping[key] = record['001'].data
 
-    return mapping
+    return new_mapping
 
 
-def update_authority_mapping(record):
+def update_authority_mapping(record, mapping):
     for field in AUTHORITY_CONTROL_FIELDS_MAPPING:
         for f in record.get_fields(field[1]):
-            koha_ID = mapping.get(f.as_marc('utf8'))
-            if koha_ID != None:
-                f.add_subfield('9', koha_ID)
+            koha_id = mapping.get(f.as_marc('utf8'))
+            if koha_id is not None:
+                f.add_subfield('9', koha_id)
 
     return record
+
 
 def update_library_and_site_key(record):
     for f in record.get_fields('952'):
-        if f['a'] != None:
+        if f['a'] is not None:
             old_key = str(f['a'])
             f['a'] = LIBRARY_KEY_MAPPING[old_key]
-            if f['c'] != None:
-                old_site = str(f['c']);
-                f['c'] = old_site.replace(old_key,
-                    LIBRARY_KEY_MAPPING[old_key], 1)
+            if f['c'] is not None:
+                old_site = str(f['c'])
+                f['c'] = old_site.replace(old_key, LIBRARY_KEY_MAPPING[old_key], 1)
 
     return record
+
 
 def rewrite_bibliographic_data(input_path, output_path, mapping):
     if not os.path.exists(os.path.dirname(output_path)):
@@ -103,7 +104,7 @@ def rewrite_bibliographic_data(input_path, output_path, mapping):
             reader = MARCReader(input_file, force_utf8=True)
             for record in reader:
 
-                record = update_authority_mapping(record)
+                record = update_authority_mapping(record, mapping)
                 record = update_library_and_site_key(record)
 
                 output_file.write(record.as_marc())
@@ -112,10 +113,9 @@ if __name__ == '__main__':
     if len(sys.argv) != 4:
 
         logger.info("Please provide as argument:")
-        logger.info("1) Path to bibliograhic export from Aleph.")
-        logger.info("2) Path to authority export from Koha.")
+        logger.info("1) Path to bibliograhic data export from Aleph.")
+        logger.info("2) Path to authority data export from Koha.")
         logger.info("3) Path/filename for filtered results.")
         sys.exit()
 
-    mapping = create_mapping(sys.argv[2])
-    rewrite_bibliographic_data(sys.argv[1], sys.argv[3], mapping)
+    rewrite_bibliographic_data(sys.argv[1], sys.argv[3], create_mapping(sys.argv[2]))
