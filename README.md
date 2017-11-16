@@ -8,9 +8,12 @@ All scripts are written and tested using Python 3.
 You may need to install some additional libraries (for example using `pip3`):
 
 * [pymarc](https://github.com/edsu/pymarc): used to read and write [MARC format](https://www.loc.gov/marc/) data.
-* [cx_Oracle](https://oracle.github.io/python-cx_Oracle/): used to access Aleph's Oracle database. `cx_Oracle` itself 
-requires Oracle's [Instant Client](http://www.oracle.com/technetwork/database/features/instant-client/index.html) to be 
-installed and its environment variables set.
+* [cx_Oracle](https://oracle.github.io/python-cx_Oracle/): used to access Aleph's Oracle database. 
+  * `cx_Oracle` itself requires Oracle's [Instant Client](http://www.oracle.com/technetwork/database/features/instant-client/index.html) to be 
+installed and its environment variables set. 
+  * Examples: Setting the `Instant Client` environment variable (version 12.2):
+    * Fedora: `export LD_LIBRARY_PATH=/opt/oracle/instantclient_12_2:$LD_LIBRARY_PATH`
+    * Ubuntu: `export LD_LIBRARY_PATH=/usr/lib/oracle/12.2/client64/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}`
 
 ## Workflow
 
