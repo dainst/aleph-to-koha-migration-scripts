@@ -30,13 +30,10 @@ def construct_name(query_result, postfix):
         return query_result[7] + '-' + query_result[33] + postfix
 
 
-def create_z70_monograph(query_result):
+def create_z70_general(query_result):
     result = {
-        'name': construct_name(query_result, '-monograph'),
         'notes': query_result[15],
         'discount': query_result[17],
-        'deliverytime': query_result[23],
-        'accountnumber': query_result[28],
         'currency': currency.map_from_currency(query_result[35]),
         'invoiceprice': currency.map_from_currency(query_result[35]),
         'listprice': currency.map_from_currency(query_result[35]),
@@ -46,17 +43,21 @@ def create_z70_monograph(query_result):
     return result
 
 
+def create_z70_monograph(query_result):
+    result = {
+        'name': construct_name(query_result, '-monograph'),
+        'deliverytime': query_result[23],
+        'accountnumber': query_result[28],
+    }
+
+    return result
+
+
 def create_z70_serial(query_result):
     result = {
         'name': construct_name(query_result, '-serials'),
-        'notes': query_result[15],
-        'discount': query_result[17],
         'deliverytime': query_result[26],
         'accountnumber': query_result[29],
-        'currency': currency.map_from_currency(query_result[35]),
-        'invoiceprice': currency.map_from_currency(query_result[35]),
-        'listprice': currency.map_from_currency(query_result[35]),
-        # weitere Währungen (query_result 36-38) fehlen aktuell
     }
 
     return result
@@ -66,9 +67,15 @@ def process_z70_result(existing_results, query_result):
 
     key = split_aleph_z70_rec_key(query_result[0])[0]
 
+    general_result = create_z70_general(query_result)
+
     existing_results[key] = {
-        MONOGRAPH: create_z70_monograph(query_result),
-        SERIAL: create_z70_serial(query_result),
+        MONOGRAPH: {
+            **general_result, ** create_z70_monograph(query_result)
+        },
+        SERIAL: {
+            **general_result, ** create_z70_serial(query_result)
+        }
     }
     return existing_results
 
@@ -264,7 +271,7 @@ def write_data(data):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 2:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         sys.exit()
