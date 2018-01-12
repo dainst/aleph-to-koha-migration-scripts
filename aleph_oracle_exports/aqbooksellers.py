@@ -2,14 +2,20 @@ import logging
 import sys
 
 import cx_Oracle
-import mappings.currency as currency
 import re
+
+import mappings.currency as currency
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-TRIM_ADDRESS_REGEX = re.compile(r"\s{2,}", re.IGNORECASE)
+# Global variables
+TRIM_ADDRESS_REGEX = re.compile(r'\s{2,}', re.IGNORECASE)
+MONOGRAPH = 'MONOGRAPH'
+SERIAL = 'SERIAL'
+MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mappings/aqbooksellers_data_mapping.sql'
+IMPORT_SQL_OUTPUT_PATH = './aleph_oracle_exports/ready_for_import/aqbooksellers_data_import.sql'
 
 
 def split_aleph_z70_rec_key(aleph_z70_rec_key):
@@ -33,6 +39,7 @@ def create_z70_monograph(query_result):
         'accountnumber': query_result[28],
         'currency': currency.map_from_currency(query_result[35]),
         'invoiceprice': currency.map_from_currency(query_result[35]),
+        'listprice': currency.map_from_currency(query_result[35]),
         # weitere Währungen (query_result 36-38) fehlen aktuell
     }
 
@@ -48,6 +55,7 @@ def create_z70_serial(query_result):
         'accountnumber': query_result[29],
         'currency': currency.map_from_currency(query_result[35]),
         'invoiceprice': currency.map_from_currency(query_result[35]),
+        'listprice': currency.map_from_currency(query_result[35]),
         # weitere Währungen (query_result 36-38) fehlen aktuell
     }
 
@@ -59,8 +67,8 @@ def process_z70_result(existing_results, query_result):
     key = split_aleph_z70_rec_key(query_result[0])[0]
 
     existing_results[key] = {
-        'MONOGRAPH_BOOKSELLER': create_z70_monograph(query_result),
-        'SERIAL_BOOOKSELLER': create_z70_serial(query_result),
+        MONOGRAPH: create_z70_monograph(query_result),
+        SERIAL: create_z70_serial(query_result),
     }
     return existing_results
 
@@ -121,7 +129,7 @@ def process_z72_result(existing_results, query_result):
         older_sibling = existing_results[aleph_vendor_code]
 
         if 'address' + str(aleph_address_type) in older_sibling:
-            logger.error('address' + str(aleph_address_type) + " is already set in " + older_sibling)
+            logger.error('address' + str(aleph_address_type) + ' is already set in ' + older_sibling)
             return existing_results
 
         # Ignore duplicate values in address-1, address-2, address-3 and address-4
@@ -141,12 +149,12 @@ def sanity_check_table_results(z70_result, z72_result):
     diff_z72_z70 = set(z72_result.keys()) - set(z70_result.keys())
 
     if len(diff_z70_z72) != 0:
-        logger.error('Table z70 contains keys ' + str(diff_z70_z72) + ", but z72 does not. Removing data.")
+        logger.error('Table z70 contains keys ' + str(diff_z70_z72) + ', but z72 does not. Removing data.')
         for key in diff_z70_z72:
             del z70_result[key]
 
     if len(diff_z72_z70) != 0:
-        logger.error('Table z72 contains keys ' + str(diff_z72_z70) + ", but z70 does not. Removing data.")
+        logger.error('Table z72 contains keys ' + str(diff_z72_z70) + ', but z70 does not. Removing data.')
         for key in diff_z72_z70:
             del z72_result[key]
 
@@ -158,11 +166,11 @@ def combine_table_results(z70_results, z72_results, hardcoded):
 
     for key in z70_results.keys():
         result[key] = {
-            'MONOGRAPH_BOOKSELLER': {
-                **z70_results[key]['MONOGRAPH_BOOKSELLER'], **z72_results[key], **hardcoded
+            MONOGRAPH: {
+                **z70_results[key][MONOGRAPH], **z72_results[key], **hardcoded
             },
-            'SERIAL_BOOOKSELLER': {
-                **z70_results[key]['SERIAL_BOOOKSELLER'], **z72_results[key], **hardcoded
+            SERIAL: {
+                **z70_results[key][SERIAL], **z72_results[key], **hardcoded
             },
         }
 
@@ -170,11 +178,11 @@ def combine_table_results(z70_results, z72_results, hardcoded):
 
 
 def get_connection(credentials):
-    con = cx_Oracle.connect(credentials, encoding="UTF-8", nencoding="UTF-8")
+    con = cx_Oracle.connect(credentials, encoding='UTF-8', nencoding='UTF-8')
     return con
 
 
-def export_data(connection_credentials, output_path):
+def fetch_data(connection_credentials):
     logger.info('Connecting...')
     con = get_connection(connection_credentials)
     logger.info('Connected...')
@@ -193,26 +201,14 @@ def export_data(connection_credentials, output_path):
 
     [z70_result, z72_result] = sanity_check_table_results(z70_result, z72_result)
 
-    # for key in z70_result.keys():
-    #    logger.info(key)
-    #    logger.info(z70_result[key])
-    # for key in z72_result:
-    #    logger.info(key)
-    #    logger.info(z72_result[key])
-
     hardcoded = {
         'active': 1,
     }
 
     combined_results = combine_table_results(z70_result, z72_result, hardcoded)
 
-    for key in combined_results:
-        logger.info(key)
-        logger.info(combined_results[key])
-
     # Still unhandled fields for aqbookseller:
     # 'othersupplier': '',
-    # 'listprice': '',
     # 'gstreg': '',
     # 'listincgst': '',
     # 'invoiceincgst': '',
@@ -224,12 +220,55 @@ def export_data(connection_credentials, output_path):
     return combined_results
 
 
+def generate_insert_statement(aleph_key, data, produce_mapping_table):
+    statement = 'INSERT INTO aqbooksellers ('
+
+    keys = data.keys()
+    keys_len = len(keys)
+    for idx, key in enumerate(keys):
+        if idx == keys_len - 1:
+            statement += key
+
+            if produce_mapping_table:
+                statement += ', ALEPH_VENDOR_KEY'
+        else:
+            statement += key + ','
+
+    statement += ') VALUES('
+
+    for idx, key in enumerate(keys):
+        if idx == keys_len - 1 :
+            statement += '"' + str(data[key]) + '"'
+            if produce_mapping_table:
+                statement += ', ' + aleph_key
+        else:
+            statement += '"' + str(data[key]) + '",'
+
+    statement += ')'
+    statement += ';\n'
+
+    return statement
+
+
+def write_data(data):
+
+    with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
+        for aleph_key in data.keys():
+
+            import_file.write(generate_insert_statement(aleph_key, data[aleph_key][MONOGRAPH], False))
+            import_file.write(generate_insert_statement(aleph_key, data[aleph_key][SERIAL], False))
+
+            mapping_file.write(generate_insert_statement(aleph_key, data[aleph_key][MONOGRAPH], True))
+            mapping_file.write(generate_insert_statement(aleph_key, data[aleph_key][SERIAL], True))
+
+
 if __name__ == '__main__':
 
     if len(sys.argv) != 3:
-        logger.info("Please provide as argument:")
-        logger.info("1) Connection info and credentials, pattern: '%USER%/%PASSWORD%@%IP%/%SID%'.")
-        logger.info("2) The output path.")
+        logger.info('Please provide as argument:')
+        logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         sys.exit()
 
-    result = export_data(sys.argv[1], sys.argv[2])
+    results = fetch_data(sys.argv[1])
+
+    write_data(results)

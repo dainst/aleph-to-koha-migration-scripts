@@ -2,10 +2,10 @@
 
 .idea/
 
-# Test data
+# (Intermediate) result data
 
-/test_data
-
+aleph_oracle_exports/ready_for_import/*.sql
+aleph_oracle_exports/mappings/*sql
 # Python 
 
 **/__pycache__
