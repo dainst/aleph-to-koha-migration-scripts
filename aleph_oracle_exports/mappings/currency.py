@@ -4,8 +4,7 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Siehe http://confluence:8090/pages/viewpage.action?pageId=44859465
-# bzw. Docker
+# See http://confluence:8090/pages/viewpage.action?pageId=44859465
 
 CURRENCY_MAPPING = {
     'AUD': 'AUD',
