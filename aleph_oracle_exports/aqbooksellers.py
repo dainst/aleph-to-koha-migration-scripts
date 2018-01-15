@@ -6,6 +6,7 @@ import MySQLdb
 import re
 
 import mappings.currency as currency
+import database_connections.mariadb as mariadb
 
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
@@ -277,8 +278,9 @@ def generate_insert_statement(aleph_key, data, produce_mapping_table):
 
 def write_data(data):
     logger.info('Writing data to file and mapping database.')
-    db = MySQLdb.connect(host="127.0.0.1", user="koha_zenon", passwd="zenon", db="koha_mapping_db", port=3307,
-                         use_unicode=True, charset='utf8')
+
+    db = mariadb.get_connection()
+
     cursor = db.cursor()
     with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
         for aleph_key in data.keys():
