@@ -25,6 +25,7 @@ CREATE TABLE `aqbooksellers` (
   `discount` float(6,4) DEFAULT NULL,
   `fax` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL,
   `deliverytime` int(11) DEFAULT NULL,
+  `ALEPH_VENDOR_KEY` varchar(25) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `listprice` (`listprice`),
   KEY `invoiceprice` (`invoiceprice`),
