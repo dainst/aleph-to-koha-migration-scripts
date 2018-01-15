@@ -3,6 +3,7 @@ import sys
 
 import cx_Oracle
 import re
+import math
 
 import mappings.currency as currency
 
@@ -30,10 +31,19 @@ def construct_name(query_result, postfix):
         return (query_result[7] + '-' + query_result[33] + postfix).replace('\"', '\'')
 
 
+# Aleph saves discount as '9(3)V99', meaning a string of 5 chars.
+# first 3 represent the integer values, the last 2 are digits
+def parse_discount(discount):
+    if discount is None:
+        return None
+
+    return float(discount[0:-2] + "." + discount[-2:])
+
+
 def create_z70_general(query_result):
     result = {
         'notes': query_result[15],
-        'discount': query_result[17],
+        'discount': parse_discount(query_result[17]),
         'currency': currency.map_from_currency(query_result[35], True),
         'invoiceprice': currency.map_from_currency(query_result[35], True),
         'listprice': currency.map_from_currency(query_result[35], True),
