@@ -34,9 +34,9 @@ def create_z70_general(query_result):
     result = {
         'notes': query_result[15],
         'discount': query_result[17],
-        'currency': currency.map_from_currency(query_result[35]),
-        'invoiceprice': currency.map_from_currency(query_result[35]),
-        'listprice': currency.map_from_currency(query_result[35]),
+        'currency': currency.map_from_currency(query_result[35], True),
+        'invoiceprice': currency.map_from_currency(query_result[35], True),
+        'listprice': currency.map_from_currency(query_result[35], True),
         # weitere Währungen (query_result 36-38) fehlen aktuell
     }
 

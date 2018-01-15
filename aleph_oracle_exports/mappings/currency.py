@@ -25,12 +25,42 @@ CURRENCY_MAPPING = {
     'USD': 'USD'
 }
 
+DEPRECATED_CURRENCY_MAPPING = {
+    'ATS': 'EUR',
+    'BEF': 'EUR',
+    'BGL': 'BGN',
+    'CYP': 'EUR',
+    'DEM': 'EUR',
+    'ESP': 'EUR',
+    'FIM': 'EUR',
+    'FRF': 'EUR',
+    'GRD': 'EUR',
+    'IEP': 'EUR',
+    'ITL': 'EUR',
+    'NGL': 'EUR',
+    'PTE': 'EUR',
+    'TRL': 'TRY'
+}
 
-def map_from_currency(aleph_currency):
+
+def map_from_currency(aleph_currency, replace_deprecated):
     if aleph_currency is None:
         return None
     elif aleph_currency not in CURRENCY_MAPPING:
+        if replace_deprecated:
+            return map_from_deprecated_currency(aleph_currency)
+        else:
+            logger.warning("The currency code " + aleph_currency + " could not be mapped.")
+            return None
+    else:
+        return CURRENCY_MAPPING[aleph_currency]
+
+
+def map_from_deprecated_currency(aleph_currency):
+    if aleph_currency is None:
+        return None
+    elif aleph_currency not in DEPRECATED_CURRENCY_MAPPING:
         logger.warning("The currency code " + aleph_currency + " could not be mapped.")
         return None
     else:
-        return CURRENCY_MAPPING[aleph_currency]
+        return DEPRECATED_CURRENCY_MAPPING[aleph_currency]
