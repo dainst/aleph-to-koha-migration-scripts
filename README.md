@@ -14,11 +14,67 @@ installed and its environment variables set.
   * Examples: Setting the __Instant Client__ environment variable (version 12.2):
     * Fedora: `export LD_LIBRARY_PATH=/opt/oracle/instantclient_12_2:$LD_LIBRARY_PATH`
     * Ubuntu: `export LD_LIBRARY_PATH=/usr/lib/oracle/12.2/client64/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}`
-* [mysqlclient](https://github.com/PyMySQL/mysqlclient-python): used to access the mapping database created by Docker, which mirrors the tables found in Koha.
+* [mysqlclient](https://github.com/PyMySQL/mysqlclient-python): used to access Koha's mariadb.
 
-## Workflow
+## General information
+
+__All scripts should be run from the main folder.__ 
+
+There are two strategies for migrating data from Aleph to Koha:
+
+* Where possible, we try to use export functionality provided by Aleph. This is currently used for bibliographic and 
+authority data (exported as MARC21). Exported data is further processed by several Python scripts.
+* For a lot of data Aleph does not provide a means to export it directly. For those cases we are forced to extract the
+data directly from Aleph's Oracle database. All data concerning acquisitions has to be exported this way.
+
+## Oracle exports
+
+The scripts for exporting Oracle data can be found in `aleph_oracle_exports`. Each Python script is named after the 
+Koha database table, which it is supposed to produce data for (`aqbooksellers.py`, `aqcontact.py`, ...). 
+
+Between the tables exist dependencies: There is an implicit order, in which the tables have to be filled with values. 
+In order to be able to quickly reset the database some Docker functionality was added:
+
+#### Docker
+
+For further details see: 
+[Docker docs](https://docs.docker.com/compose/reference/overview/#command-options-overview-and-help).
+
+#### build services:
+
+`docker-compose build` 
+
+#### create & start the database container:
+
+`docker-compose up`
+
+#### stop container:
+
+`CTRL-C`
+
+or
+
+`docker-compose stop`
+
+
+#### start container:
+
+`docker-compose start`
+
+#### stop and remove container: 
+
+`docker-compose down`
+
+or
+
+`docker-compose down -v` (`-v` to also remove the database volumes, otherwise just the container is deleted) 
+
+
+### MARC exports
 
 (Work in progress)
+
+The scripts for processing MARC data exported from Aleph can be found in `aleph_marc_exports`.
 
 1. Authority data exported from Aleph has to be preprocessed by the `authority_preparation` script, which removes 
 obvious duplicates (authority data with the same value in field `001`) in the export, and copies Aleph's control number 
