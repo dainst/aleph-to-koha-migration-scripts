@@ -19,7 +19,7 @@ logger.setLevel(logging.DEBUG)
 TRIM_ADDRESS_REGEX = re.compile(r'\s{2,}', re.IGNORECASE)
 MONOGRAPH = 'MONOGRAPH'
 SERIAL = 'SERIAL'
-MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mariadb_intermediate_values/aqbooksellers_data_mapping.sql'
+MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mariadb_intermediate_values/00100_aqbooksellers_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = './aleph_oracle_exports/ready_for_import/aqbooksellers_data_import.sql'
 
 
@@ -262,6 +262,9 @@ def write_data(data):
 
     cursor = db.cursor()
     with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
+
+        mapping_file.write('USE ' + mariadb.get_db_name() + ';')
+
         for aleph_key in data.keys():
 
             import_file.write(generate_insert_statement(aleph_key, data[aleph_key][MONOGRAPH], False))
