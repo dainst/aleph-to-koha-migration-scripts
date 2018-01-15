@@ -7,6 +7,7 @@ import re
 
 import mappings.currency as currency
 import database_connections.mariadb as mariadb
+import database_connections.oracle as oracle
 
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
@@ -203,14 +204,9 @@ def combine_table_results(z70_results, z72_results, hardcoded):
     return result
 
 
-def get_connection(credentials):
-    con = cx_Oracle.connect(credentials, encoding='UTF-8', nencoding='UTF-8')
-    return con
-
-
 def fetch_data(connection_credentials):
     logger.info('Connecting...')
-    con = get_connection(connection_credentials)
+    con = oracle.get_connection(connection_credentials)
     logger.info('Connected...')
 
     z70_result = dict()
