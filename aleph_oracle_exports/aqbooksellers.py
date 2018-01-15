@@ -2,10 +2,11 @@ import logging
 import sys
 
 import cx_Oracle
+import MySQLdb
 import re
-import math
 
 import mappings.currency as currency
+
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -275,15 +276,26 @@ def generate_insert_statement(aleph_key, data, produce_mapping_table):
 
 
 def write_data(data):
-
+    logger.info('Writing data to file and mapping database.')
+    db = MySQLdb.connect(host="127.0.0.1", user="koha_zenon", passwd="zenon", db="koha_mapping_db", port=3307,
+                         use_unicode=True, charset='utf8')
+    cursor = db.cursor()
     with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
         for aleph_key in data.keys():
 
             import_file.write(generate_insert_statement(aleph_key, data[aleph_key][MONOGRAPH], False))
             import_file.write(generate_insert_statement(aleph_key, data[aleph_key][SERIAL], False))
 
-            mapping_file.write(generate_insert_statement(aleph_key, data[aleph_key][MONOGRAPH], True))
-            mapping_file.write(generate_insert_statement(aleph_key, data[aleph_key][SERIAL], True))
+            mapping_monograph = generate_insert_statement(aleph_key, data[aleph_key][MONOGRAPH], True)
+            mapping_serial = generate_insert_statement(aleph_key, data[aleph_key][SERIAL], True)
+
+            mapping_file.write(mapping_monograph)
+            mapping_file.write(mapping_serial)
+
+            cursor.execute(mapping_monograph)
+            cursor.execute(mapping_serial)
+
+    db.commit()
 
 
 if __name__ == '__main__':

@@ -14,6 +14,7 @@ installed and its environment variables set.
   * Examples: Setting the __Instant Client__ environment variable (version 12.2):
     * Fedora: `export LD_LIBRARY_PATH=/opt/oracle/instantclient_12_2:$LD_LIBRARY_PATH`
     * Ubuntu: `export LD_LIBRARY_PATH=/usr/lib/oracle/12.2/client64/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}`
+* [mysqlclient](https://github.com/PyMySQL/mysqlclient-python): used to access the mapping database created by Docker, which mirrors the tables found in Koha.
 
 ## Workflow
 
