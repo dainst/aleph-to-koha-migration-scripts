@@ -1,8 +1,6 @@
 import logging
 import sys
 
-import cx_Oracle
-import MySQLdb
 import re
 
 import mappings.currency as currency
