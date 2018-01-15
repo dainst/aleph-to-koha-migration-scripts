@@ -45,7 +45,8 @@ DEPRECATED_CURRENCY_MAPPING = {
 
 def map_from_currency(aleph_currency, replace_deprecated):
     if aleph_currency is None:
-        return None
+        logger.warning("Trying to map currency that is 'None', setting to 'EUR'")
+        return 'EUR'
     elif aleph_currency not in CURRENCY_MAPPING:
         if replace_deprecated:
             return map_from_deprecated_currency(aleph_currency)
@@ -58,7 +59,8 @@ def map_from_currency(aleph_currency, replace_deprecated):
 
 def map_from_deprecated_currency(aleph_currency):
     if aleph_currency is None:
-        return None
+        logger.warning("Trying to map currency that is 'None', setting to 'EUR'")
+        return 'EUR'
     elif aleph_currency not in DEPRECATED_CURRENCY_MAPPING:
         logger.warning("The currency code " + aleph_currency + " could not be mapped.")
         return None
