@@ -23,12 +23,19 @@ def split_aleph_z70_rec_key(aleph_z70_rec_key):
     return [aleph_z70_rec_key[0:-5].strip(), aleph_z70_rec_key[-5].strip()]
 
 
+def escape_double_quotes(string):
+    if string is None:
+        return None
+    else:
+        return string.replace('\"', '\'')
+
+
 # name kombiniert aus 'Name in Aleph'-'Aleph Lieferantentyp'-'(serials|monograph)'
 def construct_name(query_result, postfix):
     if query_result[33] is None:
-        return (query_result[7] + postfix).replace('\"', '\'')
+        return escape_double_quotes(query_result[7] + postfix)
     else:
-        return (query_result[7] + '-' + query_result[33] + postfix).replace('\"', '\'')
+        return escape_double_quotes(query_result[7] + '-' + query_result[33] + postfix)
 
 
 # Aleph saves discount as '9(3)V99', meaning a string of 5 chars.
@@ -42,7 +49,7 @@ def parse_discount(discount):
 
 def create_z70_general(query_result):
     result = {
-        'notes': query_result[15],
+        'notes': escape_double_quotes(query_result[15]),
         'discount': parse_discount(query_result[17]),
         'currency': currency.map_from_currency(query_result[35], True),
         'invoiceprice': currency.map_from_currency(query_result[35], True),
@@ -108,7 +115,7 @@ def determine_address_type(aleph_z72_rec_key, output_index):
 # Biblioteka Instytut Archeologi UG                                                                   Universytet Gdanski                                                                                 Frau mgr. Elzbieta Lademann                                                                         Ul. Bielanska 5
 # This function is used to trim those whitespace, replacing each with ', '.
 def trim_address(address):
-    return TRIM_ADDRESS_REGEX.sub(', ', address).replace('\"', '\'')
+    return escape_double_quotes(TRIM_ADDRESS_REGEX.sub(', ', address))
 
 
 def create_z72(query_result, address_type):
