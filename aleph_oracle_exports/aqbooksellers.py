@@ -14,7 +14,7 @@ logger.setLevel(logging.DEBUG)
 TRIM_ADDRESS_REGEX = re.compile(r'\s{2,}', re.IGNORECASE)
 MONOGRAPH = 'MONOGRAPH'
 SERIAL = 'SERIAL'
-MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mappings/aqbooksellers_data_mapping.sql'
+MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mariadb_intermediate_values/aqbooksellers_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = './aleph_oracle_exports/ready_for_import/aqbooksellers_data_import.sql'
 
 
@@ -25,9 +25,9 @@ def split_aleph_z70_rec_key(aleph_z70_rec_key):
 # name kombiniert aus 'Name in Aleph'-'Aleph Lieferantentyp'-'(serials|monograph)'
 def construct_name(query_result, postfix):
     if query_result[33] is None:
-        return query_result[7] + postfix
+        return (query_result[7] + postfix).replace('\"', '\'')
     else:
-        return query_result[7] + '-' + query_result[33] + postfix
+        return (query_result[7] + '-' + query_result[33] + postfix).replace('\"', '\'')
 
 
 def create_z70_general(query_result):
@@ -98,7 +98,7 @@ def determine_address_type(aleph_z72_rec_key, output_index):
 # Biblioteka Instytut Archeologi UG                                                                   Universytet Gdanski                                                                                 Frau mgr. Elzbieta Lademann                                                                         Ul. Bielanska 5
 # This function is used to trim those whitespace, replacing each with ', '.
 def trim_address(address):
-    return TRIM_ADDRESS_REGEX.sub(', ', address)
+    return TRIM_ADDRESS_REGEX.sub(', ', address).replace('\"', '\'')
 
 
 def create_z72(query_result, address_type):
@@ -110,7 +110,7 @@ def create_z72(query_result, address_type):
         'booksellerfax': query_result[4],
         'url': query_result[6],
         'booksellerurl': query_result[6],
-        'postal': query_result[9],
+        'postal': query_result[9]
     }
 
     return result
@@ -244,10 +244,10 @@ def generate_insert_statement(aleph_key, data, produce_mapping_table):
     statement += ') VALUES('
 
     for idx, key in enumerate(keys):
-        if idx == keys_len - 1 :
+        if idx == keys_len - 1:
             statement += '"' + str(data[key]) + '"'
             if produce_mapping_table:
-                statement += ', ' + aleph_key
+                statement += ', "' + aleph_key + '"'
         else:
             statement += '"' + str(data[key]) + '",'
 
