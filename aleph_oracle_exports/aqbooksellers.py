@@ -8,7 +8,8 @@ import re
 import mappings.currency as currency
 import database_connections.mariadb as mariadb
 import database_connections.oracle as oracle
-
+import oracle_helper.z70 as z70_helper
+import oracle_helper.z72 as z72_helper
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -20,10 +21,6 @@ MONOGRAPH = 'MONOGRAPH'
 SERIAL = 'SERIAL'
 MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mariadb_intermediate_values/aqbooksellers_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = './aleph_oracle_exports/ready_for_import/aqbooksellers_data_import.sql'
-
-
-def split_aleph_z70_rec_key(aleph_z70_rec_key):
-    return [aleph_z70_rec_key[0:-5].strip(), aleph_z70_rec_key[-5].strip()]
 
 
 def escape_double_quotes(string):
@@ -85,7 +82,7 @@ def create_z70_serial(query_result):
 
 def process_z70_result(existing_results, query_result):
 
-    key = split_aleph_z70_rec_key(query_result[0])[0]
+    key = z70_helper.split_rec_key(query_result[0])[0]
 
     general_result = create_z70_general(query_result)
 
@@ -98,20 +95,6 @@ def process_z70_result(existing_results, query_result):
         }
     }
     return existing_results
-
-
-# See:
-def split_aleph_z72_rec_key(aleph_z72_rec_key):
-    return [aleph_z72_rec_key[0:-1].strip(), aleph_z72_rec_key[-1].strip()]
-
-
-def determine_address_type(aleph_z72_rec_key, output_index):
-    split = split_aleph_z72_rec_key(aleph_z72_rec_key)
-
-    if int(split[1]) == output_index:
-        return split[0]
-    else:
-        return None
 
 
 # Addresses in Aleph can contain a lot of whitespaces between relevant data, for example:
@@ -138,7 +121,7 @@ def create_z72(query_result, address_type):
 
 def process_z72_result(existing_results, query_result):
 
-    split_rec_key = split_aleph_z72_rec_key(query_result[0])
+    split_rec_key = z72_helper.split_rec_key(query_result[0])
     aleph_vendor_code = split_rec_key[0]
     aleph_address_type = int(split_rec_key[1])
 
