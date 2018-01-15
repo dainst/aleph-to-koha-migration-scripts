@@ -1,3 +1,5 @@
+USE koha_mapping_db;
+
 CREATE TABLE `aqbooksellers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` mediumtext COLLATE utf8_unicode_ci NOT NULL,
