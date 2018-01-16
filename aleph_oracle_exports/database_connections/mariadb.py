@@ -13,12 +13,23 @@ def get_db_name():
     return 'koha_mapping_db'
 
 
+def get_cursor():
+    global connection
+
+    return connection.cursor()
+
+
 def establish_connection():
     global connection
 
     connection = MySQLdb.connect(host="127.0.0.1", user="koha_zenon", passwd="zenon", db=get_db_name(), port=3307,
                                  use_unicode=True, charset='utf8')
-    return connection
+
+
+def commit():
+    global connection
+
+    connection.commit()
 
 
 def get_aqbookseller_by_aleph_key(aleph_vendor_key):

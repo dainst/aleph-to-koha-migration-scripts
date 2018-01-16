@@ -12,13 +12,18 @@ def establish_connection(credentials):
     global connection
 
     connection = cx_Oracle.connect(credentials, encoding='UTF-8', nencoding='UTF-8')
-    return connection
 
 
 def close_connection():
     global connection
 
     connection.close()
+
+
+def get_cursor():
+    global connection
+
+    return connection.cursor()
 
 
 def get_z70():

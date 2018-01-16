@@ -201,7 +201,6 @@ def fetch_data(connection_credentials):
         z72_result = process_z72_result(z72_result, query_result)
     z72_data_cursor.close()
 
-
     [z70_result, z72_result] = sanity_check_table_results(z70_result, z72_result)
 
     hardcoded = {
@@ -255,12 +254,13 @@ def generate_insert_statement(aleph_key, data, produce_mapping_table):
 def write_data(data):
     logger.info('Writing data to file and mapping database.')
 
-    db = mariadb.establish_connection()
-
-    cursor = db.cursor()
     with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
 
         mapping_file.write('USE ' + mariadb.get_db_name() + ';')
+
+        mariadb.establish_connection()
+
+        cursor = mariadb.get_cursor()
 
         for aleph_key in data.keys():
 
@@ -276,7 +276,8 @@ def write_data(data):
             cursor.execute(mapping_monograph)
             cursor.execute(mapping_serial)
 
-    db.commit()
+        mariadb.commit()
+        cursor.close()
 
 
 if __name__ == '__main__':
