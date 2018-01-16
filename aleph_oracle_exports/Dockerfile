@@ -24,6 +24,6 @@ COPY mariadb_table_setup/currency_create_and_fill.sql /docker-entrypoint-initdb.
 COPY mariadb_table_setup/aqbooksellers_create.sql /docker-entrypoint-initdb.d/00002_aqbooksellers_create.sql
 COPY mariadb_table_setup/aqcontacts_create.sql /docker-entrypoint-initdb.d/00003_aqcontacts_create.sql
 
-COPY mariadb_intermediate_values/*.sql /docker-entrypoint-initdb.d/
+COPY mariadb_intermediate_values/* /docker-entrypoint-initdb.d/
 
 EXPOSE 3306
