@@ -37,7 +37,7 @@ def get_z70_by_rec_key(aleph_rec_key):
     global connection
 
     cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z70 WHERE `Z70_REC_KEY` = ' + aleph_rec_key)
+    return cur.execute('SELECT * FROM Z70 WHERE Z70_REC_KEY=:1', (aleph_rec_key,))
 
 
 def get_z72():
