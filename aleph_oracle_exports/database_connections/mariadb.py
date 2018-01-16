@@ -6,10 +6,26 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+connection = None
+
+
 def get_db_name():
     return 'koha_mapping_db'
 
 
-def get_connection():
-    return MySQLdb.connect(host="127.0.0.1", user="koha_zenon", passwd="zenon", db=get_db_name(), port=3307,
-                           use_unicode=True, charset='utf8')
+def establish_connection():
+    global connection
+
+    connection = MySQLdb.connect(host="127.0.0.1", user="koha_zenon", passwd="zenon", db=get_db_name(), port=3307,
+                                 use_unicode=True, charset='utf8')
+    return connection
+
+
+def get_aqbookseller_by_aleph_key(aleph_vendor_key):
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT * FROM aqbooksellers WHERE `ALEPH_VENDOR_KEY`="'+aleph_vendor_key+'";')
+    result = cursor.fetchone()
+
+    return result

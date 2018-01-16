@@ -106,7 +106,6 @@ def create_z72(query_result, address_type):
 
     result = {
         ('address' + str(address_type)): trim_address(query_result[2]),
-        'phone': query_result[3],
         'fax': query_result[4],
         'booksellerfax': query_result[4],
         'url': query_result[6],
@@ -187,20 +186,21 @@ def combine_table_results(z70_results, z72_results, hardcoded):
 
 def fetch_data(connection_credentials):
     logger.info('Connecting...')
-    con = oracle.get_connection(connection_credentials)
+    oracle.establish_connection(connection_credentials)
     logger.info('Connected...')
 
     z70_result = dict()
+    z70_data_cursor = oracle.get_z70()
+    for query_result in z70_data_cursor:
+        z70_result = process_z70_result(z70_result, query_result)
+    z70_data_cursor.close()
 
-    cur = con.cursor()
-    cur.execute('SELECT * FROM Z70')
-    for queryResult in cur:
-        z70_result = process_z70_result(z70_result, queryResult)
-
-    cur.execute('SELECT * FROM Z72')
     z72_result = dict()
-    for queryResult in cur:
-        z72_result = process_z72_result(z72_result, queryResult)
+    z72_data_cursor = oracle.get_z72()
+    for query_result in z72_data_cursor:
+        z72_result = process_z72_result(z72_result, query_result)
+    z72_data_cursor.close()
+
 
     [z70_result, z72_result] = sanity_check_table_results(z70_result, z72_result)
 
@@ -217,8 +217,7 @@ def fetch_data(connection_credentials):
     # 'invoiceincgst': '',
     # 'tax_rate': '',
 
-    cur.close()
-    con.close()
+    oracle.close_connection()
 
     return combined_results
 
@@ -256,7 +255,7 @@ def generate_insert_statement(aleph_key, data, produce_mapping_table):
 def write_data(data):
     logger.info('Writing data to file and mapping database.')
 
-    db = mariadb.get_connection()
+    db = mariadb.establish_connection()
 
     cursor = db.cursor()
     with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:

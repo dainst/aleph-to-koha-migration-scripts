@@ -5,7 +5,38 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+connection = None
 
-def get_connection(credentials):
-    con = cx_Oracle.connect(credentials, encoding='UTF-8', nencoding='UTF-8')
-    return con
+
+def establish_connection(credentials):
+    global connection
+
+    connection = cx_Oracle.connect(credentials, encoding='UTF-8', nencoding='UTF-8')
+    return connection
+
+
+def close_connection():
+    global connection
+
+    connection.close()
+
+
+def get_z70():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z70')
+
+
+def get_z70_by_rec_key(aleph_rec_key):
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z70 WHERE `Z70_REC_KEY` = ' + aleph_rec_key)
+
+
+def get_z72():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z72')
