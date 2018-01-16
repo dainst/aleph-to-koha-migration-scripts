@@ -168,8 +168,6 @@ def sanity_check_table_results(z70_result, z72_result):
 
     if len(diff_z70_z72) != 0:
         logger.error('Table z70 contains keys ' + str(diff_z70_z72) + ', but z72 does not. Removing data.')
-        for key in diff_z70_z72:
-            del z70_result[key]
 
     if len(diff_z72_z70) != 0:
         logger.error('Table z72 contains keys ' + str(diff_z72_z70) + ', but z70 does not. Removing data.')
