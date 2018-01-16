@@ -142,7 +142,7 @@ def generate_insert_statement(aleph_key, data, produce_mapping_table):
     return statement
 
 
-def filter_duplicates(results):
+def conflate_duplicates(results):
 
     updated_results = {}
 
@@ -213,6 +213,6 @@ if __name__ == '__main__':
         sys.exit()
 
     results = fetch_data(sys.argv[1])
-    filtered_results = filter_duplicates(results)
+    filtered_results = conflate_duplicates(results)
     write_data(filtered_results)
 
