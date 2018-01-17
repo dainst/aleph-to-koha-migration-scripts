@@ -31,7 +31,7 @@ def create_name_from_type(address_type):
     elif address_type == 4:
         return 'Claim contact'
     else:
-        None
+        return None
 
 
 def process_z72_result(previous_results, query_result):
