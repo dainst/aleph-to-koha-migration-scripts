@@ -13,7 +13,18 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Global variables
+# Both Aleph and Koha look similar when it comes to vendors (Aleph)/ booksellers (Koha). Both systems hold most data
+# concerning vendor/bookseller data in two tables which have a 1:n relation. The first serves the core vendor/bookseller
+# data ('aqbooksellers' in Koha and 'z70' in Aleph). The other lets you define multiple addresses (Aleph, table 'z72')
+# or contacts (Koha, 'aqcontacts').
+# There are several key differences:
+# 1. Addresses in Koha are held in aqbooksellers, while Aleph has its own table. The z72 for a z70 dataset has to be
+#   retrieved and mapped to 'aqbooksellers' address fields ('address1' to 'address4').
+# 2. In Aleph, each vendor can have different delivery times and accountnumbers for either serials or monographs. This
+#   concept does not exist in Koha, so we create two bookseller (monograph and serial) for each vendor in Aleph.
+# For more information about Aleph tables see: confluence
+
+
 TRIM_ADDRESS_REGEX = re.compile(r'\s{2,}', re.IGNORECASE)
 MONOGRAPH = 'MONOGRAPH'
 SERIAL = 'SERIAL'
@@ -28,7 +39,7 @@ def escape_double_quotes(string):
         return string.replace('\"', '\'')
 
 
-# name kombiniert aus 'Name in Aleph'-'Aleph Lieferantentyp'-'(serials|monograph)'
+# A new name is combined from aus 'name in aleph'-'aleph vendortype'-'(serials|monograph)'
 def construct_name(query_result, postfix):
     if query_result[33] is None:
         return escape_double_quotes(query_result[7] + postfix)
@@ -36,8 +47,8 @@ def construct_name(query_result, postfix):
         return escape_double_quotes(query_result[7] + '-' + query_result[33] + postfix)
 
 
-# Aleph saves discount as '9(3)V99', meaning a string of 5 chars.
-# first 3 represent the integer values, the last 2 are digits
+# Aleph saves discount as '9(3)V99', meaning a string of 5 chars, where the first 3 represent the integer values and
+# the last 2 are the digits.
 def parse_discount(discount):
     if discount is None:
         return None
