@@ -181,7 +181,7 @@ def process_z72_result(existing_results, query_result):
 
     if aleph_vendor_code in existing_results:
         older_sibling = existing_results[aleph_vendor_code]
-
+        current_address = trim_address(query_result[2])
         if 'address' + str(aleph_address_type) in older_sibling:
             logger.error('address' + str(aleph_address_type) + ' is already set in ' + older_sibling)
             return existing_results
@@ -190,7 +190,23 @@ def process_z72_result(existing_results, query_result):
         if query_result[2] in older_sibling.values():
             return existing_results
 
-        older_sibling['address' + str(aleph_address_type)] = trim_address(query_result[2])
+        exists_in_older = False
+
+        # Check if an older sibling  (= previous z72 record for the same vendor) address is a substring of the current
+        # address value or if the current address is a substring of the address in an older sibling. This
+        # seems to be quite common for our data for some reason. In either case, the longer address is kept, the
+        # 'substring' address skipped.
+        for key in older_sibling.keys():
+            if key.startswith('address'):
+                if older_sibling[key] in current_address:
+                    older_sibling[key] = current_address
+                    exists_in_older = True
+                if current_address in older_sibling[key]:
+                    exists_in_older = True
+
+        if not exists_in_older:
+            older_sibling['address' + str(aleph_address_type)] = current_address
+
         existing_results[aleph_vendor_code] = older_sibling
     else:
         existing_results[aleph_vendor_code] = create_z72(query_result, aleph_address_type)
@@ -312,8 +328,8 @@ def write_data(data):
 
     with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
 
-        import_file.write('USE ' + mariadb.get_db_name() + ';')
-        mapping_file.write('USE ' + mariadb.get_db_name() + ';')
+        import_file.write('USE ' + mariadb.get_db_name() + ';\n\n')
+        mapping_file.write('USE ' + mariadb.get_db_name() + ';\n\n')
 
         mariadb.establish_connection()
 
