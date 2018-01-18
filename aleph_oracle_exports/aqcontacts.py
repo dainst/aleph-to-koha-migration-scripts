@@ -8,7 +8,7 @@ import oracle_helper.z72 as z72_helper
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mariadb_intermediate_values/00200_aqcontacts_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = './aleph_oracle_exports/ready_for_import/aqcontacts_data_import.sql'
@@ -66,8 +66,16 @@ def process_z72_result(previous_results, query_result):
 
         if parsed_z70_data['email'] != aqcontacts_data['email'].strip():
             logger.warning('Email provided in both z70 and z72, keeping value from z72.')
-            logger.warning('z70: ' + parsed_z70_data['email'])
-            logger.warning('z72: ' + aqcontacts_data['email'])
+            logger.warning(' z70: ' + parsed_z70_data['email'])
+            logger.warning(' z72: ' + aqcontacts_data['email'])
+            logger.warning(' Writing z70 variant to "notes".')
+            if aqcontacts_data['notes'] is None:
+                aqcontacts_data['notes'] = ''
+
+    if 'notes' in parsed_z70_data:
+        if aqcontacts_data['notes'] is None:
+            aqcontacts_data['notes'] = ''
+        aqcontacts_data['notes'] += ', ' + parsed_z70_data['notes']
 
     if all(value is None for value in aqcontacts_data.values()):
         return previous_results
@@ -168,12 +176,17 @@ def conflate_duplicates(results):
                             and value is not None
                             and not (value == 0 and updated_contact_list[-1][key] == 1)
                             and updated_contact_list[-1][key] != value):
-                        logger.warning('Unhandled case: 2 contacts with same name have both a different value set for')
-                        logger.warning(' name: ' + updated_contact_list[-1]['name'])
+                        logger.warning('Unhandled case: 2 contacts with same name have each a different value set for')
                         logger.warning(' key: ' + str(key))
-                        logger.warning(' first contact value: ' + str(value))
-                        logger.warning(' second contact value: ' + str(updated_contact_list[-1][key]))
-                        logger.warning('Second variant will be skipped.')
+                        logger.warning(' Name: ' + updated_contact_list[-1]['name'])
+                        logger.warning(' First contact value: ' + str(value))
+                        logger.warning(' Second contact value: ' + str(updated_contact_list[-1][key]))
+                        logger.warning(' Writing second variant to "notes".')
+
+                        if updated_contact_list[-1]['notes'] is None:
+                            updated_contact_list[-1]['notes'] = ''
+
+                        updated_contact_list[-1]['notes'] += ", " + value
 
             index += 1
 
