@@ -3,11 +3,6 @@ import sys
 
 import re
 
-import mappings.currency as currency
-import database_connections.mariadb as mariadb
-import database_connections.oracle as oracle
-import oracle_helper.z70 as z70_helper
-import oracle_helper.z72 as z72_helper
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -349,13 +344,29 @@ def write_data(data):
         cursor.close()
 
 
+def start(oracle_credentials):
+    results = fetch_data(oracle_credentials)
+    write_data(results)
+
+
 if __name__ == '__main__':
+
+    import mappings.currency as currency
+    import database_connections.mariadb as mariadb
+    import database_connections.oracle as oracle
+    import oracle_helper.z70 as z70_helper
+    import oracle_helper.z72 as z72_helper
+
 
     if len(sys.argv) != 2:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         sys.exit()
 
-    results = fetch_data(sys.argv[1])
-
-    write_data(results)
+    start(sys.argv[1])
+else:
+    import aleph_oracle_exports.mappings.currency as currency
+    import aleph_oracle_exports.database_connections.mariadb as mariadb
+    import aleph_oracle_exports.database_connections.oracle as oracle
+    import aleph_oracle_exports.oracle_helper.z70 as z70_helper
+    import aleph_oracle_exports.oracle_helper.z72 as z72_helper
