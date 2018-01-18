@@ -26,8 +26,6 @@ logger.setLevel(logging.DEBUG)
 
 
 TRIM_ADDRESS_REGEX = re.compile(r'\s{2,}', re.IGNORECASE)
-MONOGRAPH = 'MONOGRAPH'
-SERIAL = 'SERIAL'
 MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mariadb_intermediate_values/00100_aqbooksellers_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = './aleph_oracle_exports/ready_for_import/aqbooksellers_data_import.sql'
 
@@ -56,19 +54,6 @@ def parse_discount(discount):
     return float(discount[0:-2] + "." + discount[-2:])
 
 
-def create_z70_general(query_result):
-    result = {
-        'notes': escape_double_quotes(query_result[15]),
-        'discount': parse_discount(query_result[17]),
-        'currency': currency.map_from_currency(query_result[35], True),
-        'invoiceprice': currency.map_from_currency(query_result[35], True),
-        'listprice': currency.map_from_currency(query_result[35], True),
-        # weitere Währungen (query_result 36-38) fehlen aktuell
-    }
-
-    return result
-
-
 def create_z70_monograph(query_result):
     result = {
         'name': construct_name(query_result, '-monograph'),
@@ -82,8 +67,7 @@ def create_z70_monograph(query_result):
 def create_z70_serial(query_result):
     result = {
         'name': construct_name(query_result, '-serials'),
-        'deliverytime': query_result[26],
-        'accountnumber': query_result[29],
+
     }
 
     return result
@@ -93,16 +77,68 @@ def process_z70_result(existing_results, query_result):
 
     key = z70_helper.split_rec_key(query_result[0])[0]
 
-    general_result = create_z70_general(query_result)
-
-    existing_results[key] = {
-        MONOGRAPH: {
-            **general_result, ** create_z70_monograph(query_result)
-        },
-        SERIAL: {
-            **general_result, ** create_z70_serial(query_result)
-        }
+    result = {
+        'name': construct_name(query_result, ''),
+        'notes': escape_double_quotes(query_result[15]),
+        'discount': parse_discount(query_result[17]),
+        'currency': currency.map_from_currency(query_result[35], True),
+        'invoiceprice': currency.map_from_currency(query_result[35], True),
+        'listprice': currency.map_from_currency(query_result[35], True),
+        # weitere Währungen (query_result 36-38) fehlen aktuell
     }
+
+    monograph_data_exists = True
+    serials_data_exists = True
+
+    # Check if delays for monographs and serials are equal and if there exists an account for monographs (28) or
+    # serials (29).
+    if query_result[23] == query_result[26] and query_result[28] is None:
+        monograph_data_exists = False
+
+    if query_result[23] == query_result[26] and query_result[29] is None:
+        serials_data_exists = False
+    # If specific data exists for both monographs and serial orders, create two separate Koha booksellers for monographs
+    # and serials respectively.
+    if monograph_data_exists and serials_data_exists:
+        monograph_result = {
+            'name': construct_name(query_result, '-monograph'),
+            'deliverytime': query_result[23],
+            'accountnumber': query_result[28],
+        }
+
+        serials_result = {
+            'name': construct_name(query_result, '-monograph'),
+            'deliverytime': query_result[26],
+            'accountnumber': query_result[29],
+        }
+
+        existing_results[key] = {
+            'MONOGRAPH': {
+                **result, ** monograph_result
+            },
+            'SERIAL': {
+                **result, ** serials_result
+            }
+        }
+    # Otherwise create only one bookseller. Put data in if
+    elif monograph_data_exists:
+        result['deliverytime'] = query_result[23]
+        result['accountnumber'] = query_result[28]
+
+        existing_results[key] = {
+            'MONOGRAPH': result
+        }
+    elif serials_data_exists:
+        result['deliverytime'] = query_result[26]
+        result['accountnumber'] = query_result[29]
+
+        existing_results[key] = {
+            'SERIAL': result
+        }
+    else:
+        existing_results[key] = {
+            'UNSPECIFIED': result
+        }
     return existing_results
 
 
@@ -167,10 +203,10 @@ def sanity_check_table_results(z70_result, z72_result):
     diff_z72_z70 = set(z72_result.keys()) - set(z70_result.keys())
 
     if len(diff_z70_z72) != 0:
-        logger.error('Table z70 contains keys ' + str(diff_z70_z72) + ', but z72 does not. Removing data.')
+        logger.warning('Table z70 contains keys ' + str(diff_z70_z72) + ', but z72 does not.')
 
     if len(diff_z72_z70) != 0:
-        logger.error('Table z72 contains keys ' + str(diff_z72_z70) + ', but z70 does not. Removing data.')
+        logger.warning('Table z72 contains keys ' + str(diff_z72_z70) + ', but z70 does not. Removing data.')
         for key in diff_z72_z70:
             del z72_result[key]
 
@@ -181,14 +217,22 @@ def combine_table_results(z70_results, z72_results, hardcoded):
     result = dict()
 
     for key in z70_results.keys():
-        result[key] = {
-            MONOGRAPH: {
-                **z70_results[key][MONOGRAPH], **z72_results[key], **hardcoded
-            },
-            SERIAL: {
-                **z70_results[key][SERIAL], **z72_results[key], **hardcoded
-            },
-        }
+        for type_key in z70_results[key]:
+            temp = {
+                **z70_results[key][type_key],
+                **hardcoded
+            }
+
+            if key in z72_results:
+                temp = {
+                    **temp,
+                    **z72_results[key]
+                }
+
+            if key not in result:
+                result[key] = {}
+
+            result[key][type_key] = temp
 
     return result
 
@@ -268,6 +312,7 @@ def write_data(data):
 
     with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
 
+        import_file.write('USE ' + mariadb.get_db_name() + ';')
         mapping_file.write('USE ' + mariadb.get_db_name() + ';')
 
         mariadb.establish_connection()
@@ -276,19 +321,15 @@ def write_data(data):
 
         for aleph_key in data.keys():
 
-            import_file.write(generate_insert_statement(aleph_key, data[aleph_key][MONOGRAPH], False))
-            import_file.write(generate_insert_statement(aleph_key, data[aleph_key][SERIAL], False))
+            for type_key in data[aleph_key]:
+                import_file.write(generate_insert_statement(aleph_key, data[aleph_key][type_key], False))
 
-            mapping_monograph = generate_insert_statement(aleph_key, data[aleph_key][MONOGRAPH], True)
-            mapping_serial = generate_insert_statement(aleph_key, data[aleph_key][SERIAL], True)
+                mapping_statement = generate_insert_statement(aleph_key, data[aleph_key][type_key], True)
+                mapping_file.write(mapping_statement)
+                cursor.execute(mapping_statement)
 
-            mapping_file.write(mapping_monograph)
-            mapping_file.write(mapping_serial)
+                mariadb.commit()
 
-            cursor.execute(mapping_monograph)
-            cursor.execute(mapping_serial)
-
-        mariadb.commit()
         cursor.close()
 
 
