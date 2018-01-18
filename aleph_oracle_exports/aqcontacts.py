@@ -205,7 +205,7 @@ def write_data(data):
     cursor = mariadb.get_cursor()
     with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
 
-        mapping_file.write('USE ' + mariadb.get_db_name() + ';')
+        mapping_file.write(mariadb.get_use_statement())
 
         for aleph_key in data.keys():
 
