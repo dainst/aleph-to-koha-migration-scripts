@@ -80,6 +80,9 @@ def process_z72_result(previous_results, query_result):
     if all(value is None for value in aqcontacts_data.values()):
         return previous_results
 
+    if aqcontacts_data['notes'] is not None:
+        aqcontacts_data['notes'] = aqcontacts_data['notes'].replace('\"', '\'')
+
     if 'name' not in aqcontacts_data:
         aqcontacts_data['name'] = create_name_from_type(int(address_type))
 
