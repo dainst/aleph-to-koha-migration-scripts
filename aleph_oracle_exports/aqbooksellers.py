@@ -200,16 +200,19 @@ def fetch_data(connection_credentials):
 
     z70_result = dict()
     z70_data_cursor = oracle.get_z70()
+    logger.info('Processing data from z70 table...')
     for query_result in z70_data_cursor:
         z70_result = process_z70_result(z70_result, query_result)
     z70_data_cursor.close()
 
     z72_result = dict()
     z72_data_cursor = oracle.get_z72()
+    logger.info('Processing data from z72 table...')
     for query_result in z72_data_cursor:
         z72_result = process_z72_result(z72_result, query_result)
     z72_data_cursor.close()
 
+    # Make sure there are no orphaned z72 rows (missing a vendor in z70)
     [z70_result, z72_result] = sanity_check_table_results(z70_result, z72_result)
 
     hardcoded = {
