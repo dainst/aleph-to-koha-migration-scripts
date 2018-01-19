@@ -52,7 +52,7 @@ LIBRARY_KEY_MAPPING = {
     'PEK':   'DAIP',
     'SANAA': 'DAIS',
     'TEHER': 'DAIT',
-    'DEIA':  'DEAI',
+    'DEIA':  'DEIA',
     'DEIJ':  'DEIJ',
     'LUBL':  'BIAUL',
     'SCHW':  'BLDMV'
@@ -108,6 +108,7 @@ def rewrite_bibliographic_data(input_path, output_path, mapping):
                 record = update_library_and_site_key(record)
 
                 output_file.write(record.as_marc())
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
