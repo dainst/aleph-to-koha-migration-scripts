@@ -13,10 +13,6 @@ def get_db_name():
     return 'koha_mapping_db'
 
 
-def get_use_statement():
-    return 'USE ' + get_db_name() + ";\n\n"
-
-
 def get_cursor():
     global connection
 
