@@ -102,7 +102,7 @@ def process_z70_result(existing_results, query_result):
         }
 
         serials_result = {
-            'name': construct_name(query_result, '-monograph'),
+            'name': construct_name(query_result, '-serials'),
             'deliverytime': query_result[26],
             'accountnumber': query_result[29],
         }
