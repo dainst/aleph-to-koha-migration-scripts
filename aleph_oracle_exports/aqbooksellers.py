@@ -37,7 +37,7 @@ def construct_name(query_result, postfix):
     if query_result[33] is None:
         return escape_double_quotes(query_result[7] + postfix)
     else:
-        return escape_double_quotes(query_result[7] + '-' + query_result[33] + postfix)
+        return escape_double_quotes('[' + query_result[33] + ']' + query_result[7] + postfix)
 
 
 # Aleph saves discount as '9(3)V99', meaning a string of 5 chars, where the first 3 represent the integer values and
