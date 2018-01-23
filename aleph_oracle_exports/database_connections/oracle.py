@@ -45,3 +45,20 @@ def get_z72():
 
     cur = connection.cursor()
     return cur.execute('SELECT * FROM Z72')
+
+
+def get_z68():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z68')
+
+
+def get_open_z68_monograph():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
+                       'AND Z68_ORDER_STATUS!=:2 ' +
+                       'AND Z68_ORDER_STATUS!=:3 ' +
+                       'AND (Z68_ORDER_TYPE=:4 OR Z68_ORDER_TYPE=:5)', ('CLS', 'VC', 'CNB', 'M', 'O'))
