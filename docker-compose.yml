@@ -4,7 +4,7 @@ services:
   koha-mapping-db:
     container_name: koha_mapping_db
     build:
-      context: ./aleph_oracle_exports
+      context: lib
     ports:
       - '3307:3306'
     volumes:

@@ -238,7 +238,7 @@ if __name__ == '__main__':
     start(sys.argv[1])
 
 else:
-    import aleph_oracle_exports.database_connections.mariadb as mariadb
-    import aleph_oracle_exports.database_connections.oracle as oracle
-    import aleph_oracle_exports.oracle_helper.z70 as z70_helper
-    import aleph_oracle_exports.oracle_helper.z72 as z72_helper
+    import lib.database_connections.mariadb as mariadb
+    import lib.database_connections.oracle as oracle
+    import lib.oracle_helper.z70 as z70_helper
+    import lib.oracle_helper.z72 as z72_helper

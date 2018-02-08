@@ -1,6 +1,6 @@
 import logging
 import sys
-from aleph_oracle_exports import aqbooksellers, aqcontacts
+from lib import aqbooksellers, aqcontacts
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)

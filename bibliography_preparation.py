@@ -3,6 +3,7 @@ from pymarc import MARCReader
 import logging
 import sys
 import os
+import lib.mappings.library_keys as library_keys
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -28,35 +29,6 @@ AUTHORITY_CONTROL_FIELDS_MAPPING = [
     ('150', '650'),                                 # Topical Term
     ('151', '651')                  # Geographic Name
 ]
-
-# LIBRARY_KEY_MAPPING
-#   Mapping of old library keys in Aleph to the refactored ones in Koha.
-
-LIBRARY_KEY_MAPPING = {
-    'BAYS':  'BASSM',
-    'BSA':   'BBSA',
-    'WINCK': 'BWINCK',
-    'ZADAR': 'BICUAZ',
-    'ATHEN': 'DAIA',
-    'EURAS': 'DAIE',
-    'DAI':   'DAIG',
-    'ISTAN': 'DAII',
-    'BONN':  'DAIB',
-    'KAIRO': 'DAIK',
-    'MADRD': 'DAIM',
-    'ORIEN': 'DAIO',
-    'RGK':   'DAIF',
-    'ROM':   'DAIR',
-    'ZENTR': 'DAIZ',
-    'DAMAS': 'DAID',
-    'PEK':   'DAIP',
-    'SANAA': 'DAIS',
-    'TEHER': 'DAIT',
-    'DEIA':  'DEIA',
-    'DEIJ':  'DEIJ',
-    'LUBL':  'BIAUL',
-    'SCHW':  'BLDMV'
-}
 
 
 def create_mapping(file_path):
@@ -87,10 +59,10 @@ def update_library_and_site_key(record):
     for f in record.get_fields('952'):
         if f['a'] is not None:
             old_key = str(f['a'])
-            f['a'] = LIBRARY_KEY_MAPPING[old_key]
+            f['a'] = library_keys.map_aleph_key(old_key)
             if f['c'] is not None:
                 old_site = str(f['c'])
-                f['c'] = old_site.replace(old_key, LIBRARY_KEY_MAPPING[old_key], 1)
+                f['c'] = old_site.replace(old_key, library_keys.map_aleph_key(old_key), 1)
 
     return record
 

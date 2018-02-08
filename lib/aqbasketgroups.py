@@ -132,6 +132,6 @@ if __name__ == '__main__':
 
     start(sys.argv[1])
 else:
-    import aleph_oracle_exports.mappings.library_keys as library_keys
-    import aleph_oracle_exports.database_connections.mariadb as mariadb
-    import aleph_oracle_exports.database_connections.oracle as oracle
+    import lib.mappings.library_keys as library_keys
+    import lib.database_connections.mariadb as mariadb
+    import lib.database_connections.oracle as oracle
