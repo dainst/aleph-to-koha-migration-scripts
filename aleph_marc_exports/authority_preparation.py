@@ -25,10 +25,10 @@ def write_record(output_file, record):
     else:
         record.add_field(
             Field(
-                tag = '035',
-                indicators = [' ', ' '],
-                subfields = [
-                    'a', str(record['001'].data)
+                tag='035',
+                indicators=[' ', ' '],
+                subfields=[
+                    'a', '(ALEPH)' + str(record['001'].data)
                 ]))
         output_file.write(record.as_marc())
 
@@ -55,6 +55,7 @@ def run_filter(input_path, output_path):
 
     logger.info('Internal control numbers (field 001) saved to 035a.')
     logger.info(str(duplicates_counter) + ' duplicates found & filtered out.')
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
