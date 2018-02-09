@@ -1,4 +1,4 @@
-from pymarc import MARCReader, XMLWriter
+from pymarc import MARCReader
 
 import logging
 import sys
