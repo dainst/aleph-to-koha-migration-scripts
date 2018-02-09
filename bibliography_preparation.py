@@ -1,4 +1,4 @@
-from pymarc import MARCReader
+from pymarc import MARCReader, XMLWriter
 
 import logging
 import sys
@@ -7,7 +7,7 @@ import lib.mappings.library_keys as library_keys
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # This script currently the following purposes:
 #   1) Mapping viable headings in the bibliographic data via String comparison (what Aleph also does internally)
@@ -22,12 +22,12 @@ logger.setLevel(logging.DEBUG)
 #   https://www.loc.gov/marc/bibliographic/
 
 AUTHORITY_CONTROL_FIELDS_MAPPING = [
-    ('100', '100'), ('100', '600'), ('100', '700'), # Personal Name
-    ('110', '110'), ('110', '610'), ('110', '710'), # Corporate Name
-    ('111', '111'), ('111', '611'), ('111', '711'), # Meeting Name
-    ('130', '130'), ('130', '630'), ('130', '730'), # Uniform Title
-    ('150', '650'),                                 # Topical Term
-    ('151', '651')                  # Geographic Name
+    ('100', '100'), ('100', '600'), ('100', '700'),  # Personal Name
+    ('110', '110'), ('110', '610'), ('110', '710'),  # Corporate Name
+    ('111', '111'), ('111', '611'), ('111', '711'),  # Meeting Name
+    ('130', '130'), ('130', '630'), ('130', '730'),  # Uniform Title
+    ('150', '650'),                                  # Topical Term
+    ('151', '651')                                   # Geographic Name
 ]
 
 
@@ -55,14 +55,48 @@ def update_authority_mapping(record, mapping):
     return record
 
 
+''' Koha expects the item information in field 952
+* 952a: holding library
+* 952b: owning library
+* 952c: shelving location
+'''
+
+
 def update_library_and_site_key(record):
     for f in record.get_fields('952'):
-        if f['a'] is not None:
-            old_key = str(f['a'])
-            f['a'] = library_keys.map_aleph_key(old_key)
-            if f['c'] is not None:
-                old_site = str(f['c'])
-                f['c'] = old_site.replace(old_key, library_keys.map_aleph_key(old_key), 1)
+
+        old_holding_library_key = None
+
+        if 'a' in f:
+            old_holding_library_key = str(f['a'])
+            f['a'] = library_keys.map_aleph_key(old_holding_library_key)
+        else:
+            logger.debug('No holding library key found for record: ')
+            logger.debug(str(record.as_json()))
+
+        if 'b' in f:
+            old_owning_library_key = str(f['b'])
+
+            if old_holding_library_key is None:
+                logger.debug('Setting owning library as holding library.')
+                f.add_subfield('a', library_keys.map_aleph_key(old_owning_library_key))
+
+            f['b'] = library_keys.map_aleph_key(old_owning_library_key)
+        else:
+            logger.debug('Setting holding library as owning library.')
+            f.add_subfield('b', library_keys.map_aleph_key(old_holding_library_key))
+
+        if 'a' not in f or 'b' not in f:
+            logger.error('No valid library key for record: ')
+            logger.error(str(record.as_json()))
+
+        if 'c' in f:
+            f['c'] = str(f['a']) + ' ' + str(f['c'])
+        else:
+            logger.warning('No shelving location for record:')
+            logger.warning(' ' + str(record['001'].data))
+            logger.warning(' field:')
+            logger.warning(' ' + str(f))
 
     return record
 
