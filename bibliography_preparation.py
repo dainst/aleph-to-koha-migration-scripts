@@ -113,6 +113,8 @@ def rewrite_bibliographic_data(input_path, output_path, mapping):
                 record = update_authority_mapping(record, mapping)
                 record = update_library_and_site_key(record)
 
+                # TODO: instead of deleting 999, move to different fields/subfields
+                record.remove_fields('999')
                 output_file.write(record.as_marc())
 
 
