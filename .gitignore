@@ -4,8 +4,8 @@
 
 # (Intermediate) result data
 
-aleph_oracle_exports/ready_for_import/*.sql
-aleph_oracle_exports/mariadb_intermediate_values/*.sql
+lib/ready_for_import/*.sql
+lib/mariadb_intermediate_values/*.sql
 # Python 
 
 **/__pycache__

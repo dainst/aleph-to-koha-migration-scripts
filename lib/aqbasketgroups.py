@@ -1,12 +1,19 @@
 import logging
 import sys
+import os
+
+import lib.mappings.library_keys as library_keys
+import lib.database_connections.mariadb as mariadb
+import lib.database_connections.oracle as oracle
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mariadb_intermediate_values/00300_aqbasketgroups_data_mapping.sql'
-IMPORT_SQL_OUTPUT_PATH = './aleph_oracle_exports/ready_for_import/aqbasketgroups_data_import.sql'
+script_dir = os.path.dirname(__file__)
+
+MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/00300_aqbasketgroups_data_mapping.sql'
+IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbasketgroups_data_import.sql'
 
 
 def construct_name(query_result):
@@ -120,18 +127,9 @@ def start(credentials):
 
 
 if __name__ == '__main__':
-
-    import mappings.library_keys as library_keys
-    import database_connections.mariadb as mariadb
-    import database_connections.oracle as oracle
-
     if len(sys.argv) != 2:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         sys.exit()
 
     start(sys.argv[1])
-else:
-    import lib.mappings.library_keys as library_keys
-    import lib.database_connections.mariadb as mariadb
-    import lib.database_connections.oracle as oracle

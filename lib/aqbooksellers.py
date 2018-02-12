@@ -2,7 +2,13 @@ import logging
 import sys
 
 import re
+import os
 
+import lib.database_connections.mariadb as mariadb
+import lib.database_connections.oracle as oracle
+import lib.mappings.currency as currency
+import lib.oracle_helper.z70 as z70_helper
+import lib.oracle_helper.z72 as z72_helper
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -21,8 +27,11 @@ logger.setLevel(logging.DEBUG)
 
 
 TRIM_ADDRESS_REGEX = re.compile(r'\s{2,}', re.IGNORECASE)
-MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mariadb_intermediate_values/00100_aqbooksellers_data_mapping.sql'
-IMPORT_SQL_OUTPUT_PATH = './aleph_oracle_exports/ready_for_import/aqbooksellers_data_import.sql'
+script_dir = os.path.dirname(__file__)
+
+MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/00100_aqbooksellers_data_mapping.sql'
+IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbooksellers_data_import.sql'
+
 
 
 def escape_double_quotes(string):
@@ -350,22 +359,9 @@ def start(oracle_credentials):
 
 if __name__ == '__main__':
 
-    import mappings.currency as currency
-    import database_connections.mariadb as mariadb
-    import database_connections.oracle as oracle
-    import oracle_helper.z70 as z70_helper
-    import oracle_helper.z72 as z72_helper
-
-
     if len(sys.argv) != 2:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         sys.exit()
 
     start(sys.argv[1])
-else:
-    import lib.mappings.currency as currency
-    import lib.database_connections.mariadb as mariadb
-    import lib.database_connections.oracle as oracle
-    import lib.oracle_helper.z70 as z70_helper
-    import lib.oracle_helper.z72 as z72_helper

@@ -1,5 +1,4 @@
 import logging
-
 import re
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
@@ -42,7 +41,7 @@ def parse_contact_fields(z70_data):
                             if 'notes' not in result:
                                 result['notes'] = ''
                             result['notes'] += ', ' + rest
-                elif len(value.strip()) > 20:
+                elif len(value.strip()) > 40:
                     logger.warning('Unable to decide what this is, string is too long:')
                     logger.warning(value)
                     logger.warning(' VENDOR_KEY: ' + z70_query_result[0])

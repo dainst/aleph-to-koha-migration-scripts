@@ -1,13 +1,20 @@
 import logging
 import sys
+import os
 
+import lib.database_connections.mariadb as mariadb
+import lib.database_connections.oracle as oracle
+import lib.oracle_helper.z70 as z70_helper
+import lib.oracle_helper.z72 as z72_helper
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-MAPPING_SQL_OUTPUT_PATH = './aleph_oracle_exports/mariadb_intermediate_values/00200_aqcontacts_data_mapping.sql'
-IMPORT_SQL_OUTPUT_PATH = './aleph_oracle_exports/ready_for_import/aqcontacts_data_import.sql'
+script_dir = os.path.dirname(__file__)
+
+MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/00200_aqcontacts_data_mapping.sql'
+IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqcontacts_data_import.sql'
 
 
 def map_boolean_to_0_or_1(boolean_value):
@@ -81,6 +88,8 @@ def process_z72_result(previous_results, query_result):
 
     if 'name' not in aqcontacts_data:
         aqcontacts_data['name'] = create_name_from_type(int(address_type))
+
+    aqcontacts_data['name'] = aqcontacts_data['name'].replace('\"', '\'')
 
     aqcontacts_data['orderacquisition'] = map_boolean_to_0_or_1(int(address_type) == 1)
     aqcontacts_data['claimacquisition'] = map_boolean_to_0_or_1(int(address_type) == 2)
@@ -230,15 +239,4 @@ if __name__ == '__main__':
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         sys.exit()
 
-    import database_connections.mariadb as mariadb
-    import database_connections.oracle as oracle
-    import oracle_helper.z70 as z70_helper
-    import oracle_helper.z72 as z72_helper
-
     start(sys.argv[1])
-
-else:
-    import lib.database_connections.mariadb as mariadb
-    import lib.database_connections.oracle as oracle
-    import lib.oracle_helper.z70 as z70_helper
-    import lib.oracle_helper.z72 as z72_helper
