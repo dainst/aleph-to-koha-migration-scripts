@@ -65,58 +65,89 @@ def fetch_data(credentials):
 
     return z68_result
 
+def get_insert_statements(data_list, table_name, table_column_names):
+    mapping_table_statement = import_table_statement = 'INSERT INTO ' + table_name + ' ('
+    keys_len = len(table_column_names)
 
-def generate_insert_statement(aleph_key, data, produce_mapping_table):
-    statement = 'INSERT INTO aqbasketgroups ('
+    for idx, key in enumerate(table_column_names):
 
-    keys = data.keys()
-    keys_len = len(keys)
-    for idx, key in enumerate(keys):
         if idx == keys_len - 1:
-            statement += key
+            import_table_statement += key
 
-            if produce_mapping_table:
-                statement += ', ALEPH_REC_KEY'
+            mapping_table_statement += key
+            mapping_table_statement += ', ALEPH_REC_KEY'
         else:
-            statement += key + ','
+            import_table_statement += key + ','
+            mapping_table_statement += key + ','
 
-    statement += ') VALUES('
+    import_table_statement += ')\nVALUES'
+    mapping_table_statement += ')\nVALUES'
 
-    for idx, key in enumerate(keys):
-        if idx == keys_len - 1:
-            statement += '"' + str(data[key]) + '"'
-            if produce_mapping_table:
-                statement += ', "' + aleph_key + '"'
-        else:
-            statement += '"' + str(data[key]) + '",'
+    counter = 0
 
-    statement += ')'
-    statement += ';\n'
+    for aleph_key in data_list:
+        basketgroup = data_list[aleph_key]
+        if counter != 0:
+            import_table_statement += ','
+            mapping_table_statement += ','
 
-    return statement
+        import_table_statement += '\n('
+        mapping_table_statement += '\n('
+
+        for idx, key in enumerate(table_column_names):
+            if idx == keys_len - 1:
+
+                if key in basketgroup and basketgroup[key] is not None:
+                    import_table_statement += '"' + str(basketgroup[key]) + '"'
+                    mapping_table_statement += '"' + str(basketgroup[key]) + '"'
+                else:
+                    import_table_statement += 'NULL'
+                    mapping_table_statement += 'NULL'
+
+                mapping_table_statement += ', "' + aleph_key + '"'
+            else:
+
+                if key in basketgroup and basketgroup[key] is not None:
+                    import_table_statement += '"' + str(basketgroup[key]) + '",'
+                    mapping_table_statement += '"' + str(basketgroup[key]) + '",'
+                else:
+                    import_table_statement += 'NULL,'
+                    mapping_table_statement += 'NULL,'
+
+        import_table_statement += ')'
+        mapping_table_statement += ')'
+
+        counter = counter + 1
+
+    import_table_statement += ';\n'
+    mapping_table_statement += ';\n'
+
+    return [import_table_statement, mapping_table_statement]
 
 
 def write_data(data):
     logger.info('Writing data to file and mapping database.')
 
+    database_columns = [
+        'name', 'closed', 'booksellerid', 'deliveryplace', 'freedeliveryplace', 'deliverycomment', 'billingplace'
+    ]
+
     with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
 
         mapping_file.write('USE ' + mariadb.get_db_name() + ";\n\n")
-
         mariadb.establish_connection()
 
         cursor = mariadb.get_cursor()
 
-        for aleph_key in data.keys():
+        [import_table_statement, mapping_table_statement] = \
+            get_insert_statements(data, 'aqbasketgroups', database_columns)
 
-            import_file.write(generate_insert_statement(aleph_key, data[aleph_key], False))
-            mapping_statement = generate_insert_statement(aleph_key, data[aleph_key], True)
+        import_file.write(import_table_statement)
 
-            mapping_file.write(mapping_statement)
-            cursor.execute(mapping_statement)
+        mapping_file.write(mapping_table_statement)
+        cursor.execute(mapping_table_statement)
 
-            mariadb.commit()
-
+        mariadb.commit()
         cursor.close()
 
 
