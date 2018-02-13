@@ -33,7 +33,6 @@ MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/00100_aqboo
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbooksellers_data_import.sql'
 
 
-
 def escape_double_quotes(string):
     if string is None:
         return None
@@ -297,34 +296,70 @@ def fetch_data(connection_credentials):
     return combined_results
 
 
-def generate_insert_statement(aleph_key, data, produce_mapping_table):
-    statement = 'INSERT INTO aqbooksellers ('
+def generate_insert_statements(data_list):
+    database_columns = [
+        'name', 'address1', 'address2', 'address3', 'address4', 'phone', 'accountnumber', 'othersupplier', 'currency',
+        'booksellerfax', 'notes', 'bookselleremail', 'booksellerurl', 'postal', 'url', 'active', 'listprice',
+        'invoiceprice', 'gstreg', 'listincgst', 'invoiceincgst', 'tax_rate', 'discount', 'fax', 'deliverytime'
+    ]
 
-    keys = data.keys()
-    keys_len = len(keys)
-    for idx, key in enumerate(keys):
+    mapping_table_statement = import_table_statement = 'INSERT INTO aqbooksellers ('
+
+    keys_len = len(database_columns)
+    for idx, key in enumerate(database_columns):
         if idx == keys_len - 1:
-            statement += key
-
-            if produce_mapping_table:
-                statement += ', ALEPH_VENDOR_KEY'
+            import_table_statement += key
+            mapping_table_statement += key
+            mapping_table_statement += ', ALEPH_VENDOR_KEY'
         else:
-            statement += key + ','
+            import_table_statement += key + ','
+            mapping_table_statement += key + ','
 
-    statement += ') VALUES('
+    import_table_statement += ')\nVALUES'
+    mapping_table_statement += ')\nVALUES'
 
-    for idx, key in enumerate(keys):
-        if idx == keys_len - 1:
-            statement += '"' + str(data[key]) + '"'
-            if produce_mapping_table:
-                statement += ', "' + aleph_key + '"'
-        else:
-            statement += '"' + str(data[key]) + '",'
+    counter = 0
 
-    statement += ')'
-    statement += ';\n'
+    for aleph_key in data_list:
+        data = data_list[aleph_key]
 
-    return statement
+        for type_key in data:
+            current_data = data[type_key]
+            if counter != 0:
+                import_table_statement += ','
+                mapping_table_statement += ','
+
+            import_table_statement += '\n('
+            mapping_table_statement += '\n('
+            for idx, key in enumerate(database_columns):
+                if idx == keys_len - 1:
+
+                    if key in current_data and current_data[key] is not None:
+                        import_table_statement += '"' + str(current_data[key]) + '"'
+                        mapping_table_statement += '"' + str(current_data[key]) + '"'
+                    else:
+                        import_table_statement += 'NULL'
+                        mapping_table_statement += 'NULL'
+
+                    mapping_table_statement += ', "' + aleph_key + '"'
+                else:
+
+                    if key in current_data and current_data[key] is not None:
+                        import_table_statement += '"' + str(current_data[key]) + '",'
+                        mapping_table_statement += '"' + str(current_data[key]) + '",'
+                    else:
+                        import_table_statement += 'NULL,'
+                        mapping_table_statement += 'NULL,'
+
+            import_table_statement += ')'
+            mapping_table_statement += ')'
+
+        counter = counter + 1
+
+    import_table_statement += ';\n'
+    mapping_table_statement += ';\n'
+
+    return [import_table_statement, mapping_table_statement]
 
 
 def write_data(data):
@@ -338,16 +373,13 @@ def write_data(data):
 
         cursor = mariadb.get_cursor()
 
-        for aleph_key in data.keys():
+        sql_statements = generate_insert_statements(data)
 
-            for type_key in data[aleph_key]:
-                import_file.write(generate_insert_statement(aleph_key, data[aleph_key][type_key], False))
+        import_file.write(sql_statements[0])
+        mapping_file.write(sql_statements[1])
+        cursor.execute(sql_statements[1])
 
-                mapping_statement = generate_insert_statement(aleph_key, data[aleph_key][type_key], True)
-                mapping_file.write(mapping_statement)
-                cursor.execute(mapping_statement)
-
-                mariadb.commit()
+        mariadb.commit()
 
         cursor.close()
 
