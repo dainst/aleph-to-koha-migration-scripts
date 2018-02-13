@@ -9,7 +9,7 @@ import lib.oracle_helper.z72 as z72_helper
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 script_dir = os.path.dirname(__file__)
 
@@ -121,43 +121,6 @@ def fetch_data(credentials):
     return z72_result
 
 
-def generate_insert_statement(aleph_key, data, produce_mapping_table):
-    statement = 'INSERT INTO aqcontacts ('
-    keys = data.keys()
-    keys_len = len(data)
-    for idx, key in enumerate(keys):
-
-        if data[key] is None:
-            continue
-
-        if idx == keys_len - 1:
-            statement += key
-
-            if produce_mapping_table:
-                statement += ', ALEPH_VENDOR_KEY'
-        else:
-            statement += key + ','
-
-    statement += ') VALUES('
-
-    for idx, key in enumerate(keys):
-
-        if data[key] is None:
-            continue
-
-        if idx == keys_len - 1:
-            statement += '"' + str(data[key]) + '"'
-            if produce_mapping_table:
-                statement += ', "' + str(aleph_key) + '"'
-        else:
-            statement += '"' + str(data[key]) + '",'
-
-    statement += ')'
-    statement += ';\n'
-
-    return statement
-
-
 def conflate_duplicates(results):
 
     updated_results = {}
@@ -202,6 +165,74 @@ def conflate_duplicates(results):
     return updated_results
 
 
+def generate_insert_statements(data_list):
+
+    database_columns = [
+        'name', 'position', 'phone', 'altphone', 'fax', 'email', 'notes', 'orderacquisition', 'claimacquisition',
+        'claimissues', 'acqprimary', 'serialsprimary', 'booksellerid'
+    ]
+
+    mapping_table_statement = import_table_statement = 'INSERT INTO aqcontacts ('
+    keys_len = len(database_columns)
+
+    for idx, key in enumerate(database_columns):
+
+        if idx == keys_len - 1:
+
+            import_table_statement += key
+
+            mapping_table_statement += key
+            mapping_table_statement += ', ALEPH_VENDOR_KEY'
+        else:
+            import_table_statement += key + ','
+            mapping_table_statement += key + ','
+
+    import_table_statement += ')\nVALUES'
+    mapping_table_statement += ')\nVALUES'
+
+    counter = 0
+
+    for aleph_key in data_list:
+        contacts = data_list[aleph_key]
+        for contact in contacts:
+            if counter != 0:
+                import_table_statement += ','
+                mapping_table_statement += ','
+
+            import_table_statement += '\n('
+            mapping_table_statement += '\n('
+
+            for idx, key in enumerate(database_columns):
+                if idx == keys_len - 1:
+
+                    if key in contact and contact[key] is not None:
+                        import_table_statement += '"' + str(contact[key]) + '"'
+                        mapping_table_statement += '"' + str(contact[key]) + '"'
+                    else:
+                        import_table_statement += 'NULL'
+                        mapping_table_statement += 'NULL'
+
+                    mapping_table_statement += ', "' + aleph_key + '"'
+                else:
+
+                    if key in contact and contact[key] is not None:
+                        import_table_statement += '"' + str(contact[key]) + '",'
+                        mapping_table_statement += '"' + str(contact[key]) + '",'
+                    else:
+                        import_table_statement += 'NULL,'
+                        mapping_table_statement += 'NULL,'
+
+            import_table_statement += ')'
+            mapping_table_statement += ')'
+
+            counter = counter + 1
+
+    import_table_statement += ';\n'
+    mapping_table_statement += ';\n'
+
+    return [import_table_statement, mapping_table_statement]
+
+
 def write_data(data):
     logger.info('Writing data to file and mapping database.')
 
@@ -212,16 +243,12 @@ def write_data(data):
 
         mapping_file.write('USE ' + mariadb.get_db_name() + ";\n\n")
 
-        for aleph_key in data.keys():
+        statements = generate_insert_statements(data)
 
-            for contact in data[aleph_key]:
+        import_file.write(statements[0])
+        mapping_file.write(statements[1])
 
-                import_file.write(generate_insert_statement(aleph_key, contact, False))
-
-                mapping_statement = generate_insert_statement(aleph_key, contact, True)
-
-                mapping_file.write(mapping_statement)
-                cursor.execute(mapping_statement)
+        cursor.execute(statements[1])
 
     mariadb.commit()
 
