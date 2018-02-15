@@ -17,7 +17,14 @@ IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbasketgroups_data_imp
 
 
 def construct_name(query_result):
-    return "[aleph order]" + query_result[0]
+    name = '[aleph order]' + query_result[2]
+
+    if query_result[3] is not None:
+        name += '-' + query_result[3]
+    if query_result[4] is not None:
+        name += '-' + query_result[4]
+
+    return name
 
 
 def process_z68_data(existing_results, query_result):
