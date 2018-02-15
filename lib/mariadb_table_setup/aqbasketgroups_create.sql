@@ -9,7 +9,7 @@ CREATE TABLE `aqbasketgroups` (
   `freedeliveryplace` text COLLATE utf8_unicode_ci DEFAULT NULL,
   `deliverycomment` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `billingplace` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `ALEPH_REC_KEY` varchar(25) NOT NULL,
+  `Z68_DOC_NUMBER` varchar(25) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `booksellerid` (`booksellerid`),
   CONSTRAINT `aqbasketgroups_ibfk_1` FOREIGN KEY (`booksellerid`) REFERENCES `aqbooksellers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE

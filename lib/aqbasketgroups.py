@@ -61,7 +61,7 @@ def process_z68_data(existing_results, query_result):
     result['deliveryplace'] = library_keys.map_aleph_key(query_result[12].strip())
     result['billingplace'] = library_keys.map_aleph_key(query_result[12].strip())
 
-    existing_results[query_result[0]] = result
+    existing_results[query_result[0][0:9]] = result
 
     return existing_results
 
@@ -88,6 +88,7 @@ def fetch_data(credentials):
 
     return z68_result
 
+
 def get_insert_statements(data_list, table_name, table_column_names):
     mapping_table_statement = import_table_statement = 'INSERT INTO ' + table_name + ' ('
     keys_len = len(table_column_names)
@@ -98,7 +99,7 @@ def get_insert_statements(data_list, table_name, table_column_names):
             import_table_statement += key
 
             mapping_table_statement += key
-            mapping_table_statement += ', ALEPH_REC_KEY'
+            mapping_table_statement += ',Z68_DOC_NUMBER'
         else:
             import_table_statement += key + ','
             mapping_table_statement += key + ','
