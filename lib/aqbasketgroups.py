@@ -31,6 +31,10 @@ def process_z68_data(existing_results, query_result):
 
     result = dict()
 
+    if query_result[12] is None or library_keys.map_aleph_key(query_result[12].strip()) is None:
+        logger.warning('No branch information for order ' + query_result[0] + '. Skipping...')
+        return existing_results
+
     vendor_key = query_result[25]
 
     if vendor_key is None:
