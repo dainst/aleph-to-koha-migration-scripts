@@ -40,7 +40,13 @@ def process_z68_data(existing_results, query_result):
         return existing_results
 
     result['name'] = construct_name(query_result)
-    result['closed'] = 0
+
+    aleph_order_date = int(query_result[15])
+    if aleph_order_date != 0:
+        result['closed'] = 1
+    else:
+        result['closed'] = 0
+
     result['booksellerid'] = mariadb.get_aqbookseller_by_aleph_key(vendor_key)[0]
     result['deliveryplace'] = library_keys.map_aleph_key(query_result[12].strip())
     result['billingplace'] = library_keys.map_aleph_key(query_result[12].strip())
