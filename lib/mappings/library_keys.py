@@ -1,3 +1,9 @@
+import logging
+
+logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 LIBRARY_KEY_MAPPING = {
     'BAYS':  'BASSM',
     'BSA':   'BBSA',
@@ -26,4 +32,7 @@ LIBRARY_KEY_MAPPING = {
 
 
 def map_aleph_key(aleph_key):
+    if aleph_key not in LIBRARY_KEY_MAPPING:
+        logger.warning('No library key matches: "' + aleph_key + '"')
+        return None
     return LIBRARY_KEY_MAPPING[aleph_key]
