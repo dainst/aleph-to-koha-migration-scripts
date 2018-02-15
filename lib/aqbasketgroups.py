@@ -20,7 +20,7 @@ def construct_name(query_result):
     return "[aleph order]" + query_result[0]
 
 
-def process_68_data(existing_results, query_result):
+def process_z68_data(existing_results, query_result):
 
     result = dict()
 
@@ -51,9 +51,9 @@ def fetch_data(credentials):
 
     z68_result = dict()
     z68_data_cursor = oracle.get_open_z68_monograph()
-    logger.info('Processing data from z70 table...')
+    logger.info('Processing data from z68 table...')
     for query_result in z68_data_cursor:
-        z68_result = process_68_data(z68_result, query_result)
+        z68_result = process_z68_data(z68_result, query_result)
 
     z68_data_cursor.close()
 
