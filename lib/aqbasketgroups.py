@@ -17,12 +17,18 @@ IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbasketgroups_data_imp
 
 
 def construct_name(query_result):
-    name = '[aleph order]' + query_result[2]
+    name = '[aleph order]' + query_result[2].strip()
 
-    if query_result[3] is not None:
-        name += '-' + query_result[3]
-    if query_result[4] is not None:
-        name += '-' + query_result[4]
+    if query_result[3] is not None and query_result[3].strip() not in name:
+        name += '-' + query_result[3].strip()
+    if query_result[4] is not None and query_result[4].strip() not in name:
+        name += '-' + query_result[4].strip()
+
+    if len(name) > 50: # Koha table is varchar(50)
+        logger.warning('Basketgroup name is too long, cutting to 50 chars: ')
+        logger.warning(' ' + name)
+        name = name[0:50]
+        logger.warning(' ' + name)
 
     return name
 
