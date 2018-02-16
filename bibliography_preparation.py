@@ -21,7 +21,7 @@ logger.setLevel(logging.INFO)
 #   https://www.loc.gov/marc/authority/
 #   https://www.loc.gov/marc/bibliographic/
 
-AUTHORITY_CONTROL_FIELDS_MAPPING = [
+AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING = [
     ('100', '100'), ('100', '600'), ('100', '700'),  # Personal Name
     ('110', '110'), ('110', '610'), ('110', '710'),  # Corporate Name
     ('111', '111'), ('111', '611'), ('111', '711'),  # Meeting Name
@@ -31,28 +31,28 @@ AUTHORITY_CONTROL_FIELDS_MAPPING = [
 ]
 
 
-def create_mapping(file_path):
-    new_mapping = {}
+def create_authority_heading_to_authority_id_mapping(file_path):
+    result = {}
     with open(file_path, 'rb') as authority_file:
         reader = MARCReader(authority_file, force_utf8=True)
-        for record in reader:
-            for field in AUTHORITY_CONTROL_FIELDS_MAPPING:
+        for authority_record in reader:
+            for field in AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
                 auth_field = field[0]
-                if record[auth_field] is not None:
-                    key = record[auth_field].as_marc('utf-8')
-                    new_mapping[key] = record['001'].data
+                if authority_record[auth_field] is not None:
+                    heading = authority_record[auth_field].as_marc('utf-8')
+                    result[heading] = authority_record['001'].data
 
-    return new_mapping
+    return result
 
 
-def update_authority_mapping(record, mapping):
-    for field in AUTHORITY_CONTROL_FIELDS_MAPPING:
-        for f in record.get_fields(field[1]):
-            koha_id = mapping.get(f.as_marc('utf8'))
+def link_bibliographic_headings_to_koha_authority_ids(bibliographic_record, heading_to_authority_id_mapping):
+    for field in AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
+        for bibliographic_record_field in bibliographic_record.get_fields(field[1]):
+            koha_id = heading_to_authority_id_mapping.get(bibliographic_record_field.as_marc('utf8'))
             if koha_id is not None:
-                f.add_subfield('9', koha_id)
+                bibliographic_record_field.add_subfield('9', koha_id)
 
-    return record
+    return bibliographic_record
 
 
 ''' Koha expects the item information in field 952
@@ -62,7 +62,7 @@ def update_authority_mapping(record, mapping):
 '''
 
 
-def update_library_and_site_key(record):
+def update_library_and_shelving_location_keys(record):
     for f in record.get_fields('952'):
 
         old_holding_library_key = None
@@ -101,8 +101,8 @@ def update_library_and_site_key(record):
     return record
 
 
-def rewrite_bibliographic_data(input_path, output_path, mapping):
-    if not os.path.exists(os.path.dirname(output_path)):
+def process_bibliographic_data(input_path, output_path, mapping):
+    if not os.path.exists(os.path.dirname(output_path)) and os.path.dirname(output_path) != '':
         os.makedirs(os.path.dirname(output_path))
 
     with open(input_path, 'rb') as input_file:
@@ -110,8 +110,8 @@ def rewrite_bibliographic_data(input_path, output_path, mapping):
             reader = MARCReader(input_file, force_utf8=True)
             for record in reader:
 
-                record = update_authority_mapping(record, mapping)
-                record = update_library_and_site_key(record)
+                record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
+                record = update_library_and_shelving_location_keys(record)
 
                 # TODO: instead of deleting 999, move to different fields/subfields
                 record.remove_fields('999')
@@ -127,4 +127,4 @@ if __name__ == '__main__':
         logger.info("3) Path/filename for filtered results.")
         sys.exit()
 
-    rewrite_bibliographic_data(sys.argv[1], sys.argv[3], create_mapping(sys.argv[2]))
+    process_bibliographic_data(sys.argv[1], sys.argv[3], create_authority_heading_to_authority_id_mapping(sys.argv[2]))
