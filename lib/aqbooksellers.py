@@ -146,7 +146,7 @@ def process_z70_result(existing_results, query_result):
 
 
 # Addresses in Aleph can contain a lot of whitespaces between relevant data, for example:
-# Biblioteka Instytut Archeologi UG                                                                   Universytet Gdanski                                                                                 Frau mgr. Elzbieta Lademann                                                                         Ul. Bielanska 5
+# Biblioteka Instytut Archeologi UG                                                                 Universytet Gdanski
 # This function is used to trim those whitespace, replacing each with ', '.
 def trim_address(address):
     return escape_double_quotes(TRIM_ADDRESS_REGEX.sub(', ', address))

@@ -8,13 +8,4 @@ services:
     ports:
       - '3307:3306'
     volumes:
-      - 'koha_mapping_data:/var/lib/mysql'
-    networks:
-      - network_1
-
-volumes:
-  koha_mapping_data: {}
-
-networks:
-  network_1:
-    name: zenon_migration_network
+      - /var/lib/mysql

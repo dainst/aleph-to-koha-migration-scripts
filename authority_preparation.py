@@ -5,7 +5,7 @@
 # copies Aleph's internal control number to 035a (because 001 gets overwritten
 # by Koha on import with its own control number).
 
-from pymarc import MARCReader, Record, Field
+from pymarc import MARCReader, Field
 
 import logging
 import sys

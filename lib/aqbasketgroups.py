@@ -24,7 +24,7 @@ def construct_name(query_result):
     if query_result[4] is not None and query_result[4].strip() not in name:
         name += '-' + query_result[4].strip()
 
-    if len(name) > 50: # Koha table is varchar(50)
+    if len(name) > 50:  # Koha table is varchar(50)
         logger.warning('Basketgroup name is too long, cutting to 50 chars: ')
         logger.warning(' ' + name)
         name = name[0:50]
