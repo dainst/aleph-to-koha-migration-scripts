@@ -1,3 +1,5 @@
+USE koha_mapping_db;
+
 CREATE TABLE `aqbasket` (
   `basketno` int(11) NOT NULL AUTO_INCREMENT,
   `basketname` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL,
@@ -15,7 +17,7 @@ CREATE TABLE `aqbasket` (
   `branch` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
   `is_standing` tinyint(1) NOT NULL DEFAULT 0,
   `create_items` enum('ordering','receiving','cataloguing') COLLATE utf8_unicode_ci DEFAULT NULL,
-  `ALEPH_REC_KEY` varchar(25) NOT NULL,
+  `ALEPH_Z68_REC_KEY` varchar(25) NOT NULL,
   PRIMARY KEY (`basketno`),
   KEY `booksellerid` (`booksellerid`),
   KEY `basketgroupid` (`basketgroupid`),

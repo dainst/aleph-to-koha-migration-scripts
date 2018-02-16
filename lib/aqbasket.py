@@ -1,5 +1,6 @@
 import sys
 import logging
+import os
 
 import lib.database_connections.mariadb as mariadb
 import lib.database_connections.oracle as oracle
@@ -14,6 +15,11 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+script_dir = os.path.dirname(__file__)
+
+MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/00400_aqbasket_data_mapping.sql'
+IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbasket_data_import.sql'
+
 
 def evaluate_is_standing(aleph_order_type):
     aleph_order_type = aleph_order_type.strip()
@@ -24,19 +30,8 @@ def evaluate_is_standing(aleph_order_type):
     return 0
 
 
-''' Still unset in Koha:
-contractnumber 	int 	10 	 √  		null 		
-aqcontract 	links this basket to the aqcontract table (aqcontract.contractnumber)
-authorisedby 	varchar 	10 	 √  		null 			the borrowernumber of the person who created the basket
-booksellerinvoicenumber 	mediumtext 	16777215 	 √  		null 			appears to always be NULL
-create_items 	enum 	11 	 √  		null 			when items should be created for orders in this basket
-'''
-
-
 def process_z68_data(previous_results, query_result):
     result = dict()
-    # aleph: integer YYYYMMDD
-    # koha: date YYYY-MM-DD
 
     parsed_open_date = dates_helper.process_aleph_date(query_result[6])
     if parsed_open_date is not None:
@@ -62,17 +57,13 @@ def process_z68_data(previous_results, query_result):
     result['booksellernote'] = query_result[51]
     result['is_standing'] = z68.evaluate_is_standing(query_result[1])
 
-    basketgroup = mariadb.get_aqbasketgroup_by_aleph_doc_number(query_result[0][0:9])
+    basket_group = mariadb.get_aqbasketgroup_by_aleph_doc_number(query_result[0][0:9])
 
-    result['basketgroupid'] = basketgroup[0]
-    result['booksellerid'] = basketgroup[3]
-    result['basketname'] = 'order-sequence:' + query_result[0][9:]
+    result['basketgroupid'] = basket_group[0]
+    result['booksellerid'] = basket_group[3]
+    result['basketname'] = 'Basket ' + str(int(query_result[0][9:]))
 
     previous_results[query_result[0]] = result
-
-
-    logger.debug(result)
-
 
     return previous_results
 
@@ -93,9 +84,100 @@ def fetch_data(credentials):
 
     oracle.close_connection()
 
+    return z68_result
+
+
+def generate_insert_statements(data_list, table_name, table_column_names):
+    mapping_table_statement = import_table_statement = 'INSERT INTO ' + table_name + ' ('
+    keys_len = len(table_column_names)
+
+    for idx, key in enumerate(table_column_names):
+
+        if idx == keys_len - 1:
+            import_table_statement += key
+
+            mapping_table_statement += key
+            mapping_table_statement += ',ALEPH_Z68_REC_KEY'
+        else:
+            import_table_statement += key + ','
+            mapping_table_statement += key + ','
+
+    import_table_statement += ')\nVALUES'
+    mapping_table_statement += ')\nVALUES'
+
+    counter = 0
+
+    for aleph_key in data_list:
+        basket = data_list[aleph_key]
+        if counter != 0:
+            import_table_statement += ','
+            mapping_table_statement += ','
+
+        import_table_statement += '\n('
+        mapping_table_statement += '\n('
+
+        for idx, key in enumerate(table_column_names):
+            if idx == keys_len - 1:
+
+                if key in basket and basket[key] is not None:
+                    import_table_statement += '"' + str(basket[key]) + '"'
+                    mapping_table_statement += '"' + str(basket[key]) + '"'
+                else:
+                    import_table_statement += 'NULL'
+                    mapping_table_statement += 'NULL'
+
+                mapping_table_statement += ', "' + aleph_key + '"'
+            else:
+
+                if key in basket and basket[key] is not None:
+                    import_table_statement += '"' + str(basket[key]) + '",'
+                    mapping_table_statement += '"' + str(basket[key]) + '",'
+                else:
+                    import_table_statement += 'NULL,'
+                    mapping_table_statement += 'NULL,'
+
+        import_table_statement += ')'
+        mapping_table_statement += ')'
+
+        counter = counter + 1
+
+    import_table_statement += ';\n'
+    mapping_table_statement += ';\n'
+
+    return [import_table_statement, mapping_table_statement]
+
+
+def write_data(data):
+    logger.info('Writing data to file and mapping database.')
+
+    database_columns = [
+        'basketname', 'note', 'booksellernote', 'contractnumber', 'creationdate', 'closedate', 'booksellerid',
+        'authorisedby', 'booksellerinvoicenumber', 'basketgroupid', 'deliveryplace', 'billingplace', 'branch',
+        'is_standing', 'create_items'
+    ]
+
+    with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
+
+        mapping_file.write('USE ' + mariadb.get_db_name() + ";\n\n")
+        mariadb.establish_connection()
+
+        cursor = mariadb.get_cursor()
+
+        [import_table_statement, mapping_table_statement] = \
+            generate_insert_statements(data, 'aqbasket', database_columns)
+
+        import_file.write(import_table_statement)
+
+        mapping_file.write(mapping_table_statement)
+        cursor.execute(mapping_table_statement)
+
+        mariadb.commit()
+        cursor.close()
+
 
 def start(credentials):
     results = fetch_data(credentials)
+    write_data(results)
 
 
 if __name__ == '__main__':
