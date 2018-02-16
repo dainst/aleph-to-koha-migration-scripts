@@ -54,14 +54,16 @@ def process_z68_data(previous_results, query_result):
     else:
         result['closedate'] = None
 
-    result['booksellernote'] = query_result[51]
+    if query_result[51] is not None:
+        result['booksellernote'] = query_result[51].replace('\"', '\'')
+
     result['is_standing'] = z68.evaluate_is_standing(query_result[1])
 
     basket_group = mariadb.get_aqbasketgroup_by_aleph_doc_number(query_result[0][0:9])
 
     result['basketgroupid'] = basket_group[0]
     result['booksellerid'] = basket_group[3]
-    result['basketname'] = 'Basket ' + str(int(query_result[0][9:]))
+    result['basketname'] = '[aleph-sequence]' + str(int(query_result[0][9:]))
 
     previous_results[query_result[0]] = result
 
