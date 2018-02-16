@@ -57,7 +57,7 @@ def process_z68_data(existing_results, query_result):
     else:
         result['closed'] = 0
 
-    result['booksellerid'] = mariadb.get_aqbookseller_by_aleph_key(vendor_key)[0]
+    result['booksellerid'] = mariadb.get_aqbookseller_by_aleph_vendor_key(vendor_key)[0]
     result['deliveryplace'] = library_keys.map_aleph_key(query_result[12].strip())
     result['billingplace'] = library_keys.map_aleph_key(query_result[12].strip())
 
@@ -99,7 +99,7 @@ def get_insert_statements(data_list, table_name, table_column_names):
             import_table_statement += key
 
             mapping_table_statement += key
-            mapping_table_statement += ',Z68_DOC_NUMBER'
+            mapping_table_statement += ',ALEPH_Z68_DOC_NUMBER'
         else:
             import_table_statement += key + ','
             mapping_table_statement += key + ','

@@ -310,7 +310,7 @@ def generate_insert_statements(data_list):
         if idx == keys_len - 1:
             import_table_statement += key
             mapping_table_statement += key
-            mapping_table_statement += ', ALEPH_VENDOR_KEY'
+            mapping_table_statement += ', ALEPH_VENDOR_CODE'
         else:
             import_table_statement += key + ','
             mapping_table_statement += key + ','

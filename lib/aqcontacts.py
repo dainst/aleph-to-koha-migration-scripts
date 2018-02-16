@@ -44,7 +44,7 @@ def process_z72_result(previous_results, query_result):
     if int(address_type) < 1 or int(address_type) > 4:
         return previous_results
 
-    aqbookseller_data = mariadb.get_aqbookseller_by_aleph_key(vendor_key)
+    aqbookseller_data = mariadb.get_aqbookseller_by_aleph_vendor_key(vendor_key)
 
     aqcontacts_data = {
         'phone': query_result[3],
@@ -182,7 +182,7 @@ def generate_insert_statements(data_list):
             import_table_statement += key
 
             mapping_table_statement += key
-            mapping_table_statement += ', ALEPH_VENDOR_KEY'
+            mapping_table_statement += ', ALEPH_VENDOR_CODE'
         else:
             import_table_statement += key + ','
             mapping_table_statement += key + ','

@@ -15,9 +15,8 @@ CREATE TABLE `aqcontacts` (
   `acqprimary` tinyint(1) NOT NULL DEFAULT '0',
   `serialsprimary` tinyint(1) NOT NULL DEFAULT '0',
   `booksellerid` int(11) NOT NULL,
-  `ALEPH_VENDOR_KEY` varchar(25) NOT NULL,
+  `ALEPH_VENDOR_CODE` varchar(25) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `booksellerid_aqcontacts_fk` (`booksellerid`),
-  KEY `alephvendorkey_aqcontacts_fk` (`ALEPH_VENDOR_KEY`),
   CONSTRAINT `booksellerid_aqcontacts_fk` FOREIGN KEY (`booksellerid`) REFERENCES `aqbooksellers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci

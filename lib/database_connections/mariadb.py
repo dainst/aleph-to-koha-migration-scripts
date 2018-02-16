@@ -32,11 +32,11 @@ def commit():
     connection.commit()
 
 
-def get_aqbookseller_by_aleph_key(aleph_vendor_key):
+def get_aqbookseller_by_aleph_vendor_key(aleph_vendor_key):
     global connection
 
     cursor = connection.cursor()
-    cursor.execute('SELECT * FROM aqbooksellers WHERE `ALEPH_VENDOR_KEY`="'+aleph_vendor_key+'";')
+    cursor.execute('SELECT * FROM aqbooksellers WHERE `ALEPH_VENDOR_CODE`="'+aleph_vendor_key+'";')
     result = cursor.fetchone()
 
     return result
@@ -46,7 +46,7 @@ def get_aqbasketgroup_by_aleph_doc_number(aleph_z68_doc_key):
     global connection
 
     cursor = connection.cursor()
-    cursor.execute('SELECT * FROM aqbasketgroups WHERE `Z68_DOC_NUMBER`="' + aleph_z68_doc_key + '";')
+    cursor.execute('SELECT * FROM aqbasketgroups WHERE `ALEPH_Z68_DOC_NUMBER`="' + aleph_z68_doc_key + '";')
 
     result = cursor.fetchone()
 
