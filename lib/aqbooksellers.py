@@ -29,7 +29,7 @@ logger.setLevel(logging.DEBUG)
 TRIM_ADDRESS_REGEX = re.compile(r'\s{2,}', re.IGNORECASE)
 script_dir = os.path.dirname(__file__)
 
-MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/00100_aqbooksellers_data_mapping.sql'
+MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/023000_aqbooksellers_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbooksellers_data_import.sql'
 
 

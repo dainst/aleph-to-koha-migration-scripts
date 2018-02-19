@@ -17,7 +17,7 @@ logger.setLevel(logging.DEBUG)
 
 script_dir = os.path.dirname(__file__)
 
-MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/00400_aqbasket_data_mapping.sql'
+MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/038000_aqbasket_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbasket_data_import.sql'
 
 
