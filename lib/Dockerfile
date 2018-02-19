@@ -1,6 +1,6 @@
 FROM mariadb
 
-ENV REFRESHED_AT 2018-02-16
+ENV REFRESHED_AT 2018-02-19
 LABEL maintainer="Deutsches Archäologisches Institut: dev@dainst.de"
 
 ENV MYSQL_ROOT_PASSWORD root
