@@ -18,7 +18,7 @@ RUN echo "Creating Koha-DB-User ..."
 RUN echo "CREATE database if not exists $MYSQL_DATABASE_NAME; \
         GRANT ALL ON $MYSQL_DATABASE_NAME.* TO '$MYSQL_USER_NAME'@'localhost' IDENTIFIED BY '$MYSQL_USER_PASSWORD' WITH GRANT OPTION ; \
         GRANT ALL ON $MYSQL_DATABASE_NAME.* TO '$MYSQL_USER_NAME'@'%' IDENTIFIED BY '$MYSQL_USER_PASSWORD' WITH GRANT OPTION ; \
-        FLUSH PRIVILEGES ;" > /docker-entrypoint-initdb.d/00000_create_db_and_user.sql
+        FLUSH PRIVILEGES ;" > /docker-entrypoint-initdb.d/000000_create_db_and_user.sql
 
 COPY mariadb_table_setup/currency_create_and_fill.sql /docker-entrypoint-initdb.d/000005_currency_create_and_fill.sql
 COPY mariadb_table_setup/serial_create.sql            /docker-entrypoint-initdb.d/000019_serial_create.sql
