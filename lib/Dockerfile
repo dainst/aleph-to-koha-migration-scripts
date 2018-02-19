@@ -21,6 +21,7 @@ RUN echo "CREATE database if not exists $MYSQL_DATABASE_NAME; \
         FLUSH PRIVILEGES ;" > /docker-entrypoint-initdb.d/00000_create_db_and_user.sql
 
 COPY mariadb_table_setup/currency_create_and_fill.sql /docker-entrypoint-initdb.d/000005_currency_create_and_fill.sql
+COPY mariadb_table_setup/serial_create.sql            /docker-entrypoint-initdb.d/000019_serial_create.sql
 COPY mariadb_table_setup/branches_create_and_fill.sql /docker-entrypoint-initdb.d/000021_branches_create_and_fill.sql
 COPY mariadb_table_setup/aqbooksellers_create.sql     /docker-entrypoint-initdb.d/000023_aqbooksellers_create.sql
 COPY mariadb_table_setup/aqcontract_create.sql        /docker-entrypoint-initdb.d/000033_aqcontract_create.sql
