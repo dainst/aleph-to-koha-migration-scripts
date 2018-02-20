@@ -3,6 +3,11 @@ A Collection of scripts used for migrating ZENON from Aleph to Koha.
 
 ## Prerequisites
 
+[Docker](https://www.docker.com/community-edition) and [docker-compose](https://docs.docker.com/compose/) are used for 
+setting up (and resetting) the intermediate mapping database when exporting data from Aleph's Oracle database 
+(with [oracle_exports.py](oracle_exports.py) or its library scripts).
+
+
 All scripts are written and tested using Python 3. 
 
 You may need to install some additional libraries (for example using __pip3__):
