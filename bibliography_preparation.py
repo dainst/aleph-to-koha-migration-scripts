@@ -5,15 +5,15 @@ import sys
 import os
 import lib.mappings.library_keys as library_keys
 
-logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# This script currently the following purposes:
+# This script currently serves the following purposes:
 #   1) Mapping viable headings in the bibliographic data via String comparison (what Aleph also does internally)
 #      to the authority data exported from Koha. In case of a match, Koha's interal authority ID gets
 #      added to the bibliographic heading (subfield '9').
 #   2) Library keys are mapped between Aleph and Koha. The keys got refactored in Koha, to add more naming consistency.
+
+logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # AUTHORITY_CONTROL_FIELDS_MAPPING, read as:
 #   ('marc  authority field number', 'marc bibliographic field number')
@@ -59,13 +59,11 @@ def create_shelving_key(library_key, shelving_key):
     return library_key + ' ' + shelving_key
 
 
-""" 
-MARC holds location information in field 852.
-Koha expects the item information in field 952:
-* 952a: holding library
-* 952b: owning library
-* 952c: shelving location
-"""
+# MARC holds location information in field 852.
+# Koha expects the item information in field 952:
+# * 952a: holding library
+# * 952b: owning library
+# * 952c: shelving location
 
 
 def update_library_and_shelving_location_keys(record):
