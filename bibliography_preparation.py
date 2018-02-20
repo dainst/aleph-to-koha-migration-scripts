@@ -55,14 +55,28 @@ def link_bibliographic_headings_to_koha_authority_ids(bibliographic_record, head
     return bibliographic_record
 
 
-''' Koha expects the item information in field 952
+def create_shelving_key(library_key, shelving_key):
+    return library_key + ' ' + shelving_key
+
+
+""" 
+MARC holds location information in field 852.
+Koha expects the item information in field 952:
 * 952a: holding library
 * 952b: owning library
 * 952c: shelving location
-'''
+"""
 
 
 def update_library_and_shelving_location_keys(record):
+    for f in record.get_fields('852'):
+        if 'b' in f:
+            old_sublocation = f['b']
+            f['b'] = library_keys.map_aleph_key(str(old_sublocation))
+
+            if 'c' in f:
+                f['c'] = create_shelving_key(str(f['b']), str(f['c']))
+
     for f in record.get_fields('952'):
 
         old_holding_library_key = None
@@ -91,7 +105,7 @@ def update_library_and_shelving_location_keys(record):
             logger.error(str(record.as_json()))
 
         if 'c' in f:
-            f['c'] = str(f['a']) + ' ' + str(f['c'])
+            f['c'] = create_shelving_key(str(f['a']), str(f['c']))
         else:
             logger.warning('No shelving location for record:')
             logger.warning(' ' + str(record['001'].data))
