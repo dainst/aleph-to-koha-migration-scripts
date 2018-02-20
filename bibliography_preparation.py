@@ -1,4 +1,4 @@
-from pymarc import MARCReader
+from pymarc import MARCReader, XMLWriter
 
 import logging
 import sys
@@ -108,6 +108,7 @@ def process_bibliographic_data(input_path, output_path, mapping):
     with open(input_path, 'rb') as input_file:
         with open(output_path, 'wb') as output_file:
             reader = MARCReader(input_file, force_utf8=True)
+            writer = XMLWriter(output_file)
             for record in reader:
 
                 record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
@@ -115,7 +116,10 @@ def process_bibliographic_data(input_path, output_path, mapping):
 
                 # TODO: instead of deleting 999, move to different fields/subfields
                 record.remove_fields('999')
-                output_file.write(record.as_marc())
+                writer.write(record)
+
+            reader.close()
+            writer.close()
 
 
 if __name__ == '__main__':
