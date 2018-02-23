@@ -4,6 +4,7 @@ import logging
 import sys
 import os
 import lib.mappings.library_keys as library_keys
+import lib.mappings.marc_mappings as marc_mappings
 
 # This script currently serves the following purposes:
 #   1) Mapping viable headings in the bibliographic data via String comparison (what Aleph also does internally)
@@ -15,28 +16,13 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# AUTHORITY_CONTROL_FIELDS_MAPPING, read as:
-#   ('marc  authority field number', 'marc bibliographic field number')
-#   see also:
-#   https://www.loc.gov/marc/authority/
-#   https://www.loc.gov/marc/bibliographic/
-
-AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING = [
-    ('100', '100'), ('100', '600'), ('100', '700'),  # Personal Name
-    ('110', '110'), ('110', '610'), ('110', '710'),  # Corporate Name
-    ('111', '111'), ('111', '611'), ('111', '711'),  # Meeting Name
-    ('130', '130'), ('130', '630'), ('130', '730'),  # Uniform Title
-    ('150', '650'),                                  # Topical Term
-    ('151', '651')                                   # Geographic Name
-]
-
 
 def create_authority_heading_to_authority_id_mapping(file_path):
     result = {}
     with open(file_path, 'rb') as authority_file:
         reader = MARCReader(authority_file, force_utf8=True)
         for authority_record in reader:
-            for field in AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
+            for field in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
                 auth_field = field[0]
                 if authority_record[auth_field] is not None:
                     heading = authority_record[auth_field].as_marc('utf-8')
@@ -46,7 +32,7 @@ def create_authority_heading_to_authority_id_mapping(file_path):
 
 
 def link_bibliographic_headings_to_koha_authority_ids(bibliographic_record, heading_to_authority_id_mapping):
-    for field in AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
+    for field in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
         for bibliographic_record_field in bibliographic_record.get_fields(field[1]):
             koha_id = heading_to_authority_id_mapping.get(bibliographic_record_field.as_marc('utf8'))
             if koha_id is not None:
