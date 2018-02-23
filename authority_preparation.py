@@ -25,7 +25,6 @@ logger.setLevel(logging.WARNING)
 LC_CONTROL_NUMBER_STRUCTURE_A_PATTERN = re.compile(r'^([a-z]{1,3})(\s{0,2})([0-9]{8})(.?)$', re.IGNORECASE)
 LC_CONTROL_NUMBER_STRUCTURE_B_PATTERN = re.compile(r'^([a-z]{1,2})(\s{0,1})([0-9]{10})$', re.IGNORECASE)
 
-
 # Make sure the LoC numbers are formatted correctly
 
 def fix_loc_number(record):
@@ -101,6 +100,43 @@ def fix_loc_number(record):
     return record
 
 
+def filter_cataloging_sources(record):
+
+    valid_cataloging_agencies = [
+        'ATLA', 'BAV', 'BNI', 'BSA', 'CaQMCCA', 'CCSC', 'CFCPL', 'CLU', 'CoU', 'CSt', 'CtY', 'CU', 'D.O.C.', 'DFG',
+        'DGU', 'DGPO', 'DGW', 'DHMM', 'DJBF', 'DLC', 'DSI-F', 'DSI', 'FMU', 'FTaSU', 'FU', 'GBV', 'GEU', 'GU', 'HkUST',
+        'Hollis Catalog', 'IAhCCS', 'IaU', 'ICA', 'ICIU', 'ICRL', 'ICU', 'IeDuTC', 'IEN', 'InU', 'ItFiC', 'LoC', 'LOC',
+        'MBU-T', 'MCM', 'MdU', 'MeLB', 'MH', 'MH-FA', 'MH-P', 'MiU', 'MnU', 'MoSR', 'MoKU', 'MoSU-L', 'MoSW', 'MOU',
+        'MWiCA', 'MX-', 'NAnB-G', 'NBuU', 'NcD', 'NcU', 'NIC', 'NjP', 'NNC', 'NNC-EA', 'NNFr', 'NNMM', 'NN-PD', 'NNPM',
+        'NNU', 'OCI', 'OCLC', 'OCIMA', 'OCoLC', 'OCIW', 'ODaU', 'OGND', 'OkU', 'PE-LiPUB', 'PE-LiPUR', 'PPiU', 'PU',
+        'RPB', 'SaFITSA', 'SaPrNL', 'SaPRUSA', 'ScU', 'SdMadT', 'STEdNL', 'TNJ', 'TxCM', 'Uk', 'UkCU', 'UkOxU', 'UPB',
+        'VIAF', 'ViU', 'TxU'
+    ]
+
+    cataloging_source = record['040']
+    if cataloging_source is None:
+        return record
+
+    if 'a' not in cataloging_source:
+        record.remove_field(cataloging_source)
+
+        logger.debug('Removed field 040, because there is no subfield a:')
+        logger.debug(cataloging_source)
+        logger.debug('Updated record:')
+        logger.debug(record)
+        return record
+
+    if str(cataloging_source['a']) not in valid_cataloging_agencies:
+        record.remove_field(cataloging_source)
+        logger.debug('Removed field 040, subfield a is no valid cataloging agency:')
+        logger.debug(cataloging_source)
+        logger.debug('Updated record:')
+        logger.debug(record)
+        return record
+
+    return record
+
+
 def process_records(input_path, output_path):
 
     # If target folder does not exist, create it.
@@ -110,14 +146,8 @@ def process_records(input_path, output_path):
     with open(input_path, 'rb') as authority_file, open(output_path, 'wb') as output_file:
         reader = MARCReader(authority_file, force_utf8=True)
         for record in reader:
-
-            if '001' not in record:
-                logger.debug('Found record without 001 field')
-                logger.debug(record)
-                continue
-
-            fix_loc_number(record)
-
+            record = fix_loc_number(record)
+            record = filter_cataloging_sources(record)
             output_file.write(record.as_marc())
 
 
