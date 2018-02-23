@@ -12,6 +12,8 @@ import sys
 import os
 import re
 
+import lib.mappings.marc_mappings as marc_mappings
+
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -25,8 +27,19 @@ logger.setLevel(logging.WARNING)
 LC_CONTROL_NUMBER_STRUCTURE_A_PATTERN = re.compile(r'^([a-z]{1,3})(\s{0,2})([0-9]{8})(.?)$', re.IGNORECASE)
 LC_CONTROL_NUMBER_STRUCTURE_B_PATTERN = re.compile(r'^([a-z]{1,2})(\s{0,1})([0-9]{10})$', re.IGNORECASE)
 
-# Make sure the LoC numbers are formatted correctly
 
+def has_relevant_data(record):
+
+    found_value = False
+
+    for key, value in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
+        if key in record:
+            found_value = True
+
+    return found_value
+
+
+# Make sure the LoC in field 010 numbers are formatted correctly
 def fix_loc_number(record):
     loc_data = record['010']
 
@@ -146,6 +159,12 @@ def process_records(input_path, output_path):
     with open(input_path, 'rb') as authority_file, open(output_path, 'wb') as output_file:
         reader = MARCReader(authority_file, force_utf8=True)
         for record in reader:
+
+            if not has_relevant_data(record):
+                logger.info('No relevant data found in record, skipping:')
+                logger.info(record)
+                continue
+
             record = fix_loc_number(record)
             record = filter_cataloging_sources(record)
             output_file.write(record.as_marc())
