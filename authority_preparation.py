@@ -151,31 +151,6 @@ def process_records(input_path, output_path):
             output_file.write(record.as_marc())
 
 
-# def filter_duplicates(input_path):
-#
-#     processed_authorities = []
-#     result = []
-#     duplicates_counter = 0
-#
-#     with open(input_path, 'rb') as authority_file:
-#         reader = MARCReader(authority_file, force_utf8=True)
-#         for record in reader:
-#
-#             if '001' not in record:
-#                 logger.warning('Found record without 001 field')
-#                 logger.warning(record.as_json())
-#                 continue
-#
-#             if record['001'].data in processed_authorities:
-#                 duplicates_counter += 1
-#             else:
-#                 processed_authorities.append(record['001'].data)
-#                 result.append(record)
-#
-#     logger.info(str(duplicates_counter) + ' duplicates found & filtered out.')
-#     return result
-
-
 if __name__ == '__main__':
     if len(sys.argv) != 3:
 
