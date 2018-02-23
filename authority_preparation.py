@@ -10,51 +10,140 @@ from pymarc import MARCReader, Field
 import logging
 import sys
 import os
+import re
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
+
+# zum TOP: Feld 010:
+# Korrekte Muster in Feld 010 (basierend auf LC authority record prefixes:
+# n - for name headings (Bsp.: n 2001040831 und n96002922); LC
+# nb - for name headings ; British Library (Bsp.: nb 90633208 und nb2001067313)
+# no - for name headings ; OCLC (Bsp.: no 00003545 und no2010088353)
+
+LC_CONTROL_NUMBER_STRUCTURE_A_PATTERN = re.compile(r'^([a-z]{1,3})(\s{0,2})([0-9]{8})(.?)$', re.IGNORECASE)
+LC_CONTROL_NUMBER_STRUCTURE_B_PATTERN = re.compile(r'^([a-z]{1,2})(\s{0,1})([0-9]{10})$', re.IGNORECASE)
 
 
-def write_record(output_file, record):
-    logger.debug('Writing authority with control number ' + str(record['001'].data))
+# Make sure the LoC numbers are formatted correctly
 
-    if record['035'] is not None and record['035']['a'] is not None:
-        logger.debug('skipping record ' + str(record['001'] + ' it has'))
-        logger.debug('field 035 a already set: ' + str(record['035']['a']))
-    else:
-        record.add_field(
-            Field(
-                tag='035',
-                indicators=[' ', ' '],
-                subfields=[
-                    'a', '(ALEPH)' + str(record['001'].data)
-                ]))
-        output_file.write(record.as_marc())
+def fix_loc_number(record):
+    loc_data = record['010']
+
+    if loc_data is None:
+        return record
+
+    if 'a' not in loc_data:
+        record.remove_field(loc_data)
+
+        logger.debug('Removed field 010, because there is no subfield a:')
+        logger.debug(loc_data)
+        logger.debug('Updated record:')
+        logger.debug(record)
+        return record
+
+    match_structure_a = re.match(LC_CONTROL_NUMBER_STRUCTURE_A_PATTERN, loc_data['a'])
+    match_structure_b = re.match(LC_CONTROL_NUMBER_STRUCTURE_B_PATTERN, loc_data['a'])
+
+    updated_field = ' ' * 12
+
+    if match_structure_a is not None:
+        alphabetic_prefix = match_structure_a.group(1)
+        numbers = match_structure_a.group(3)
+        supplement_number = match_structure_a.group(4)
+
+        updated_field = alphabetic_prefix + updated_field[len(alphabetic_prefix):]
+        updated_field = updated_field[:3] + numbers
+
+        if supplement_number.isdigit():
+            updated_field = updated_field[:11] + supplement_number
+        else:
+            updated_field = updated_field[:11] + ' '
+
+        # TODO remove hack, added to enable the script to finish, the datasets have multiple subfields a
+        if record['001'].data == '000105336' or record['001'].data == '000131634':
+            record.remove_field(loc_data)
+            return record
+
+        record['010']['a'] = updated_field
+        return record
+
+    if match_structure_b is not None:
+        alphabetic_prefix = match_structure_b.group(1)
+        numbers = match_structure_b.group(3)
+
+        # Numbers 0:4 should be a year in structure B, remove field if that is not the case
+        if numbers[0:2] != '20' and numbers[0:2] != '19':
+            record.remove_field(loc_data)
+
+            logger.warning('Removed field 010, because year seems invalid: ' + numbers[0:4])
+            logger.warning(loc_data)
+            logger.warning(record)
+            return record
+
+        updated_field = alphabetic_prefix + updated_field[len(alphabetic_prefix):]
+        updated_field = updated_field[:2] + numbers
+
+        if len(updated_field) != 12:
+            record.remove_field(loc_data)
+
+            logger.warning('Removed original field 010, because updated field is too long: ')
+            logger.warning(updated_field)
+            logger.warning(record)
+
+            return record
+
+        record['010']['a'] = updated_field
+        return record
+
+    record.remove_field(loc_data)
+    return record
 
 
-def run_filter(input_path, output_path):
-
-    known_authorities = []
-    duplicates_counter = 0
+def process_records(input_path, output_path):
 
     # If target folder does not exist, create it.
-    if not os.path.exists(os.path.dirname(output_path)):
+    if not os.path.exists(os.path.dirname(output_path)) and os.path.dirname(output_path) != '':
         os.makedirs(os.path.dirname(output_path))
 
-    with open(input_path, 'rb') as authority_file:
+    with open(input_path, 'rb') as authority_file, open(output_path, 'wb') as output_file:
+        reader = MARCReader(authority_file, force_utf8=True)
+        for record in reader:
 
-        with open(output_path, 'wb') as filtered_authority_file:
-            reader = MARCReader(authority_file, force_utf8=True)
-            for record in reader:
-                if str(record['001']) in known_authorities:
-                    duplicates_counter += 1
-                else:
-                    write_record(filtered_authority_file, record)
-                    known_authorities.append(str(record['001']))
+            if '001' not in record:
+                logger.debug('Found record without 001 field')
+                logger.debug(record)
+                continue
 
-    logger.info('Internal control numbers (field 001) saved to 035a.')
-    logger.info(str(duplicates_counter) + ' duplicates found & filtered out.')
+            fix_loc_number(record)
+
+            output_file.write(record.as_marc())
+
+
+# def filter_duplicates(input_path):
+#
+#     processed_authorities = []
+#     result = []
+#     duplicates_counter = 0
+#
+#     with open(input_path, 'rb') as authority_file:
+#         reader = MARCReader(authority_file, force_utf8=True)
+#         for record in reader:
+#
+#             if '001' not in record:
+#                 logger.warning('Found record without 001 field')
+#                 logger.warning(record.as_json())
+#                 continue
+#
+#             if record['001'].data in processed_authorities:
+#                 duplicates_counter += 1
+#             else:
+#                 processed_authorities.append(record['001'].data)
+#                 result.append(record)
+#
+#     logger.info(str(duplicates_counter) + ' duplicates found & filtered out.')
+#     return result
 
 
 if __name__ == '__main__':
@@ -66,4 +155,5 @@ if __name__ == '__main__':
 
         sys.exit()
 
-    run_filter(sys.argv[1], sys.argv[2])
+    process_records(sys.argv[1], sys.argv[2])
+
