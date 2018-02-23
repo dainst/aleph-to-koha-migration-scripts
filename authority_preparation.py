@@ -16,7 +16,7 @@ import lib.mappings.marc_mappings as marc_mappings
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 # zum TOP: Feld 010:
 # Korrekte Muster in Feld 010 (basierend auf LC authority record prefixes:
