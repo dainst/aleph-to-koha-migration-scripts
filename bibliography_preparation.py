@@ -1,4 +1,4 @@
-from pymarc import MARCReader, XMLWriter
+from pymarc import MARCReader, MARCWriter
 
 import logging
 import sys
@@ -18,6 +18,9 @@ logger.setLevel(logging.INFO)
 
 
 def create_authority_heading_to_authority_id_mapping(file_path):
+
+    logger.info('Creating authority-heading-to-authority-id mapping based on exported authority data...')
+
     result = {}
     with open(file_path, 'rb') as authority_file:
         reader = MARCReader(authority_file, force_utf8=True)
@@ -27,6 +30,8 @@ def create_authority_heading_to_authority_id_mapping(file_path):
                 if authority_record[auth_field] is not None:
                     heading = authority_record[auth_field].as_marc('utf-8')
                     result[heading] = authority_record['001'].data
+
+    logger.info('Done.')
 
     return result
 
@@ -53,60 +58,66 @@ def create_shelving_key(library_key, shelving_key):
 
 
 def update_library_and_shelving_location_keys(record):
-    for f in record.get_fields('852'):
-        if 'b' in f:
-            old_sublocation = f['b']
-            f['b'] = library_keys.map_aleph_key(str(old_sublocation))
-
-            if 'c' in f:
-                f['c'] = create_shelving_key(str(f['b']), str(f['c']))
+    # TODO: 852b and c are repeatable, assignment does not work like this
+    # for f in record.get_fields('852'):
+    #     if 'b' in f:
+    #         old_sublocation = f['b']
+    #         f['b'] = library_keys.map_aleph_key(str(old_sublocation))
+    #
+    #         if 'c' in f:
+    #             f['c'] = create_shelving_key(str(f['b']), str(f['c']))
 
     for f in record.get_fields('952'):
 
-        old_holding_library_key = None
+        old_holding_library_key = str(f['a'])
+        new_holding_library_key = library_keys.map_aleph_key(old_holding_library_key)
 
-        if 'a' in f:
-            old_holding_library_key = str(f['a'])
-            f['a'] = library_keys.map_aleph_key(old_holding_library_key)
-        else:
-            logger.debug('No holding library key found for record: ')
-            logger.debug(str(record.as_json()))
+        if new_holding_library_key is None:
+            logger.error('No valid holding library key found in field 952 a:')
+            logger.error(f)
+            logger.error('In Record:')
+            logger.error(record)
+            logger.error('Skipping...')
+            continue
+
+        f['a'] = new_holding_library_key
 
         if 'b' in f:
-            old_owning_library_key = str(f['b'])
+            old_owning_library_key = f['b']
+            new_owning_library_key = library_keys.map_aleph_key(old_owning_library_key)
 
-            if old_holding_library_key is None:
-                logger.debug('Setting owning library as holding library.')
-                f.add_subfield('a', library_keys.map_aleph_key(old_owning_library_key))
+            if new_owning_library_key is None:
+                logger.error('No valid owning library key found in field 952 b:')
+                logger.error(f)
+                logger.error('In Record:')
+                logger.error(record)
+                logger.error('Using 952 a')
 
-            f['b'] = library_keys.map_aleph_key(old_owning_library_key)
+                f['b'] = new_holding_library_key
+            else:
+                f['b'] = new_owning_library_key
         else:
-            logger.debug('Setting holding library as owning library.')
-            f.add_subfield('b', library_keys.map_aleph_key(old_holding_library_key))
-
-        if 'a' not in f or 'b' not in f:
-            logger.error('No valid library key for record: ')
-            logger.error(str(record.as_json()))
+            f.add_subfield('b', new_holding_library_key)
 
         if 'c' in f:
             f['c'] = create_shelving_key(str(f['a']), str(f['c']))
         else:
-            logger.warning('No shelving location for record:')
-            logger.warning(' ' + str(record['001'].data))
-            logger.warning(' field:')
-            logger.warning(' ' + str(f))
+            f.add_subfield('c', new_holding_library_key)
+            logger.debug('No shelving location found in field 952 c:')
+            logger.debug(f)
+            logger.debug('Record:')
+            logger.debug(record)
+            logger.debug('Value set to value in 952 a.')
 
     return record
 
 
 def process_bibliographic_data(input_path, output_path, mapping):
-    if not os.path.exists(os.path.dirname(output_path)) and os.path.dirname(output_path) != '':
-        os.makedirs(os.path.dirname(output_path))
 
     with open(input_path, 'rb') as input_file:
         with open(output_path, 'wb') as output_file:
             reader = MARCReader(input_file, force_utf8=True)
-            writer = XMLWriter(output_file)
+            writer = MARCWriter(output_file)
             for record in reader:
 
                 record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
@@ -124,9 +135,31 @@ if __name__ == '__main__':
     if len(sys.argv) != 4:
 
         logger.info("Please provide as argument:")
-        logger.info("1) Path to bibliograhic data export from Aleph.")
-        logger.info("2) Path to authority data export from Koha.")
-        logger.info("3) Path/filename for filtered results.")
+        logger.info("1) Path to bibliograhic data (directory) exports from Aleph.")
+        logger.info("2) Path to authority data (file) export from Koha.")
+        logger.info("3) Path to output directory for results.")
         sys.exit()
 
-    process_bibliographic_data(sys.argv[1], sys.argv[3], create_authority_heading_to_authority_id_mapping(sys.argv[2]))
+    heading_to_authority_id_mapping = create_authority_heading_to_authority_id_mapping(sys.argv[2])
+
+    input_directory = sys.argv[1]
+
+    output_directory = sys.argv[3]
+
+    if not os.path.dirname(output_directory).endswith('/'):
+        output_directory += '/'
+
+    if not os.path.exists(os.path.dirname(output_directory)) and os.path.dirname(output_directory) != '':
+        os.makedirs(os.path.dirname(output_directory))
+
+    counter = 0
+    for filename in os.listdir(input_directory):
+        if filename.endswith('.mrc'):
+
+            without_extension = os.path.splitext(filename)[0]
+            logger.info('Processing file ' + filename)
+            process_bibliographic_data(input_directory + '/' + filename,
+                                       output_directory + without_extension + '-preprocessed.mrc',
+                                       heading_to_authority_id_mapping)
+            counter += 1
+
