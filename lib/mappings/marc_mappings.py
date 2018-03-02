@@ -31,7 +31,8 @@ Z30_MATERIAL_MAPPING = {
     'MEDK': 'MX',
     'MANUS': 'MA',
     'CDROM': 'DAV',
-    'ZTG': 'CR'
+    'ZTG': 'CR',
+    'VIDEO': 'VI'
 }
 
 
