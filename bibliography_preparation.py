@@ -100,7 +100,7 @@ def update_library_and_shelving_location_keys(record):
             f.add_subfield('b', new_holding_library_key)
 
         if 'c' in f:
-            f['c'] = create_shelving_key(str(f['a']), str(f['c']))
+            f['c'] = create_shelving_key(new_holding_library_key, str(f['c']))
         else:
             f.add_subfield('c', new_holding_library_key)
             logger.debug('No shelving location found in field 952 c:')
@@ -108,6 +108,15 @@ def update_library_and_shelving_location_keys(record):
             logger.debug('Record:')
             logger.debug(record)
             logger.debug('Value set to value in 952 a.')
+
+    return record
+
+
+def update_material_type(record):
+    for f in record.get_fields('952'):
+        if 'y' in f:
+            aleph_material_key = str(f['y'])
+            f['y'] = marc_mappings.map_material(aleph_material_key)
 
     return record
 
@@ -122,7 +131,7 @@ def process_bibliographic_data(input_path, output_path, mapping):
 
                 record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
                 record = update_library_and_shelving_location_keys(record)
-
+                record = update_material_type(record)
                 # TODO: instead of deleting 999, move to different fields/subfields
                 record.remove_fields('999')
                 writer.write(record)

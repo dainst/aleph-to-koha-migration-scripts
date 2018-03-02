@@ -12,3 +12,31 @@ AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING = [
     ('150', '650'),                                  # Topical Term
     ('151', '651')                                   # Geographic Name
 ]
+
+Z30_MATERIAL_MAPPING = {
+    'BUCH': 'BK',
+    'MBWK': 'MBW',
+    'ZSN': 'CR',
+    'ISSUE': 'CR',
+    'ISSBD': 'CR',
+    'SERIE': 'SE',
+    'SERBD': 'BK',
+    'SEREB': 'BK',
+    'ARTIK': 'AN',
+    'SDD': 'SD',
+    'KART': 'MP',
+    'NBM': 'AV',
+    'EJOUR': 'EJ',
+    'EBOOK': 'EB',
+    'MEDK': 'MX',
+    'MANUS': 'MA',
+    'CDROM': 'DAV',
+    'ZTG': 'CR'
+}
+
+
+def map_material(aleph_material):
+    if aleph_material not in Z30_MATERIAL_MAPPING:
+        return ''
+    else:
+        return Z30_MATERIAL_MAPPING[aleph_material]
