@@ -21,12 +21,15 @@ RUN echo "CREATE database if not exists $MYSQL_DATABASE_NAME; \
         FLUSH PRIVILEGES ;" > /docker-entrypoint-initdb.d/000000_create_db_and_user.sql
 
 COPY mariadb_table_setup/currency_create_and_fill.sql /docker-entrypoint-initdb.d/000005_currency_create_and_fill.sql
+COPY mariadb_table_setup/aqbudgetperiods_create_and_fill.sql /docker-entrypoint-initdb.d/000013_aqbudgetperiods_create_and_fill.sql
 COPY mariadb_table_setup/serial_create.sql            /docker-entrypoint-initdb.d/000019_serial_create.sql
 COPY mariadb_table_setup/branches_create_and_fill.sql /docker-entrypoint-initdb.d/000021_branches_create_and_fill.sql
 COPY mariadb_table_setup/aqbooksellers_create.sql     /docker-entrypoint-initdb.d/000023_aqbooksellers_create.sql
+COPY mariadb_table_setup/aqbudgets_create_and_fill.sql /docker-entrypoint-initdb.d/000024_aqbudgets_create_and_fill.sql
 COPY mariadb_table_setup/aqcontract_create.sql        /docker-entrypoint-initdb.d/000033_aqcontract_create.sql
 COPY mariadb_table_setup/aqbasketgroups_create.sql    /docker-entrypoint-initdb.d/000034_aqbasketgroups_create.sql
 COPY mariadb_table_setup/aqbasket_create.sql          /docker-entrypoint-initdb.d/000038_aqbasket_create.sql
+COPY mariadb_table_setup/aqorders_create.sql          /docker-entrypoint-initdb.d/000050_aqorders_create.sql
 COPY mariadb_table_setup/aqcontacts_create.sql        /docker-entrypoint-initdb.d/000113_aqcontacts_create.sql
 
 COPY mariadb_intermediate_values/* /docker-entrypoint-initdb.d/
