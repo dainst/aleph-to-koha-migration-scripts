@@ -26,6 +26,26 @@ def get_cursor():
     return connection.cursor()
 
 
+def get_z30():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z30')
+
+
+def get_z30_by_order_number(aleph_order_number):
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z30 WHERE Z30_ORDER_NUMBER=:1', (aleph_order_number+'%',))
+
+
+def get_z30_with_order_number():
+    global connection
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z30 WHERE Z30_ORDER_NUMBER IS NOT NULL')
+
+
 def get_z70():
     global connection
 
@@ -60,7 +80,7 @@ def get_open_z68():
     cur = connection.cursor()
     return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68_ORDER_STATUS!=:2 ' +
-                       'AND Z68_ORDER_STATUS!=:3 ' , ('CLS', 'VC', 'CNB'))
+                       'AND Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC', 'CNB'))
 
 
 def get_open_z68_monograph():
@@ -81,3 +101,18 @@ def get_open_z68_serials():
                        'AND Z68_ORDER_STATUS!=:2 ' +
                        'AND Z68_ORDER_STATUS!=:3 ' +
                        'AND (Z68_ORDER_TYPE=:4)', ('CLS', 'VC', 'CNB', 'S'))
+
+
+def get_not_cancelled_z68():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
+                       'AND Z68_ORDER_STATUS!=:2 ', ('VC', 'CNB'))
+
+
+def get_closed_z68():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS=:1 ', ('CLS',))
