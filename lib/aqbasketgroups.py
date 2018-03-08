@@ -61,6 +61,7 @@ def process_z68_data(existing_results, query_result):
     result['deliveryplace'] = library_keys.map_aleph_key(query_result[12].strip())
     result['billingplace'] = library_keys.map_aleph_key(query_result[12].strip())
 
+    # TODO: Zusammenlegen anstatt immer existierende überschreiben
     existing_results[query_result[0][0:9]] = result
 
     return existing_results
@@ -73,7 +74,7 @@ def fetch_data(credentials):
     logger.info('Connected...')
 
     z68_result = dict()
-    z68_data_cursor = oracle.get_open_z68_monograph()
+    z68_data_cursor = oracle.get_not_cancelled_z68()
     logger.info('Processing data from z68 table...')
     for query_result in z68_data_cursor:
         z68_result = process_z68_data(z68_result, query_result)

@@ -77,7 +77,7 @@ def fetch_data(credentials):
     logger.info('Connected...')
 
     z68_result = dict()
-    z68_data_cursor = oracle.get_open_z68_monograph()
+    z68_data_cursor = oracle.get_not_cancelled_z68()
     logger.info('Processing data from z68 table...')
     for query_result in z68_data_cursor:
         z68_result = process_z68_data(z68_result, query_result)
