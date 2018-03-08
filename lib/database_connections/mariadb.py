@@ -42,6 +42,24 @@ def get_aqbookseller_by_aleph_vendor_key(aleph_vendor_key):
     return result
 
 
+def get_aqbaskets():
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT * FROM aqbasket;')
+    result = cursor.fetchall()
+    return result
+
+
+def get_aqbasket_by_aleph_rec_key(aleph_rec_key):
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT * FROM aqbasket WHERE `ALEPH_Z68_REC_KEY`="' + aleph_rec_key + '";')
+    result = cursor.fetchone()
+    return result
+
+
 def get_aqbasketgroup_by_aleph_doc_number(aleph_z68_doc_key):
     global connection
 
