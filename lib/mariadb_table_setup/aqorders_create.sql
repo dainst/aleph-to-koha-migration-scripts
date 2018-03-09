@@ -50,7 +50,7 @@ CREATE TABLE `aqorders` (
   `suppliers_reference_number` varchar(35) COLLATE utf8_unicode_ci DEFAULT NULL,
   `suppliers_reference_qualifier` varchar(3) COLLATE utf8_unicode_ci DEFAULT NULL,
   `suppliers_report` text COLLATE utf8_unicode_ci DEFAULT NULL,
-  `ALEPH_Z68_DOC_NUMBER` varchar(25) NOT NULL,
+  `ALEPH_Z68_REC_KEY` varchar(25) NOT NULL,
   PRIMARY KEY (`ordernumber`),
   KEY `basketno` (`basketno`),
   KEY `biblionumber` (`biblionumber`),

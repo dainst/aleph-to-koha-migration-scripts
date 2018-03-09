@@ -15,8 +15,13 @@ logger.setLevel(logging.DEBUG)
 MISSING_ITEM_DATA = []
 MISSING_BASKET = []
 
+script_dir = os.path.dirname(__file__)
 
-def get_biblionumber(key, z30_data):
+MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/050000_aqorders_data_mapping.sql'
+IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqorders_data_import.sql'
+
+
+def get_biblio_number(key, z30_data):
     if key in z30_data:
         return z30_data[key][0][0:9]
 
@@ -25,13 +30,13 @@ def process_open_order(data):
     result = dict()
 
     result['currency'] = currency.map_from_currency(data[33], True)
-    result['unitprice'] = data[31]
-    result['unitprice_tax_included'] = data[31]
-    result['listprice'] = data[34]
-    result['ecost'] = data[37]
-    result['ecost_tax_included'] = data[37]
+    result['unitprice'] = currency.parse_value(data[31])
+    result['unitprice_tax_included'] = currency.parse_value(data[31])
+    result['listprice'] = currency.parse_value(data[34])
+    result['ecost'] = currency.parse_value(data[37])
+    result['ecost_tax_included'] = currency.parse_value(data[37])
     result['uncertainprice'] = 1
-    # result['discount'] =
+
     return result
 
 
@@ -47,20 +52,40 @@ def process_z68_data(previous_results, z30_data, basket_data, data):
         MISSING_BASKET.append(data)
 
     order_status = order_status_helper.map_aleph_key(data[7])
-    datereceived = None
+
+    internal_note = None
+    if data[24] is not None:
+        internal_note = data[24].replace('\"', '\'')
+
+    suppliers_reference_nubmer = None
+    if data[26] is not None:
+        suppliers_reference_nubmer = data[26].replace('\"', '\'')
+
+    vendor_note = None
+    if data[27] is not None:
+        vendor_note = data[27].replace('\"', '\'')
+
+    quantity = int(data[30])  # TODO: Hack, remove once data has been corrected
+    if quantity > 8:
+        quantity = 8
+
+    date_received = None
+    quantity_received = 0
     if order_status == 'complete':
-        datereceived = dates_helper.process_aleph_date(data[8])
+        date_received = dates_helper.process_aleph_date(data[8])
+        quantity_received = quantity
 
     result = {
         'order_status': order_status,
-        'datereceived': datereceived,
-        'order_internalnote': data[24],
-        'suppliers_reference_number': data[26],
-        'order_vendornote': data[27],
+        'datereceived': date_received,
+        'order_internalnote': internal_note,
+        'suppliers_reference_number': suppliers_reference_nubmer,
+        'order_vendornote': vendor_note,
         'basketno': basket_no,
         'budget_id': 1,
-        'biblionumber': get_biblionumber(data[2].strip(), z30_data),
-        'quantity': data[30]
+        'biblionumber': get_biblio_number(data[2].strip(), z30_data),
+        'quantity': quantity,
+        'quantityreceived': quantity_received
     }
 
     if result['biblionumber'] is None:
@@ -142,10 +167,101 @@ def fetch_data(credentials):
     return results
 
 
+def generate_insert_statements(data_list, table_name, database_columns):
+    mapping_table_statement = import_table_statement = 'INSERT INTO ' + table_name + ' ('
+    keys_len = len(database_columns)
+
+    for idx, key in enumerate(database_columns):
+
+        if idx == keys_len - 1:
+            import_table_statement += key
+
+            mapping_table_statement += key
+            mapping_table_statement += ',ALEPH_Z68_REC_KEY'
+        else:
+            import_table_statement += key + ','
+            mapping_table_statement += key + ','
+
+    import_table_statement += ')\nVALUES'
+    mapping_table_statement += ')\nVALUES'
+
+    counter = 0
+
+    for aleph_key in data_list:
+        basket = data_list[aleph_key]
+        if counter != 0:
+            import_table_statement += ','
+            mapping_table_statement += ','
+
+        import_table_statement += '\n('
+        mapping_table_statement += '\n('
+
+        for idx, key in enumerate(database_columns):
+            if idx == keys_len - 1:
+
+                if key in basket and basket[key] is not None:
+                    import_table_statement += '"' + str(basket[key]) + '"'
+                    mapping_table_statement += '"' + str(basket[key]) + '"'
+                else:
+                    import_table_statement += 'NULL'
+                    mapping_table_statement += 'NULL'
+
+                mapping_table_statement += ', "' + aleph_key + '"'
+            else:
+
+                if key in basket and basket[key] is not None:
+                    import_table_statement += '"' + str(basket[key]) + '",'
+                    mapping_table_statement += '"' + str(basket[key]) + '",'
+                else:
+                    import_table_statement += 'NULL,'
+                    mapping_table_statement += 'NULL,'
+
+        import_table_statement += ')'
+        mapping_table_statement += ')'
+
+        counter = counter + 1
+
+    import_table_statement += ';\n'
+    mapping_table_statement += ';\n'
+
+    return [import_table_statement, mapping_table_statement]
+
+
+def write_data(data):
+    database_columns = [
+        'biblionumber', 'entrydate', 'quantity', 'currency', 'listprice', 'datereceived', 'invoiceid',
+        'freight', 'unitprice', 'unitprice_tax_excluded', 'unitprice_tax_included', 'quantityreceived',
+        'datecancellationprinted', 'cancellationreason', 'order_internalnote', 'order_vendornote',
+        'purchaseordernumber', 'basketno', 'rrp', 'rrp_tax_excluded', 'rrp_tax_included', 'ecost', 'ecost_tax_excluded',
+        'ecost_tax_included', 'tax_rate_bak', 'tax_rate_on_ordering', 'tax_rate_on_receiving', 'tax_value_bak',
+        'tax_value_on_ordering', 'tax_value_on_receiving', 'discount', 'budget_id', 'budgetdate', 'sort1', 'sort2',
+        'sort1_authcat', 'sort2_authcat', 'uncertainprice', 'claims_count', 'claimed_date', 'subscriptionid',
+        'parent_ordernumber', 'orderstatus', 'line_item_id', 'suppliers_reference_number',
+        'suppliers_reference_qualifier', 'suppliers_report'
+    ]
+
+    with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
+
+        mapping_file.write('USE ' + mariadb.get_db_name() + ";\n\n")
+        mariadb.establish_connection()
+
+        cursor = mariadb.get_cursor()
+
+        [import_table_statement, mapping_table_statement] = \
+            generate_insert_statements(data, 'aqorders', database_columns)
+
+        import_file.write(import_table_statement)
+
+        mapping_file.write(mapping_table_statement)
+        cursor.execute(mapping_table_statement)
+
+        mariadb.commit()
+        cursor.close()
+
+
 def start(oracle_credentials):
     results = fetch_data(oracle_credentials)
-    # filtered_results = conflate_duplicates(results)
-    # write_data(filtered_results)
+
     logger.warning('%s Z68-orders have no matching Z30-items:', len(MISSING_ITEM_DATA))
     for missing in MISSING_ITEM_DATA:
         logger.warning(missing)
@@ -153,6 +269,8 @@ def start(oracle_credentials):
     logger.warning('%s Z68-orders have no matching basket:', len(MISSING_BASKET))
     for missing in MISSING_BASKET:
         logger.warning(missing)
+
+    write_data(results)
 
 
 if __name__ == '__main__':
