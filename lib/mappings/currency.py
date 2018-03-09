@@ -1,8 +1,13 @@
 import logging
+import re
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+PATTERN_CURRENCY_VALUE_DECIMAL = re.compile(r'\d+\.\d*')
+PATTERN_CURRENCY_VALUE_LEADING_ZEROES = re.compile(r'[0]+(\d+)')
+PATTERN_CURRENCY_VALUE_ONLY_DIGITS = re.compile(r'\d+')
 
 # See http://confluence:8090/pages/viewpage.action?pageId=44859465
 
@@ -66,3 +71,22 @@ def map_from_deprecated_currency(aleph_currency):
         return None
     else:
         return DEPRECATED_CURRENCY_MAPPING[aleph_currency]
+
+
+def parse_value(aleph_value):
+    if aleph_value is None:
+        return 0.0
+
+    aleph_value = aleph_value.replace(',', '.').strip()
+    match_decimal = re.search(PATTERN_CURRENCY_VALUE_DECIMAL, aleph_value)
+    match_with_leading_zeroes = re.search(PATTERN_CURRENCY_VALUE_LEADING_ZEROES, aleph_value)
+    match_digit = re.search(PATTERN_CURRENCY_VALUE_ONLY_DIGITS, aleph_value)
+    if match_decimal:
+        return float(aleph_value)
+    elif len(aleph_value) == 14 and match_with_leading_zeroes:
+        return float(aleph_value[0:-2] + '.' + aleph_value[-2:])
+    elif match_digit:
+        return float(aleph_value)
+    else:
+        logger.warning('Unable to parse currency value:')
+        logger.warning(aleph_value)
