@@ -10,11 +10,12 @@ STATUS_MAPPING = {
     'PS ': 'new',
     'WB ': 'new',
     'QSV': 'new',
-    'CNB': 'cancelled',
-    'DNB': 'ordered',
     'RSV': 'new',
     'SV ': 'ordered',
+    'DNB': 'cancelled',
     'VC ': 'cancelled',
+    'CNB': 'cancelled',
+    'LC ': 'cancelled',
     'CLS': 'complete'
 }
 
