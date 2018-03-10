@@ -8,7 +8,7 @@ import lib.mappings.marc_mappings as marc_mappings
 
 # This script currently serves the following purposes:
 #   1) Mapping viable headings in the bibliographic data via String comparison (what Aleph also does internally)
-#      to the authority data exported from Koha. In case of a match, Koha's interal authority ID gets
+#      to the authority data exported from Koha. In case of a match, Koha's internal authority ID gets
 #      added to the bibliographic heading (subfield '9').
 #   2) Library keys are mapped between Aleph and Koha. The keys got refactored in Koha, to add more naming consistency.
 
@@ -18,7 +18,6 @@ logger.setLevel(logging.INFO)
 
 
 def create_authority_heading_to_authority_id_mapping(file_path):
-
     logger.info('Creating authority-heading-to-authority-id mapping based on exported authority data...')
 
     result = {}
@@ -37,101 +36,184 @@ def create_authority_heading_to_authority_id_mapping(file_path):
 
 
 def link_bibliographic_headings_to_koha_authority_ids(bibliographic_record, heading_to_authority_id_mapping):
+
     for field in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
         for bibliographic_record_field in bibliographic_record.get_fields(field[1]):
             koha_id = heading_to_authority_id_mapping.get(bibliographic_record_field.as_marc('utf8'))
+
             if koha_id is not None:
                 bibliographic_record_field.add_subfield('9', koha_id)
 
     return bibliographic_record
 
 
+def prepare_holding_data(record):
+    for marc_field_952 in record.get_fields('952'):
+
+        # TODO Datentypen und Feldlängen überprüfen!
+        if check_required_subfields(marc_field_952):
+
+            # '952$a' Owning Library (required by Koha)
+            koha_owning_library = map_owning_library(marc_field_952)
+            if koha_owning_library is not None:
+                marc_field_952['a'] = koha_owning_library
+            else:
+                logger.error('No valid owning library key found: 952a = "%s"', marc_field_952['a'])
+                logger.error('Skipping field: %s', marc_field_952)
+                logger.error('In Record:\n%s', record)
+
+            # '952$b' Holding library (required by Koha)
+            koha_holding_library = map_holding_library(marc_field_952)
+            if koha_holding_library is not None:
+                marc_field_952['b'] = koha_holding_library
+            else:
+                logger.error('No valid holding library key found: 952b = "%s"', marc_field_952['b'])
+                logger.error('Skipping field: %s', marc_field_952)
+                logger.error('In Record:\n%s', record)
+
+            # '952$c' Shelving location code
+            koha_shelving_location = map_shelving_location_code(marc_field_952)
+            if koha_shelving_location is not None:
+                marc_field_952['c'] = koha_shelving_location
+
+            else:
+                logger.error('No valid shelving location found: 952c = "%s"', marc_field_952['c'])
+                logger.error('Skipping field: %s', marc_field_952)
+                logger.error('In Record:\n%s', record)
+
+            # '952$d' Date acquired
+            # '952$e' Source of acquisition
+            # '952$g' Purchase price
+            # '952$h' Serial enumeration
+            # '952$o' Koha full call number
+            # '952$p' Barcode (required for circulation)
+            # '952$t' Copy number
+            # '952$u' Uniform Resource Identifier
+            # '952$v' Replacement price
+            # '952$w' Price effective from
+            # '952$x' Nonpublic note
+
+            # '952$y' Item type (required by Koha)
+            koha_item_type = map_item_type(marc_field_952)
+            if koha_item_type is not None:
+                marc_field_952['y'] = koha_item_type
+
+            else:
+                logger.error('No valid item type found: 952y = "%s"', marc_field_952['y'])
+                logger.error('Skipping field: %s', marc_field_952)
+                logger.error('In Record:\n%s', record)
+
+            # '952$z' Public note
+            # '952$0' Withdrawn status
+            # '952$1' Lost status
+            # '952$2' Classification
+            # '952$3' Materials specified
+            # '952$4' Damaged status
+            # '952$5' Use restrictions
+            # '952$7' Not for loan
+            # '952$8' Collection code
+            # '952$9' Item number
+
+        else:
+            logger.error('Skipping field: %s', marc_field_952)
+            logger.error('In Record:\n%s', record)
+
+    return record
+
+
+def check_required_subfields(marc_field_952):
+
+    is_successful = False
+
+    if all(subfields not in marc_field_952 for subfields in ('a', 'b')) or 'y' not in marc_field_952:
+        logger.error('Neither marc subfield 952a and 952b found nor subfield 952y!')
+
+    elif 'a' and 'b' not in marc_field_952:
+        if 'a' not in marc_field_952:
+            logger.debug('No marc subfield 952a found!')
+            logger.debug('Copy subfield 952b in subfield 952a ...')
+            marc_field_952.add_subfield('a', marc_field_952['b'])
+            logger.debug('Subfield 952a = %s', marc_field_952['a'])
+
+        if 'b' not in marc_field_952:
+            logger.debug('No marc subfield 952b found!')
+            logger.debug('Copy subfield 952a in subfield 952b ...')
+            marc_field_952.add_subfield('b', marc_field_952['a'])
+            logger.debug('Subfield 952b = %s', marc_field_952['b'])
+
+        is_successful = True
+
+    else:
+        is_successful = True
+
+    return is_successful
+
+
+def map_owning_library(marc_field_952):
+
+    if 'a' in marc_field_952:
+        owning_library_key = library_keys.map_aleph_key(marc_field_952['a'])
+
+    else:
+        raise Exception('No marc subfield 952a found!')
+        # owning_library_key = None
+        # logger.error('No marc subfield 952a found!')
+
+    return owning_library_key
+
+
+def map_holding_library(marc_field_952):
+
+    if 'b' in marc_field_952:
+        holding_library_key = library_keys.map_aleph_key(marc_field_952['b'])
+
+    else:
+        raise Exception('No marc subfield 952b found!')
+
+    return holding_library_key
+
+
+def map_shelving_location_code(marc_field_952):
+    owning_library_key = marc_field_952['a']
+
+    if 'c' in marc_field_952:
+        shelving_location_code = create_shelving_key(owning_library_key, marc_field_952['c'])
+
+    else:
+        logger.debug('No marc subfield 952c found!')
+        logger.debug('Copy subfield 952a in subfield 952c ...')
+        shelving_location_code = owning_library_key
+        marc_field_952.add_subfield('c', shelving_location_code)
+        logger.debug('Subfield 952c = %s', marc_field_952['c'])
+
+    return shelving_location_code
+
+
 def create_shelving_key(library_key, shelving_key):
     return library_key + ' ' + shelving_key
 
 
-# MARC holds location information in field 852.
-# Koha expects the item information in field 952:
-# * 952a: holding library
-# * 952b: owning library
-# * 952c: shelving location
+def map_item_type(marc_field_952):
+    if 'y' in marc_field_952:
+        aleph_material_key = str(marc_field_952['y'])
+        koha_item_type = marc_mappings.map_material(aleph_material_key)
 
+    else:
+        koha_item_type = None
+        logger.warning('No material type found in marc field 952y')
 
-def update_library_and_shelving_location_keys(record):
-    # TODO: 852b and c are repeatable, assignment does not work like this
-    # for f in record.get_fields('852'):
-    #     if 'b' in f:
-    #         old_sublocation = f['b']
-    #         f['b'] = library_keys.map_aleph_key(str(old_sublocation))
-    #
-    #         if 'c' in f:
-    #             f['c'] = create_shelving_key(str(f['b']), str(f['c']))
-
-    for f in record.get_fields('952'):
-
-        old_holding_library_key = str(f['a'])
-        new_holding_library_key = library_keys.map_aleph_key(old_holding_library_key)
-
-        if new_holding_library_key is None:
-            logger.error('No valid holding library key found in field 952 a:')
-            logger.error(f)
-            logger.error('In Record:')
-            logger.error(record)
-            logger.error('Skipping...')
-            continue
-
-        f['a'] = new_holding_library_key
-
-        if 'b' in f:
-            old_owning_library_key = f['b']
-            new_owning_library_key = library_keys.map_aleph_key(old_owning_library_key)
-
-            if new_owning_library_key is None:
-                logger.error('No valid owning library key found in field 952 b:')
-                logger.error(f)
-                logger.error('In Record:')
-                logger.error(record)
-                logger.error('Using 952 a')
-
-                f['b'] = new_holding_library_key
-            else:
-                f['b'] = new_owning_library_key
-        else:
-            f.add_subfield('b', new_holding_library_key)
-
-        if 'c' in f:
-            f['c'] = create_shelving_key(new_holding_library_key, str(f['c']))
-        else:
-            f.add_subfield('c', new_holding_library_key)
-            logger.debug('No shelving location found in field 952 c:')
-            logger.debug(f)
-            logger.debug('Record:')
-            logger.debug(record)
-            logger.debug('Value set to value in 952 a.')
-
-    return record
-
-
-def update_material_type(record):
-    for f in record.get_fields('952'):
-        if 'y' in f:
-            aleph_material_key = str(f['y'])
-            f['y'] = marc_mappings.map_material(aleph_material_key)
-
-    return record
+    return koha_item_type
 
 
 def process_bibliographic_data(input_path, output_path, mapping):
-
     with open(input_path, 'rb') as input_file:
         with open(output_path, 'wb') as output_file:
             reader = MARCReader(input_file, force_utf8=True)
             writer = MARCWriter(output_file)
-            for record in reader:
 
+            for record in reader:
                 record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
-                record = update_library_and_shelving_location_keys(record)
-                record = update_material_type(record)
+                record = prepare_holding_data(record)
                 # TODO: instead of deleting 999, move to different fields/subfields
                 record.remove_fields('999')
                 writer.write(record)
@@ -141,8 +223,8 @@ def process_bibliographic_data(input_path, output_path, mapping):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
 
+    if len(sys.argv) != 4:
         logger.info("Please provide as argument:")
         logger.info("1) Path to bibliograhic data (directory) exports from Aleph.")
         logger.info("2) Path to authority data (file) export from Koha.")
@@ -150,9 +232,7 @@ if __name__ == '__main__':
         sys.exit()
 
     heading_to_authority_id_mapping = create_authority_heading_to_authority_id_mapping(sys.argv[2])
-
     input_directory = sys.argv[1]
-
     output_directory = sys.argv[3]
 
     if not os.path.dirname(output_directory).endswith('/'):
@@ -163,12 +243,15 @@ if __name__ == '__main__':
 
     counter = 0
     for filename in os.listdir(input_directory):
+
         if filename.endswith('.mrc'):
 
             without_extension = os.path.splitext(filename)[0]
-            logger.info('Processing file ' + filename)
-            process_bibliographic_data(input_directory + '/' + filename,
-                                       output_directory + without_extension + '-preprocessed.mrc',
-                                       heading_to_authority_id_mapping)
+            logger.info("Processing file '%s' ...", filename)
+            process_bibliographic_data(
+                input_directory + '/' + filename,
+                output_directory + without_extension + '-preprocessed.mrc',
+                heading_to_authority_id_mapping
+            )
+            logger.info('Process completed.\n')
             counter += 1
-
