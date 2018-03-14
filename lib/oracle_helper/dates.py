@@ -1,10 +1,21 @@
-# aleph: integer YYYYMMDD
-# koha: date YYYY-MM-DD
+import logging
+
+logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 def process_aleph_date(aleph_date):
-    if aleph_date == 0:
-        return None
+    """
+    Maps Aleph date strings to Koha date strings
+    :param aleph_date: YYYYMMDD
+    :return: koha_date: YYYY-MM-DD
+    """
 
-    aleph_date = str(aleph_date)
-    return aleph_date[0:4] + '-' + aleph_date[4:6] + '-' + aleph_date[6:]
+    if aleph_date == '00000000' or aleph_date == 0 or aleph_date is None:
+        return None
+    elif len(aleph_date) != 8:
+        logger.warning('Aleph date format error: %s', aleph_date)
+        return None
+    else:
+        return "-".join([aleph_date[0:4], aleph_date[4:6], aleph_date[6:8]])

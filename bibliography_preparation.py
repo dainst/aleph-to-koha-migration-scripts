@@ -6,6 +6,7 @@ import os
 
 import lib.mappings.library_keys as library_keys
 import lib.mappings.marc_mappings as marc_mappings
+import lib.oracle_helper.dates as dates_helper
 
 # This script currently serves the following purposes:
 #   1) Mapping viable headings in the bibliographic data via String comparison (what Aleph also does internally)
@@ -31,14 +32,8 @@ def map_item_type(marc_field_952):
 
 def map_date_acquired(marc_field_952):
     if 'd' in marc_field_952:
-        date_acquired = marc_field_952['d']
+        date_acquired = dates_helper.process_aleph_date(marc_field_952['d'])
         # logger.info('"Date acquired" found in subfield 952d: %s', date_acquired)
-        if len(date_acquired) == 8:
-            date_acquired = "-".join([date_acquired[0:4], date_acquired[4:6], date_acquired[6:8]])
-            # logger.info('"Date acquired" mapped to koha date format: %s', marc_field_952['d'])
-        else:
-            logger.warning('"Date acquired" format failure: %s', date_acquired)
-            date_acquired = None
     else:
         date_acquired = None
 
@@ -140,7 +135,7 @@ def prepare_holding_data(record):
                 marc_field_952['c'] = koha_shelving_location
             else:
                 logger.error('No valid shelving location found: 952c = "%s"', marc_field_952['c'])
-                logger.error('Skipping subfield c in marc field %s', marc_field_952)
+                logger.error('Skipping subfield "c" in marc field %s', marc_field_952)
                 logger.error('In Record:\n%s', record)
 
             # '952$d' Date acquired
@@ -149,7 +144,7 @@ def prepare_holding_data(record):
                 marc_field_952['d'] = koha_date_acquired
             else:
                 logger.error('No valid "date aquired" found: 952d = "%s"', marc_field_952['d'])
-                logger.error('Skipping subfield c in marc field %s', marc_field_952)
+                logger.error('Skipping subfield "d" in marc field %s', marc_field_952)
                 logger.error('In Record:\n%s', record)
 
             # '952$e' Source of acquisition
@@ -266,5 +261,5 @@ if __name__ == '__main__':
                 output_directory + without_extension + '-preprocessed.mrc',
                 authority_heading_to_authority_id_mapping
             )
-            logger.info('Process completed.\n')
+            logger.info("Process '%s' completed.\n", filename)
             counter += 1
