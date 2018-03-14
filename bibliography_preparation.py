@@ -19,6 +19,15 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def map_call_number(marc_field_952):
+    if 'o' in marc_field_952:
+        call_number = marc_field_952['o']
+    else:
+        call_number = None
+
+    return call_number
+
+
 def map_item_type(marc_field_952):
     if 'y' in marc_field_952:
         aleph_material_key = str(marc_field_952['y'])
@@ -33,7 +42,6 @@ def map_item_type(marc_field_952):
 def map_date_acquired(marc_field_952):
     if 'd' in marc_field_952:
         date_acquired = dates_helper.process_aleph_date(marc_field_952['d'])
-        # logger.info('"Date acquired" found in subfield 952d: %s', date_acquired)
     else:
         date_acquired = None
 
@@ -150,7 +158,16 @@ def prepare_holding_data(record):
             # '952$e' Source of acquisition
             # '952$g' Purchase price
             # '952$h' Serial enumeration
+
             # '952$o' Koha full call number
+            koha_call_number = map_call_number(marc_field_952)
+            if koha_call_number is not None:
+                marc_field_952['o'] = koha_call_number
+            else:
+                logger.error('No valid "call number" found: 952o = "%s"', marc_field_952['o'])
+                logger.error('Skipping subfield "o" in marc field %s', marc_field_952)
+                logger.error('In Record:\n%s', record)
+
             # '952$p' Barcode (required for circulation)
             # '952$t' Copy number
             # '952$u' Uniform Resource Identifier
