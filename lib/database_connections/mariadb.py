@@ -5,6 +5,15 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+config = {
+    'host': '127.0.0.1',
+    'user': 'koha_zenon',
+    'passwd': 'zenon',
+    'db': 'koha_mapping_db',
+    'port': 3307,
+    'use_unicode': True,
+    'charset': 'utf8'
+}
 
 connection = None
 
@@ -26,6 +35,29 @@ def establish_connection():
                                  use_unicode=True, charset='utf8')
 
 
+def open_mariadb_connection():
+    global connection
+
+    if connection is None:
+        try:
+            connection = MySQLdb.connect(**config)
+            return connection
+        except MySQLdb.Error as err:
+            logger.error(err)
+        except MySQLdb.Warning as warn:
+            logger.warning(warn)
+        else:
+            connection.close()
+    else:
+        print('Connection to MariaDB already established!')
+
+
+def close_mariadb_connection():
+    global connection
+
+    connection.close()
+
+
 def commit():
     global connection
 
@@ -38,6 +70,36 @@ def get_aqbookseller_by_aleph_vendor_key(aleph_vendor_key):
     cursor = connection.cursor()
     cursor.execute('SELECT * FROM aqbooksellers WHERE `ALEPH_VENDOR_CODE`="'+aleph_vendor_key+'";')
     result = cursor.fetchone()
+
+    return result
+
+
+def get_aleph_vendor_code_koha_aqbookseller_mapping():
+    global connection
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT `ALEPH_VENDOR_CODE`, `NAME` FROM aqbooksellers;")
+        result = cursor.fetchall()
+    except MySQLdb.Error as err:
+        logger.error(err)
+    except MySQLdb.Warning as warn:
+        logger.warning(warn)
+
+    return result
+
+
+def get_koha_aqbookseller_name_by_aleph_vendor_key(aleph_vendor_key):
+    global connection
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT DISTINCT `NAME` FROM aqbooksellers WHERE `ALEPH_VENDOR_CODE`=%s;", aleph_vendor_key)
+        result = cursor.fetchone()
+    except MySQLdb.Error as err:
+        logger.error(err)
+    except MySQLdb.Warning as warn:
+        logger.warning(warn)
 
     return result
 
