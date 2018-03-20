@@ -40,22 +40,28 @@ def open_mariadb_connection():
 
     if connection is None:
         try:
+            logger.debug("Trying to connect to MariaDB ...")
             connection = MySQLdb.connect(**config)
+            logger.debug("Connection to MariaDB established!")
             return connection
         except MySQLdb.Error as err:
             logger.error(err)
+            raise Exception
         except MySQLdb.Warning as warn:
             logger.warning(warn)
-        else:
-            connection.close()
+            raise Exception
     else:
-        print('Connection to MariaDB already established!')
+        logger.debug('Connection to MariaDB already established!')
 
 
 def close_mariadb_connection():
     global connection
 
-    connection.close()
+    if connection is not None:
+        connection.close()
+        logger.debug("Connection to MariaDB closed.")
+    else:
+        logger.debug("Connection to MariaDB was already closed!")
 
 
 def commit():
@@ -76,6 +82,7 @@ def get_aqbookseller_by_aleph_vendor_key(aleph_vendor_key):
 
 def get_aleph_vendor_code_koha_aqbookseller_mapping():
     global connection
+    result = None
 
     try:
         cursor = connection.cursor()
@@ -91,6 +98,7 @@ def get_aleph_vendor_code_koha_aqbookseller_mapping():
 
 def get_koha_aqbookseller_name_by_aleph_vendor_key(aleph_vendor_key):
     global connection
+    result = None
 
     try:
         cursor = connection.cursor()
