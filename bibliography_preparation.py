@@ -1,6 +1,5 @@
 from pymarc import MARCReader, MARCWriter
 
-import decimal
 import logging
 import os
 import sys
@@ -20,7 +19,8 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-max_holdings = 0
+max_holdings = [None, 0]
+
 
 def map_item_type(marc_field_952):
     koha_item_type = None
@@ -45,48 +45,56 @@ def map_call_number(marc_field_952):
     return koha_call_number
 
 
+def rstrip_purchase_price(purchase_price):
+    length = len(purchase_price)
+    rindex = length - 1
+    if length > 0:
+        if not purchase_price[-1].isdigit():
+            while rindex >= 0:
+                if purchase_price[rindex].isdigit():
+                    break
+                rindex -= 1
+
+            if rindex == 0:
+                purchase_price = '0.00'
+            else:
+                purchase_price = purchase_price[0:rindex + 1]
+
+    return purchase_price
+
+
+def lstrip_purchase_price(purchase_price):
+    lindex = 0
+    if not purchase_price[0].isdigit():
+        for char in purchase_price:
+            if char.isdigit():
+                break
+            lindex += 1
+
+        if lindex == len(purchase_price):
+            purchase_price = '0.00'
+        else:
+            purchase_price = purchase_price[lindex:]
+
+    return purchase_price
+
+
 def map_purchase_price(marc_field_952):
     koha_purchase_price = None
 
     if 'g' in marc_field_952:
         aleph_purchase_price = marc_field_952['g']
         if aleph_purchase_price is not None:
-            koha_purchase_price = aleph_purchase_price.strip()
-            koha_purchase_price = koha_purchase_price.replace(',', '.')
+            koha_purchase_price = aleph_purchase_price.strip().replace(',', '.')
 
             if not (koha_purchase_price[0].isdigit() and koha_purchase_price[-1].isdigit()):
-                #logger.info("Aleph purchase price: %s", aleph_purchase_price)
-
-                lindex = 0
-                if not koha_purchase_price[0].isdigit():
-                    for char in koha_purchase_price:
-                        if char.isdigit():
-                            break
-                        lindex += 1
-
-                    if lindex ==  len(koha_purchase_price):
-                        koha_purchase_price = '0.00'
-                    else:
-                        koha_purchase_price = koha_purchase_price[lindex:]
-
-                length = len(koha_purchase_price)
-                rindex = length - 1
-                if length > 0:
-                    if not koha_purchase_price[-1].isdigit():
-                        while rindex >= 0:
-                            if koha_purchase_price[rindex].isdigit():
-                                break
-                            rindex -= 1
-
-                        if rindex ==  0:
-                            koha_purchase_price = '0.00'
-                        else:
-                            koha_purchase_price = koha_purchase_price[0:rindex + 1]
+                koha_purchase_price = lstrip_purchase_price(koha_purchase_price)
+                koha_purchase_price = rstrip_purchase_price(koha_purchase_price)
 
                 koha_purchase_price = '{0:.2f}'.format(float(koha_purchase_price))
                 if len(koha_purchase_price) > 11:
-                    logger.info('Koha purchase price length: %s', len(koha_purchase_price))
-                    logger.info("Koha purchase price: %s", koha_purchase_price)
+                    logger.error('Koha purchase price length: %s', len(koha_purchase_price))
+                    logger.error("Koha purchase price: %s", koha_purchase_price)
 
     return koha_purchase_price
 
@@ -102,23 +110,23 @@ def map_aleph_vendor_code(aleph_z70_vendor_code):
 
 
 def map_source_of_acquisition(marc_field_952):
+    source_of_acquisition = None
+
     if 'e' in marc_field_952:
         source_of_acquisition = marc_field_952['e']
         if source_of_acquisition is not None:
             # logger.info("Aleph vendor code: %s", source_of_acquisition)
             source_of_acquisition = map_aleph_vendor_code(source_of_acquisition)
             # logger.info("Koha bookseller name: %s", source_of_acquisition)
-    else:
-        source_of_acquisition = None
 
     return source_of_acquisition
 
 
 def map_date_acquired(marc_field_952):
+    date_acquired = None
+
     if 'd' in marc_field_952:
         date_acquired = dates_helper.process_aleph_date(marc_field_952['d'])
-    else:
-        date_acquired = None
 
     return date_acquired
 
@@ -192,7 +200,7 @@ def check_required_subfields(marc_field_952):
 def prepare_holding_data(record):
     global max_holdings
 
-    #logger.info("Processing holding information of Marc record: %s ...", record.leader)
+    logger.info("Processing holding information of Marc record: %s ...", record.leader)
 
     is_record_format_error = False
     is_record_format_warning = False
@@ -201,20 +209,21 @@ def prepare_holding_data(record):
 
     marc_holding_fields = record.get_fields('952')
     holding_field_no = len(marc_holding_fields)
-    if holding_field_no > max_holdings: max_holdings = holding_field_no
+    if holding_field_no > max_holdings[1]:
+        max_holdings[0] = record.leader
+        max_holdings[1] = holding_field_no
 
-    #logger.info("%s holding field(s) found.", holding_field_no)
-    #logger.info("Current holding field number maximum: %s", max_holdings)
+    logger.info("%s holding field(s) found.", holding_field_no)
 
     counter = 1
     for marc_field_952 in marc_holding_fields:
-        logger.debug("Field No. %s: %s", counter , marc_field_952)
+        logger.debug("Field No. %s: %s", counter, marc_field_952)
 
         # TODO Datentypen und Feldlängen überprüfen!
         if check_required_subfields(marc_field_952):
 
             # '952$a' Owning Library (required by Koha)
-            """koha_owning_library = map_owning_library(marc_field_952)
+            koha_owning_library = map_owning_library(marc_field_952)
             if koha_owning_library is not None:
                 marc_field_952['a'] = koha_owning_library
             else:
@@ -269,22 +278,22 @@ def prepare_holding_data(record):
                     'Field No. %s: No valid "source of aquisition" found: 952$e = "%s"', counter, marc_field_952['e'])
                 logger.debug('Field No. %s: Skipping subfield "e" in marc field %s', counter, marc_field_952)
                 marc_field_952.delete_subfield('e')
-                is_record_format_debugging = True"""
+                is_record_format_debugging = True
 
             # '952$g' Purchase price
             koha_purchase_price = map_purchase_price(marc_field_952)
             if koha_purchase_price is not None:
                 marc_field_952['g'] = koha_purchase_price
             else:
-                # logger.info('Field No. %s: No valid "purchase price" found: 952$g = "%s"', counter, marc_field_952['g'])
-                # logger.debug('Field No. %s: Skipping subfield "g" in marc field %s', counter, marc_field_952)
+                logger.info('Field No. %s: No valid "purchase price" found: 952$g = "%s"', counter, marc_field_952['g'])
+                logger.debug('Field No. %s: Skipping subfield "g" in marc field %s', counter, marc_field_952)
                 marc_field_952.delete_subfield('g')
                 is_record_format_debugging = True
 
             # '952$h' Serial enumeration
 
             # '952$o' Koha full call number
-            """koha_call_number = map_call_number(marc_field_952)
+            koha_call_number = map_call_number(marc_field_952)
             if koha_call_number is not None:
                 marc_field_952['o'] = koha_call_number
             else:
@@ -310,7 +319,7 @@ def prepare_holding_data(record):
                 record.remove_field(marc_field_952)
                 is_record_format_error = True
                 counter += 1
-                continue"""
+                continue
 
             # '952$z' Public note
             # '952$0' Withdrawn status
@@ -339,7 +348,7 @@ def prepare_holding_data(record):
     elif is_record_format_debugging:
         logger.debug('In Record:\n%s', record)
 
-    #logger.info("Marc Record '%s' process completed!\n", record.leader)
+    logger.info("Marc Record '%s' process completed!\n", record.leader)
 
     return record
 
@@ -429,3 +438,5 @@ if __name__ == '__main__':
                 authority_heading_to_authority_id_mapping
             )
             logger.info("Process '%s' completed.\n", filename)
+
+    logger.info("Holding field number maximum: %s (%s)", max_holdings[1], max_holdings[0])

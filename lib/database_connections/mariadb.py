@@ -42,7 +42,7 @@ def open_mariadb_connection():
         try:
             logger.debug("Trying to connect to MariaDB ...")
             connection = MySQLdb.connect(**config)
-            logger.debug("Connection to MariaDB established!")
+            logger.debug("Connection to MariaDB established.")
             return connection
         except MySQLdb.Error as err:
             logger.error(err)
@@ -51,7 +51,7 @@ def open_mariadb_connection():
             logger.warning(warn)
             raise Exception
     else:
-        logger.debug('Connection to MariaDB already established!')
+        logger.debug('Connection to MariaDB already established!\n')
 
 
 def close_mariadb_connection():
@@ -59,9 +59,9 @@ def close_mariadb_connection():
 
     if connection is not None:
         connection.close()
-        logger.debug("Connection to MariaDB closed.")
+        logger.debug("Connection to MariaDB closed.\n")
     else:
-        logger.debug("Connection to MariaDB was already closed!")
+        logger.debug("Connection to MariaDB was already closed!\n")
 
 
 def commit():
