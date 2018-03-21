@@ -1,3 +1,5 @@
+USE koha_mapping_db;
+
 CREATE TABLE `aqorders_items` (
   `ordernumber` int(11) NOT NULL,
   `itemnumber` int(11) NOT NULL,
