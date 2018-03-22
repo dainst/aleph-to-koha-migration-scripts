@@ -26,7 +26,7 @@ Z30_MATERIAL_MAPPING = {
     'MANUS': 'MA',
     'MBWK': 'MBW',
     'MEDK': 'MX',
-    'NBM': 'AV',
+    'NBM': 'VM',
     'SDD': 'SD',
     'SERBD': 'BK',
     'SEREB': 'BK',
@@ -35,6 +35,7 @@ Z30_MATERIAL_MAPPING = {
     'ZSN': 'CR',
     'ZTG': 'CR'
 }
+
 
 def map_material(aleph_material):
     if aleph_material not in Z30_MATERIAL_MAPPING:
