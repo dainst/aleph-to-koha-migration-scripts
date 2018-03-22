@@ -16,6 +16,12 @@ script_dir = os.path.dirname(__file__)
 MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/113000_aqcontacts_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqcontacts_data_import.sql'
 
+GENERIC_MAIN_CONTACT_NAME = 'Main contact'
+GENERIC_ORDER_CONTACT_NAME = 'Order contact'
+GENERIC_CLAIM_CONTACT_NAME = 'Claim contact'
+GENERIC_PAYMENT_CONTACT_NAME = 'Payment contact'
+GENERIC_RETURNS_CONTACT_NAME = 'Returns contact'
+
 
 def map_boolean_to_0_or_1(boolean_value):
     if boolean_value:
@@ -26,13 +32,13 @@ def map_boolean_to_0_or_1(boolean_value):
 
 def create_name_from_type(address_type):
     if address_type == 1:
-        return 'Vendor contact'
+        return GENERIC_ORDER_CONTACT_NAME
     elif address_type == 2:
-        return 'Claim contact'
+        return GENERIC_CLAIM_CONTACT_NAME
     elif address_type == 3:
-        return 'Claim contact'
+        return GENERIC_PAYMENT_CONTACT_NAME
     elif address_type == 4:
-        return 'Claim contact'
+        return GENERIC_RETURNS_CONTACT_NAME
     else:
         return None
 
@@ -121,45 +127,132 @@ def fetch_data(credentials):
     return z72_result
 
 
-def conflate_duplicates(results):
+def merge_with_same_name(contact_list):
+    index = 0
+    updated_contact_list = []
+    while index < len(contact_list):
+        if len(updated_contact_list) == 0:
+            updated_contact_list.append(contact_list[index])
+        else:
+            for key in contact_list[index]:
+                value = contact_list[index][key]
+                previous_contact_data = updated_contact_list[-1]
+                if (key not in previous_contact_data
+                        or previous_contact_data[key] is None
+                        or previous_contact_data[key] == 0):
+                    previous_contact_data[key] = value
+                if (previous_contact_data[key] is not None
+                        and value is not None
+                        and not (value == 0 and previous_contact_data[key] == 1)
+                        and previous_contact_data[key] != value):
+
+                    if not (previous_contact_data[key] in value or value in previous_contact_data[key]):
+                        logger.debug('Unhandled case: 2 contacts with same name have each a different value set for')
+                        logger.debug(' key: ' + str(key))
+                        logger.debug(' Name: ' + previous_contact_data['name'])
+                        logger.debug(' First contact value: ' + str(value))
+                        logger.debug(' Second contact value: ' + str(previous_contact_data[key]))
+                        logger.debug(' Writing second variant to "notes" of the first one.')
+
+                        if previous_contact_data['notes'] is None:
+                            previous_contact_data['notes'] = ''
+
+                        previous_contact_data['notes'] += ", " + value
+
+        index += 1
+
+    # Sanity check: Only one item should remain:
+    if len(updated_contact_list) != 1:
+        logger.error('More than one contact after merge:')
+        logger.error(updated_contact_list)
+    else:
+        return updated_contact_list[0]
+
+
+def merge_with_generic_names(contact_list):
+    merged_list = []
+    result = contact_list[0]
+    result['name'] = GENERIC_MAIN_CONTACT_NAME
+    index = 1
+    while index < len(contact_list):
+        contact = contact_list[index]
+        keep_updated_result = True
+        updated_result = result
+        for key in contact.keys():
+            if key == 'name':
+                continue
+            if contact[key] != updated_result[key]:
+                if contact[key] is None:
+                    continue
+                if updated_result[key] is None:
+                    updated_result[key] = contact[key]
+                    continue
+                if key in ['orderacquisition', 'claimacquisition', 'claimissues']:
+                    updated_result[key] = 1
+                    continue
+                if key == 'notes':
+                    updated_result[key] += ', ' + contact[key]
+                    continue
+
+                logger.debug('Different values for key: %s' % key)
+                logger.debug(contact[key])
+                logger.debug(result[key])
+                logger.debug('Keeping generic contact: ')
+                logger.debug(contact)
+
+                merged_list.append(contact)
+                keep_updated_result = False
+                break
+
+        if keep_updated_result:
+            result = updated_result
+
+        index += 1
+
+    merged_list.append(result)
+    return merged_list
+
+
+def merge_duplicates(results):
 
     updated_results = {}
 
     for vendor_key in results:
 
-        contact_list = sorted(results[vendor_key], key=lambda k: k['name'])
+        contact_list = results[vendor_key]
+
+        if len(contact_list) == 1:
+            updated_results[vendor_key] = contact_list
+            continue
+
+        dict_by_name = dict()
+        generic_name_list = []
+
+        for contact in contact_list:
+
+            if contact['name'] in [GENERIC_ORDER_CONTACT_NAME,
+                                   GENERIC_CLAIM_CONTACT_NAME,
+                                   GENERIC_PAYMENT_CONTACT_NAME,
+                                   GENERIC_RETURNS_CONTACT_NAME]:
+                generic_name_list.append(contact)
+                continue
+
+            if contact['name'] not in dict_by_name:
+                dict_by_name[contact['name']] = []
+            dict_by_name[contact['name']].append(contact)
 
         updated_contact_list = []
 
-        index = 0
-
-        while index < len(contact_list):
-            if len(updated_contact_list) == 0 or updated_contact_list[-1]['name'] != contact_list[index]['name']:
-                updated_contact_list.append(contact_list[index])
+        for key in dict_by_name.keys():
+            # If the name only occurs once, it is accepted.
+            if len(dict_by_name[key]) == 1:
+                updated_contact_list.append(dict_by_name[key])
+            # Otherwise, we try to merge the entries into one.
             else:
-                for key in contact_list[index]:
-                    value = contact_list[index][key]
-                    if (key not in updated_contact_list[-1]
-                            or updated_contact_list[-1][key] is None
-                            or updated_contact_list[-1][key] == 0):
-                        updated_contact_list[-1][key] = value
-                    if (updated_contact_list[-1][key] is not None
-                            and value is not None
-                            and not (value == 0 and updated_contact_list[-1][key] == 1)
-                            and updated_contact_list[-1][key] != value):
-                        logger.warning('Unhandled case: 2 contacts with same name have each a different value set for')
-                        logger.warning(' key: ' + str(key))
-                        logger.warning(' Name: ' + updated_contact_list[-1]['name'])
-                        logger.warning(' First contact value: ' + str(value))
-                        logger.warning(' Second contact value: ' + str(updated_contact_list[-1][key]))
-                        logger.warning(' Writing second variant to "notes".')
+                updated_contact_list.append(merge_with_same_name(dict_by_name[key]))
 
-                        if updated_contact_list[-1]['notes'] is None:
-                            updated_contact_list[-1]['notes'] = ''
-
-                        updated_contact_list[-1]['notes'] += ", " + value
-
-            index += 1
+        if len(generic_name_list) > 0:
+            updated_contact_list.extend(merge_with_generic_names(generic_name_list))
 
         updated_results[vendor_key] = updated_contact_list
     return updated_results
@@ -255,7 +348,7 @@ def write_data(data):
 
 def start(oracle_credentials):
     results = fetch_data(oracle_credentials)
-    filtered_results = conflate_duplicates(results)
+    filtered_results = merge_duplicates(results)
     write_data(filtered_results)
 
 
