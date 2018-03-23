@@ -7,27 +7,27 @@ logger.setLevel(logging.DEBUG)
 LIBRARY_KEY_MAPPING = {
     'BAYS':  'BASSM',
     'BSA':   'BBSA',
-    'WINCK': 'BWINCK',
+    'LUBL':  'BIAUL',
     'ZADAR': 'BICUAZ',
+    'SCHW':  'BLDMV',
+    'WINCK': 'BWINCK',
     'ATHEN': 'DAIA',
+    'BONN':  'DAIB',
+    'DAMAS': 'DAID',
     'EURAS': 'DAIE',
+    'RGK':   'DAIF',
     'DAI':   'DAIG',
     'ISTAN': 'DAII',
-    'BONN':  'DAIB',
     'KAIRO': 'DAIK',
     'MADRD': 'DAIM',
     'ORIEN': 'DAIO',
-    'RGK':   'DAIF',
-    'ROM':   'DAIR',
-    'ZENTR': 'DAIZ',
-    'DAMAS': 'DAID',
     'PEK':   'DAIP',
+    'ROM':   'DAIR',
     'SANAA': 'DAIS',
     'TEHER': 'DAIT',
+    'ZENTR': 'DAIZ',
     'DEIA':  'DEIA',
-    'DEIJ':  'DEIJ',
-    'LUBL':  'BIAUL',
-    'SCHW':  'BLDMV'
+    'DEIJ':  'DEIJ'
 }
 
 

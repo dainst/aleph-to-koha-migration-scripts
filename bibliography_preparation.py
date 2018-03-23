@@ -15,9 +15,17 @@ import lib.oracle_helper.dates as dates_helper
 #      added to the bibliographic heading (subfield '9').
 #   2) Library keys are mapped between Aleph and Koha. The keys got refactored in Koha, to add more naming consistency.
 
-logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# file_handler = logging.FileHandler('./bibliography_preparation.log')
+# file_handler.setLevel(logging.INFO)
+# console_handler = logging.StreamHandler()
+# console_handler.setLevel(logging.ERROR)
+# file_handler.setFormatter(formatter)
+# console_handler.setFormatter(formatter)
+# logger.addHandler(file_handler)
+# logger.addHandler(console_handler)
 
 max_holdings = [None, 0]
 
@@ -131,41 +139,29 @@ def map_date_acquired(marc_field_952):
     return date_acquired
 
 
-def create_shelving_key(library_key, shelving_key):
-    return library_key + ' ' + shelving_key
-
-
 def map_shelving_location_code(marc_field_952):
-    owning_library_key = marc_field_952['a']
+    shelving_location_code = None
 
     if 'c' in marc_field_952:
-        shelving_location_code = create_shelving_key(owning_library_key, marc_field_952['c'])
-    else:
-        logger.debug('No marc subfield 952c found!')
-        logger.debug('Copy subfield 952a in subfield 952c ...')
-        shelving_location_code = owning_library_key
-        marc_field_952.add_subfield('c', shelving_location_code)
-        logger.debug('Subfield 952c = %s', marc_field_952['c'])
+        shelving_location_code = marc_mappings.map_shelving_location(marc_field_952['c'], marc_field_952['a'])
 
     return shelving_location_code
 
 
 def map_holding_library(marc_field_952):
+    holding_library_key = None
+
     if 'b' in marc_field_952:
         holding_library_key = library_keys.map_aleph_key(marc_field_952['b'])
-    else:
-        holding_library_key = None
-        logger.error('No marc subfield 952b found!')
 
     return holding_library_key
 
 
 def map_owning_library(marc_field_952):
+    owning_library_key = None
+
     if 'a' in marc_field_952:
         owning_library_key = library_keys.map_aleph_key(marc_field_952['a'])
-    else:
-        owning_library_key = None
-        logger.error('No marc subfield 952a found!')
 
     return owning_library_key
 
@@ -219,7 +215,7 @@ def prepare_holding_data(record):
     for marc_field_952 in marc_holding_fields:
         logger.debug("Field No. %s: %s", counter, marc_field_952)
 
-        # TODO Datentypen und Feldlängen überprüfen!
+        # TODO Datentypen und Feldlängen zw. Aleph u. Koha abgleichen!
         if check_required_subfields(marc_field_952):
 
             # '952$a' Owning Library (required by Koha)
@@ -252,6 +248,7 @@ def prepare_holding_data(record):
             koha_shelving_location = map_shelving_location_code(marc_field_952)
             if koha_shelving_location is not None:
                 marc_field_952['c'] = koha_shelving_location
+                # logger.info('Field No. %s: shelving location found: 952$c = "%s"', counter, marc_field_952['c'])
             else:
                 logger.info(
                     'Field No. %s: No valid shelving location found: 952$c = "%s"', counter, marc_field_952['c'])
@@ -280,6 +277,9 @@ def prepare_holding_data(record):
                 marc_field_952.delete_subfield('e')
                 is_record_format_debugging = True
 
+            # '952$f' Coded location qualifier
+            # This has no function in Koha.
+
             # '952$g' Purchase price
             koha_purchase_price = map_purchase_price(marc_field_952)
             if koha_purchase_price is not None:
@@ -291,6 +291,12 @@ def prepare_holding_data(record):
                 is_record_format_debugging = True
 
             # '952$h' Serial enumeration
+            # '952$i' Inventory number
+            # '952$j' Shelving control number
+            # '952$k' This has no function in Koha.
+            # '952$l' Total Checkouts
+            # '952$m' Total Renewals
+            # '952$n' Total Holds
 
             # '952$o' Koha full call number
             koha_call_number = map_call_number(marc_field_952)
@@ -303,6 +309,9 @@ def prepare_holding_data(record):
                 is_record_format_debugging = True
 
             # '952$p' Barcode (required for circulation)
+            # '952$q' Due date
+            # '952$r' Date last seen
+            # '952$s' Date last checked out
             # '952$t' Copy number
             # '952$u' Uniform Resource Identifier
             # '952$v' Replacement price
@@ -328,6 +337,7 @@ def prepare_holding_data(record):
             # '952$3' Materials specified
             # '952$4' Damaged status
             # '952$5' Use restrictions
+            # '952$6' Koha normalized classification for sorting
             # '952$7' Not for loan
             # '952$8' Collection code
             # '952$9' Item number

@@ -85,9 +85,11 @@ def get_aleph_vendor_code_koha_aqbookseller_mapping():
     result = None
 
     try:
+        logger.debug("Fetching 'Aleph_Vendor_Code Koha_Aqbookseller' mapping ...")
         cursor = connection.cursor()
         cursor.execute("SELECT `ALEPH_VENDOR_CODE`, `NAME` FROM aqbooksellers;")
         result = cursor.fetchall()
+        logger.debug('Mapping fetched.')
     except MySQLdb.Error as err:
         logger.error(err)
     except MySQLdb.Warning as warn:
