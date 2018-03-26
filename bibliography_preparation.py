@@ -53,6 +53,19 @@ def map_call_number(marc_field_952):
     return koha_call_number
 
 
+def map_inventory_number(marc_field_952):
+    koha_stock_number = None
+
+    if 'i' in marc_field_952:
+        aleph_inventory_number = marc_field_952['i']
+        if len(aleph_inventory_number) > 32:
+            logger.error('Aleph call number length exceeds Koha call number length!')
+        else:
+            koha_stock_number = aleph_inventory_number
+
+    return koha_stock_number
+
+
 def rstrip_purchase_price(purchase_price):
     length = len(purchase_price)
     rindex = length - 1
@@ -290,8 +303,19 @@ def prepare_holding_data(record):
                 marc_field_952.delete_subfield('g')
                 is_record_format_debugging = True
 
-            # '952$h' Serial enumeration
+            # TODO '952$h' Serial enumeration
+
             # '952$i' Inventory number
+            #logger.info('Field No. %s: "inventory number" found: 952$o = "%s"', counter, marc_field_952['i'])
+            koha_stock_number = map_inventory_number(marc_field_952)
+            if koha_stock_number is not None:
+                marc_field_952['i'] = koha_stock_number
+            else:
+                logger.info('Field No. %s: No valid "inventory number" found: 952$o = "%s"', counter, marc_field_952['i'])
+                logger.debug('Field No. %s: Skipping subfield "i" in marc field %s', counter, marc_field_952)
+                marc_field_952.delete_subfield('i')
+                is_record_format_debugging = True
+
             # '952$j' Shelving control number
             # '952$k' This has no function in Koha.
             # '952$l' Total Checkouts
