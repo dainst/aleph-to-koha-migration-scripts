@@ -40,6 +40,19 @@ def map_item_type(marc_field_952):
     return koha_item_type
 
 
+def map_copy_number(marc_field_952):
+    koha_copy_number = None
+
+    if 't' in marc_field_952:
+        aleph_copy_number = marc_field_952['t']
+        if len(aleph_copy_number) > 32:
+            logger.error("Aleph 'copy number' length exceeds Koha 'copy number' length!")
+        else:
+            koha_copy_number = aleph_copy_number
+
+    return koha_copy_number
+
+
 def map_barcode(marc_field_952):
     koha_barcode = None
 
@@ -359,6 +372,14 @@ def prepare_holding_data(record):
             # '952$r' Date last seen -> currently not applicable for Aleph
             # '952$s' Date last checked out -> currently not applicable for Aleph
             # '952$t' Copy number
+            koha_copy_number = map_copy_number(marc_field_952)
+            if koha_copy_number is not None:
+                marc_field_952['t'] = koha_copy_number
+            else:
+                logger.info('Field No. %s: No valid "copy number" found: 952$t = "%s"', counter, marc_field_952['t'])
+                logger.debug('Field No. %s: Skipping subfield "t" in marc field %s', counter, marc_field_952)
+                marc_field_952.delete_subfield('t')
+                is_record_format_debugging = True
 
             # '952$u' Uniform Resource Identifier
 
