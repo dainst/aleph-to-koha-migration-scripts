@@ -40,13 +40,26 @@ def map_item_type(marc_field_952):
     return koha_item_type
 
 
+def map_barcode(marc_field_952):
+    koha_barcode = None
+
+    if 'p' in marc_field_952:
+        aleph_barcode = marc_field_952['p']
+        if len(aleph_barcode) > 20:
+            logger.error("Aleph 'barcode' length exceeds Koha 'barcode' length!")
+        else:
+            koha_barcode = aleph_barcode
+
+    return koha_barcode
+
+
 def map_call_number(marc_field_952):
     koha_call_number = None
 
     if 'o' in marc_field_952:
         aleph_call_number = marc_field_952['o']
         if len(aleph_call_number) > 255:
-            logger.error('Aleph call number length exceeds Koha call number length!')
+            logger.error("Aleph 'call number' length exceeds Koha 'call number' length!")
         else:
             koha_call_number = aleph_call_number
 
@@ -59,7 +72,7 @@ def map_inventory_number(marc_field_952):
     if 'i' in marc_field_952:
         aleph_inventory_number = marc_field_952['i']
         if len(aleph_inventory_number) > 32:
-            logger.error('Aleph call number length exceeds Koha call number length!')
+            logger.error("Aleph 'inventory number' length exceeds Koha 'stock number' length!")
         else:
             koha_stock_number = aleph_inventory_number
 
@@ -291,7 +304,7 @@ def prepare_holding_data(record):
                 is_record_format_debugging = True
 
             # '952$f' Coded location qualifier
-            # This has no function in Koha.
+            # 'This has no function in Koha.'
 
             # '952$g' Purchase price
             koha_purchase_price = map_purchase_price(marc_field_952)
@@ -316,11 +329,11 @@ def prepare_holding_data(record):
                 marc_field_952.delete_subfield('i')
                 is_record_format_debugging = True
 
-            # '952$j' Shelving control number
-            # '952$k' This has no function in Koha.
-            # '952$l' Total Checkouts
-            # '952$m' Total Renewals
-            # '952$n' Total Holds
+            # '952$j' Shelving control number -> currently not applicable for Aleph
+            # '952$k' Unused in Koha.
+            # '952$l' Total Checkouts -> currently not applicable for Aleph
+            # '952$m' Total Renewals -> currently not applicable for Aleph
+            # '952$n' Total Holds -> currently not applicable for Aleph
 
             # '952$o' Koha full call number
             koha_call_number = map_call_number(marc_field_952)
@@ -333,13 +346,25 @@ def prepare_holding_data(record):
                 is_record_format_debugging = True
 
             # '952$p' Barcode (required for circulation)
-            # '952$q' Due date
-            # '952$r' Date last seen
-            # '952$s' Date last checked out
+            koha_barcode = map_barcode(marc_field_952)
+            if koha_barcode is not None:
+                marc_field_952['p'] = koha_barcode
+            else:
+                logger.info('Field No. %s: No valid "barcode" found: 952$p = "%s"', counter, marc_field_952['p'])
+                logger.debug('Field No. %s: Skipping subfield "p" in marc field %s', counter, marc_field_952)
+                marc_field_952.delete_subfield('p')
+                is_record_format_debugging = True
+
+            # '952$q' Due date -> currently not applicable for Aleph
+            # '952$r' Date last seen -> currently not applicable for Aleph
+            # '952$s' Date last checked out -> currently not applicable for Aleph
             # '952$t' Copy number
+
             # '952$u' Uniform Resource Identifier
-            # '952$v' Replacement price
-            # '952$w' Price effective from
+
+            # '952$v' Replacement price -> currently not applicable for Aleph
+            # '952$w' Price effective from -> currently not applicable for Aleph
+
             # '952$x' Nonpublic note
 
             # '952$y' Item type (required by Koha)
@@ -355,6 +380,7 @@ def prepare_holding_data(record):
                 continue
 
             # '952$z' Public note
+
             # '952$0' Withdrawn status
             # '952$1' Lost status
             # '952$2' Classification
