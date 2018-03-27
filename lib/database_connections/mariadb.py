@@ -132,11 +132,20 @@ def get_aqbasket_by_aleph_rec_key(aleph_rec_key):
     return result
 
 
-def get_aqbasketgroup_by_aleph_doc_number(aleph_z68_doc_key):
+def get_aqbasketgroups():
     global connection
 
     cursor = connection.cursor()
-    cursor.execute('SELECT * FROM aqbasketgroups WHERE `ALEPH_Z68_DOC_NUMBER`="' + aleph_z68_doc_key + '";')
+    cursor.execute('SELECT * FROM aqbasketgroups;')
+    result = cursor.fetchall()
+    return result
+
+
+def get_aqbasketgroup_by_aleph_rec_key(aleph_rec_key):
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT * FROM aqbasketgroups WHERE `ALEPH_Z68_REC_KEY`="' + aleph_rec_key + '";')
 
     result = cursor.fetchone()
 

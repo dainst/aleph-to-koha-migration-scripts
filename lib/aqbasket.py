@@ -30,7 +30,7 @@ def evaluate_is_standing(aleph_order_type):
     return 0
 
 
-def process_z68_data(previous_results, query_result):
+def process_z68_data(previous_results, query_result, basket_groups):
     result = dict()
 
     parsed_open_date = dates_helper.process_aleph_date(query_result[6])
@@ -46,7 +46,9 @@ def process_z68_data(previous_results, query_result):
     result['branch'] = library_keys.map_aleph_key(query_result[12].strip())
 
     if query_result[14] is not None:
-        result['note'] = 'Erwerbungsart: ' + method_of_acquisition.map_aleph_key(query_result[14].strip())
+        result['basketname'] = method_of_acquisition.map_aleph_key(query_result[14].strip())
+    else:
+        result['basketname'] = 'Automatically generated'
 
     parsed_order_date = dates_helper.process_aleph_date(query_result[15])
     if parsed_order_date is not None:
@@ -59,11 +61,8 @@ def process_z68_data(previous_results, query_result):
 
     result['is_standing'] = z68.evaluate_is_standing(query_result[1])
 
-    basket_group = mariadb.get_aqbasketgroup_by_aleph_doc_number(query_result[0][0:9])
-
-    result['basketgroupid'] = basket_group[0]
-    result['booksellerid'] = basket_group[3]
-    result['basketname'] = '[aleph-sequence]' + str(int(query_result[0][9:]))
+    result['basketgroupid'] = basket_groups[query_result[0]][0]
+    result['booksellerid'] = basket_groups[query_result[0]][3]
 
     previous_results[query_result[0]] = result
 
@@ -76,11 +75,16 @@ def fetch_data(credentials):
     mariadb.establish_connection()
     logger.info('Connected...')
 
+    aqbasketgroups_query = mariadb.get_aqbasketgroups()
+    basket_groups = dict()
+    for query_result in aqbasketgroups_query:
+        basket_groups[query_result[-1]] = query_result
+
     z68_result = dict()
-    z68_data_cursor = oracle.get_not_cancelled_z68()
+    z68_data_cursor = oracle.get_open_z68()
     logger.info('Processing data from z68 table...')
     for query_result in z68_data_cursor:
-        z68_result = process_z68_data(z68_result, query_result)
+        z68_result = process_z68_data(z68_result, query_result, basket_groups)
 
     z68_data_cursor.close()
 
