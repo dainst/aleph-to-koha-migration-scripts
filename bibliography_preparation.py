@@ -30,6 +30,15 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 max_holdings = [None, 0]
 
 
+def map_public_note(marc_field_952):
+    koha_item_note = None
+
+    if 'z' in marc_field_952:
+        koha_item_note = marc_field_952['z']
+
+    return koha_item_note
+
+
 def map_item_type(marc_field_952):
     koha_item_type = None
 
@@ -380,6 +389,7 @@ def prepare_holding_data(record):
             # '952$q' Due date -> currently not applicable for Aleph
             # '952$r' Date last seen -> currently not applicable for Aleph
             # '952$s' Date last checked out -> currently not applicable for Aleph
+
             # '952$t' Copy number
             koha_copy_number = map_copy_number(marc_field_952)
             if koha_copy_number is not None:
@@ -417,6 +427,14 @@ def prepare_holding_data(record):
                 continue
 
             # '952$z' Public note
+            koha_item_notes = map_public_note(marc_field_952)
+            if koha_item_notes is not None:
+                marc_field_952['z'] = koha_item_notes
+            else:
+                logger.info('Field No. %s: No valid "public note" found: 952$z = "%s"', counter, marc_field_952['z'])
+                logger.debug('Field No. %s: Skipping subfield "z" in marc field %s', counter, marc_field_952)
+                marc_field_952.delete_subfield('z')
+                is_record_format_debugging = True
 
             # '952$0' Withdrawn status
             # '952$1' Lost status
