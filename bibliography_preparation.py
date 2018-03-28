@@ -40,13 +40,22 @@ def map_item_type(marc_field_952):
     return koha_item_type
 
 
+def map_nonpublic_note(marc_field_952):
+    koha_item_note_nonpublic = None
+
+    if 'x' in marc_field_952:
+        koha_item_note_nonpublic = marc_field_952['x']
+
+    return koha_item_note_nonpublic
+
+
 def map_copy_number(marc_field_952):
     koha_copy_number = None
 
     if 't' in marc_field_952:
         aleph_copy_number = marc_field_952['t']
         if len(aleph_copy_number) > 32:
-            logger.error("Aleph 'copy number' length exceeds Koha 'copy number' length!")
+            logger.error("Aleph 'copy number' length exceeds Koha 'copy number' length!\n")
         else:
             koha_copy_number = aleph_copy_number
 
@@ -59,7 +68,7 @@ def map_barcode(marc_field_952):
     if 'p' in marc_field_952:
         aleph_barcode = marc_field_952['p']
         if len(aleph_barcode) > 20:
-            logger.error("Aleph 'barcode' length exceeds Koha 'barcode' length!")
+            logger.error("Aleph 'barcode' length exceeds Koha 'barcode' length!\n")
         else:
             koha_barcode = aleph_barcode
 
@@ -72,7 +81,7 @@ def map_call_number(marc_field_952):
     if 'o' in marc_field_952:
         aleph_call_number = marc_field_952['o']
         if len(aleph_call_number) > 255:
-            logger.error("Aleph 'call number' length exceeds Koha 'call number' length!")
+            logger.error("Aleph 'call number' length exceeds Koha 'call number' length!\n")
         else:
             koha_call_number = aleph_call_number
 
@@ -85,7 +94,7 @@ def map_inventory_number(marc_field_952):
     if 'i' in marc_field_952:
         aleph_inventory_number = marc_field_952['i']
         if len(aleph_inventory_number) > 32:
-            logger.error("Aleph 'inventory number' length exceeds Koha 'stock number' length!")
+            logger.error("Aleph 'inventory number' length exceeds Koha 'stock number' length!\n")
         else:
             koha_stock_number = aleph_inventory_number
 
@@ -381,12 +390,19 @@ def prepare_holding_data(record):
                 marc_field_952.delete_subfield('t')
                 is_record_format_debugging = True
 
-            # '952$u' Uniform Resource Identifier
-
+            # '952$u' Uniform Resource Identifier -> currently not applicable for Aleph
             # '952$v' Replacement price -> currently not applicable for Aleph
             # '952$w' Price effective from -> currently not applicable for Aleph
 
             # '952$x' Nonpublic note
+            koha_item_notes_nonpulic = map_nonpublic_note(marc_field_952)
+            if koha_item_notes_nonpulic is not None:
+                marc_field_952['x'] = koha_item_notes_nonpulic
+            else:
+                logger.info('Field No. %s: No valid "nonpublic note" found: 952$x = "%s"', counter, marc_field_952['x'])
+                logger.debug('Field No. %s: Skipping subfield "x" in marc field %s', counter, marc_field_952)
+                marc_field_952.delete_subfield('x')
+                is_record_format_debugging = True
 
             # '952$y' Item type (required by Koha)
             koha_item_type = map_item_type(marc_field_952)
