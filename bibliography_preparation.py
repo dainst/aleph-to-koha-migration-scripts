@@ -30,6 +30,21 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 max_holdings = [None, 0]
 
 
+def map_lost_status(marc_field_952):
+    koha_item_lost = None
+
+    if '1' in marc_field_952:
+        aleph_z30_item_process_status = marc_field_952['1']
+
+        if aleph_z30_item_process_status == 'MI' or aleph_z30_item_process_status == 'MS' or \
+                aleph_z30_item_process_status == 'Missing' or aleph_z30_item_process_status == 'Misshelved':
+            koha_item_lost = '1'
+        else:
+            koha_item_lost = '0'
+
+    return koha_item_lost
+
+
 def map_public_note(marc_field_952):
     koha_item_note = None
 
@@ -272,7 +287,6 @@ def prepare_holding_data(record):
     for marc_field_952 in marc_holding_fields:
         logger.debug("Field No. %s: %s", counter, marc_field_952)
 
-        # TODO Datentypen und Feldlängen zw. Aleph u. Koha abgleichen!
         if check_required_subfields(marc_field_952):
 
             # '952$a' Owning Library (required by Koha)
@@ -436,13 +450,25 @@ def prepare_holding_data(record):
                 marc_field_952.delete_subfield('z')
                 is_record_format_debugging = True
 
-            # '952$0' Withdrawn status
+            # '952$0' Withdrawn status -> not applicable for Aleph
+
             # '952$1' Lost status
+            koha_item_lost = map_lost_status(marc_field_952)
+            if koha_item_lost is not None:
+                marc_field_952['1'] = koha_item_lost
+            else:
+                logger.info('Field No. %s: No valid "public note" found: 952$1 = "%s"', counter, marc_field_952['1'])
+                logger.debug('Field No. %s: Skipping subfield "1" in marc field %s', counter, marc_field_952)
+                marc_field_952.delete_subfield('1')
+                is_record_format_debugging = True
+
             # '952$2' Classification
             # '952$3' Materials specified
             # '952$4' Damaged status
             # '952$5' Use restrictions
-            # '952$6' Koha normalized classification for sorting
+            # '952$6' Koha normalized classification for sorting -> not applicable for Aleph?
+            #logger.info('Field No. %s: 952$6 = "%s"', counter, marc_field_952['6'])
+
             # '952$7' Not for loan
             # '952$8' Collection code
             # '952$9' Item number
