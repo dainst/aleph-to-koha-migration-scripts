@@ -29,6 +29,7 @@ COPY mariadb_table_setup/aqbudgets_create_and_fill.sql /docker-entrypoint-initdb
 COPY mariadb_table_setup/aqcontract_create.sql /docker-entrypoint-initdb.d/000033_aqcontract_create.sql
 COPY mariadb_table_setup/aqbasketgroups_create.sql /docker-entrypoint-initdb.d/000034_aqbasketgroups_create.sql
 COPY mariadb_table_setup/aqbasket_create.sql /docker-entrypoint-initdb.d/000038_aqbasket_create.sql
+COPY mariadb_table_setup/aqinvoices_create.sql /docker-entrypoint-initdb.d/000046_aqinvoices_create.sql
 COPY mariadb_table_setup/aqorders_create.sql /docker-entrypoint-initdb.d/000050_aqorders_create.sql
 COPY mariadb_table_setup/aqcontacts_create.sql /docker-entrypoint-initdb.d/000113_aqcontacts_create.sql
 
