@@ -14,7 +14,7 @@ logger.setLevel(logging.DEBUG)
 
 def process_data(data):
     result = {
-        'invoicenumber': str(data['z77'][1][20:]).strip(),
+        'invoicenumber': str(data['z77'][0][20:]).strip(),
         'booksellerid': mariadb.get_aqbasketgroup_by_aleph_rec_key(data['z68'][0])[0],
         'shipmentdate': dates_helper.process_aleph_date(data['z77'][15]),
         'billingdate': dates_helper.process_aleph_date(data['z77'][13]),
@@ -32,10 +32,6 @@ def split_join(query_result):
         "z68": query_result[18:74],
         "z77": query_result[74:]
     }
-
-    logger.debug(result['z601'])
-    logger.debug(result['z68'])
-    logger.debug(result['z77'])
     return result
 
 
