@@ -5,11 +5,15 @@ import os
 import lib.database_connections.oracle as oracle
 import lib.database_connections.mariadb as mariadb
 import lib.oracle_helper.dates as dates_helper
-import lib.mappings.currency as currency
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+script_dir = os.path.dirname(__file__)
+
+MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/013000_aqbudgetperiods_data_mapping.sql'
+IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbudgetperiods_data_import.sql'
 
 
 def split_budget_data(data):
@@ -47,6 +51,7 @@ def parse_data(results, data):
 
 
 def fetch_data(credentials):
+    logger.info('Reading data from Oracle...')
     oracle.establish_connection(credentials)
 
     results = dict()
@@ -62,8 +67,91 @@ def fetch_data(credentials):
     return results
 
 
+def generate_insert_statements(data, columns_names):
+    mapping_table_statement = import_table_statement = 'INSERT INTO aqbudgetperiods ('
+    keys_len = len(columns_names)
+
+    for idx, key in enumerate(columns_names):
+
+        if idx == keys_len - 1:
+            import_table_statement += key
+
+            mapping_table_statement += key
+            mapping_table_statement += ',ALEPH_Z76_BUDGET_NUMBER'
+        else:
+            import_table_statement += key + ','
+            mapping_table_statement += key + ','
+
+    import_table_statement += ')\nVALUES'
+    mapping_table_statement += ')\nVALUES'
+
+    counter = 0
+
+    for aleph_key in data:
+        basket = data[aleph_key]
+        if counter != 0:
+            import_table_statement += ','
+            mapping_table_statement += ','
+
+        import_table_statement += '\n('
+        mapping_table_statement += '\n('
+
+        for idx, key in enumerate(columns_names):
+            if idx == keys_len - 1:
+
+                if key in basket and basket[key] is not None:
+                    import_table_statement += '"' + str(basket[key]) + '"'
+                    mapping_table_statement += '"' + str(basket[key]) + '"'
+                else:
+                    import_table_statement += 'NULL'
+                    mapping_table_statement += 'NULL'
+
+                mapping_table_statement += ', "' + aleph_key + '"'
+            else:
+
+                if key in basket and basket[key] is not None:
+                    import_table_statement += '"' + str(basket[key]) + '",'
+                    mapping_table_statement += '"' + str(basket[key]) + '",'
+                else:
+                    import_table_statement += 'NULL,'
+                    mapping_table_statement += 'NULL,'
+
+        import_table_statement += ')'
+        mapping_table_statement += ')'
+
+        counter = counter + 1
+
+    import_table_statement += ';\n'
+    mapping_table_statement += ';\n'
+
+    return [import_table_statement, mapping_table_statement]
+
+
 def write_results(data):
-    logger.info('Todo')
+    logger.info('Writing data to file and mapping database.')
+
+    database_columns = [
+        'budget_period_startdate', 'budget_period_enddate', 'budget_period_active', 'budget_period_description',
+        'budget_period_total', 'budget_period_locked', 'sort1_authcat', 'sort2_authcat'
+    ]
+
+    with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
+
+        mapping_file.write('USE ' + mariadb.get_db_name() + ";\n\n")
+        mariadb.establish_connection()
+
+        cursor = mariadb.get_cursor()
+
+        [import_table_statement, mapping_table_statement] = \
+            generate_insert_statements(data, database_columns)
+
+        import_file.write(import_table_statement)
+
+        mapping_file.write(mapping_table_statement)
+        cursor.execute(mapping_table_statement)
+
+        mariadb.commit()
+        cursor.close()
 
 
 def start(credentials):
