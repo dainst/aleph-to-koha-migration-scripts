@@ -69,7 +69,12 @@ def create_koha_data(data, parent_data):
     if len(oracle_result) == 1:
         branch_code = oracle_result[0][0]
         if branch_code is not None:
-            result['budget_branchcode'] = library_keys.map_aleph_key(branch_code)
+            koha_code = library_keys.map_aleph_key(branch_code)
+            result['budget_branchcode'] = koha_code
+
+            if koha_code is None:
+                result['budget_notes'] = result['budget_notes'] + ', Sublibraries: ' + branch_code
+
     return result
 
 
