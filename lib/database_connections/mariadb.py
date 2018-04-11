@@ -150,3 +150,29 @@ def get_aqbasketgroup_by_aleph_rec_key(aleph_rec_key):
     result = cursor.fetchone()
 
     return result
+
+
+def get_budget_period_by_aleph_budget_number(aleph_budget_number):
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT `budget_period_id` FROM aqbudgetperiods WHERE `ALEPH_Z76_BUDGET_NUMBER`= "%s";'
+                   % aleph_budget_number)
+
+    return cursor.fetchone()
+
+
+def get_budget_by_code(budget_code):
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT * FROM `aqbudgets` WHERE `budget_code`="%s";' % budget_code)
+
+    result = cursor.fetchall()
+
+    if len(result) != 1:
+        logger.error('More than one budget with code %s:' % budget_code)
+        logger.error(result)
+        return None
+
+    return result[0]

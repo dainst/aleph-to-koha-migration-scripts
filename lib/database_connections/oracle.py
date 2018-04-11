@@ -94,6 +94,13 @@ def get_budgets_for_open_orders():
                        'AND Z68.Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC', 'CNB'))
 
 
+def get_budget_by_budget_number(bundget_number):
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z76 WHERE Z76_BUDGET_NUMBER=:1', (bundget_number,))
+
+
 def get_open_z68_with_invoices():
     global connection
 
@@ -138,3 +145,10 @@ def get_closed_z68():
 
     cur = connection.cursor()
     return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS=:1 ', ('CLS',))
+
+
+def get_sub_library_z602(key):
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT Z602_SUB_LIBRARY FROM Z602 WHERE Z602_REC_KEY=:1', (key,))
