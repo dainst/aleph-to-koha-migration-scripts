@@ -42,7 +42,7 @@ def open_mariadb_connection():
         try:
             logger.debug("Trying to connect to MariaDB ...")
             connection = MySQLdb.connect(**config)
-            logger.debug("Connection to MariaDB established.")
+            logger.debug("Connection to MariaDB established: %s", connection)
             return connection
         except MySQLdb.Error as err:
             logger.error(err)

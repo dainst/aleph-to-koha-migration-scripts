@@ -39,7 +39,7 @@ Z30_MATERIAL_MAPPING = {
 
 def map_material(aleph_material):
     if aleph_material not in Z30_MATERIAL_MAPPING:
-        return ''
+        return None
     else:
         return Z30_MATERIAL_MAPPING[aleph_material]
 

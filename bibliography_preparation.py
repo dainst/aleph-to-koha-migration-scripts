@@ -16,7 +16,7 @@ import lib.oracle_helper.dates as dates_helper
 #   2) Library keys are mapped between Aleph and Koha. The keys got refactored in Koha, to add more naming consistency.
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 # file_handler = logging.FileHandler('./bibliography_preparation.log')
 # file_handler.setLevel(logging.INFO)
@@ -27,102 +27,121 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 # logger.addHandler(file_handler)
 # logger.addHandler(console_handler)
 
-max_holdings = [None, 0]
+holding_field_max = [None, 0]
+holding_field_counter = 0
+record_error_no = 0
+file_error_no = 0
+total_error_no = 0
 
 
-def map_lost_status(marc_field_952):
-    koha_item_lost = None
+def map_lost_status(subfield_9521):
+    lost_status = '0'
 
-    if '1' in marc_field_952:
-        aleph_z30_item_process_status = marc_field_952['1']
+    if subfield_9521 == 'MI' or subfield_9521 == 'MS' or subfield_9521 == 'Missing' or subfield_9521 == 'Misshelved':
+        lost_status = '1'
+    logger.debug("Field No. %s: 952$1 = '%s', valid 'lost status' found.", holding_field_counter, lost_status)
 
-        if aleph_z30_item_process_status == 'MI' or aleph_z30_item_process_status == 'MS' or \
-                aleph_z30_item_process_status == 'Missing' or aleph_z30_item_process_status == 'Misshelved':
-            koha_item_lost = '1'
+    return lost_status
+
+
+def map_public_note(subfield_952z):
+    if len(subfield_952z) < 1:
+        logger.debug("Field No. %s: 952$z = '%s', no valid 'public note' found!",
+                     holding_field_counter, subfield_952z)
+
+        return None
+    else:
+        logger.debug("Field No. %s: 952$z = '%s', valid 'public note' found.",
+                     holding_field_counter, subfield_952z)
+
+        return subfield_952z
+
+
+def map_item_type(subfield_952y):
+    item_type = None
+
+    if subfield_952y is None:
+        logger.error("Field No. %s: No required subfield 'y' found!", holding_field_counter)
+    else:
+        item_type = marc_mappings.map_material(subfield_952y)
+
+        if item_type is None:
+            logger.error("Field No. %s: 952$y = '%s', no valid 'item type' code found!",
+                         holding_field_counter, subfield_952y)
         else:
-            koha_item_lost = '0'
+            logger.debug("Field No. %s: 952$y = '%s', valid 'item type' code found.",
+                         holding_field_counter, item_type)
 
-    return koha_item_lost
-
-
-def map_public_note(marc_field_952):
-    koha_item_note = None
-
-    if 'z' in marc_field_952:
-        koha_item_note = marc_field_952['z']
-
-    return koha_item_note
+    return item_type
 
 
-def map_item_type(marc_field_952):
-    koha_item_type = None
+def map_nonpublic_note(subfield_952x):
+    if len(subfield_952x) < 1:
+        logger.debug("Field No. %s: 952$x = '%s', no valid 'nonpublic note' found!",
+                     holding_field_counter, subfield_952x)
 
-    if 'y' in marc_field_952:
-        aleph_material_key = marc_field_952['y']
-        koha_item_type = marc_mappings.map_material(aleph_material_key)
+        return None
+    else:
+        logger.debug("Field No. %s: 952$x = '%s', valid 'nonpublic note' found.",
+                     holding_field_counter, subfield_952x)
 
-    return koha_item_type
-
-
-def map_nonpublic_note(marc_field_952):
-    koha_item_note_nonpublic = None
-
-    if 'x' in marc_field_952:
-        koha_item_note_nonpublic = marc_field_952['x']
-
-    return koha_item_note_nonpublic
+        return subfield_952x
 
 
-def map_copy_number(marc_field_952):
-    koha_copy_number = None
+def map_copy_number(subfield_952t):
+    if 1 > len(subfield_952t) > 32:
+        # logger.error("Aleph 'copy number' length exceeds Koha 'copy number' length!\n")
+        logger.debug("Field No. %s: 952$t = '%s', no valid 'copy number' found!",
+                     holding_field_counter, subfield_952t)
 
-    if 't' in marc_field_952:
-        aleph_copy_number = marc_field_952['t']
-        if len(aleph_copy_number) > 32:
-            logger.error("Aleph 'copy number' length exceeds Koha 'copy number' length!\n")
-        else:
-            koha_copy_number = aleph_copy_number
+        return None
+    else:
+        logger.debug("Field No. %s: 952$t = '%s', valid 'copy number' found.",
+                     holding_field_counter, subfield_952t)
 
-    return koha_copy_number
-
-
-def map_barcode(marc_field_952):
-    koha_barcode = None
-
-    if 'p' in marc_field_952:
-        aleph_barcode = marc_field_952['p']
-        if len(aleph_barcode) > 20:
-            logger.error("Aleph 'barcode' length exceeds Koha 'barcode' length!\n")
-        else:
-            koha_barcode = aleph_barcode
-
-    return koha_barcode
+        return subfield_952t
 
 
-def map_call_number(marc_field_952):
-    koha_call_number = None
+def map_barcode(subfield_952p):
+    if 1 > len(subfield_952p) > 20:
+        logger.error("Aleph 'barcode' length exceeds Koha 'barcode' length!\n")
+        logger.warning("Field No. %s: 952$p = '%s', no valid 'barcode' found!",
+                       holding_field_counter, subfield_952p)
 
-    if 'o' in marc_field_952:
-        aleph_call_number = marc_field_952['o']
-        if len(aleph_call_number) > 255:
-            logger.error("Aleph 'call number' length exceeds Koha 'call number' length!\n")
-        else:
-            koha_call_number = aleph_call_number
+        return None
+    else:
+        logger.debug("Field No. %s: 952$p = '%s', valid 'barcode' found.",
+                     holding_field_counter, subfield_952p)
 
-    return koha_call_number
+        return subfield_952p
 
 
-def map_inventory_number(marc_field_952):
-    koha_stock_number = None
+def map_call_number(subfield_952o):
+    if 1 > len(subfield_952o) > 255:
+        # logger.error("Length of 'call number' not in between 1 and 255!\n")
+        logger.debug("Field No. %s: 952$o = '%s', no valid 'call number' found!",
+                     holding_field_counter, subfield_952o)
 
-    if 'i' in marc_field_952:
-        aleph_inventory_number = marc_field_952['i']
-        if len(aleph_inventory_number) > 32:
-            logger.error("Aleph 'inventory number' length exceeds Koha 'stock number' length!\n")
-        else:
-            koha_stock_number = aleph_inventory_number
+        return None
+    else:
+        logger.debug("Field No. %s: 952$o = '%s', valid 'call number' found.",
+                     holding_field_counter, subfield_952o)
 
-    return koha_stock_number
+        return subfield_952o
+
+
+def map_inventory_number(subfield_952i):
+    if 1 > len(subfield_952i) > 32:
+        # logger.error("Aleph 'inventory number' length exceeds Koha 'stock number' length!\n")
+        logger.debug("Field No. %s: 952$i = '%s', no valid 'inventory number' found!",
+                     holding_field_counter, subfield_952i)
+
+        return None
+    else:
+        logger.debug("Field No. %s: 952$i = '%s', valid 'inventory number' found.",
+                     holding_field_counter, subfield_952i)
+
+        return subfield_952i
 
 
 def rstrip_purchase_price(purchase_price):
@@ -159,24 +178,37 @@ def lstrip_purchase_price(purchase_price):
     return purchase_price
 
 
-def map_purchase_price(marc_field_952):
-    koha_purchase_price = None
+def format_purchase_price(aleph_purchase_price):
+    purchase_price = aleph_purchase_price.strip().replace(',', '.')
 
-    if 'g' in marc_field_952:
-        aleph_purchase_price = marc_field_952['g']
-        if aleph_purchase_price is not None:
-            koha_purchase_price = aleph_purchase_price.strip().replace(',', '.')
+    if not (purchase_price[0].isdigit() and purchase_price[-1].isdigit()):
+        purchase_price = lstrip_purchase_price(purchase_price)
+        purchase_price = rstrip_purchase_price(purchase_price)
+        purchase_price = '{0:.2f}'.format(float(purchase_price))
 
-            if not (koha_purchase_price[0].isdigit() and koha_purchase_price[-1].isdigit()):
-                koha_purchase_price = lstrip_purchase_price(koha_purchase_price)
-                koha_purchase_price = rstrip_purchase_price(koha_purchase_price)
+    if 1 > len(purchase_price) > 11:
+        # logger.error('Koha purchase price length: %s', len(koha_purchase_price))
+        # logger.error("Koha purchase price: %s", koha_purchase_price)
 
-                koha_purchase_price = '{0:.2f}'.format(float(koha_purchase_price))
-                if len(koha_purchase_price) > 11:
-                    logger.error('Koha purchase price length: %s', len(koha_purchase_price))
-                    logger.error("Koha purchase price: %s", koha_purchase_price)
+        return None
+    else:
 
-    return koha_purchase_price
+        return purchase_price
+
+
+def map_purchase_price(subfield_952g):
+    purchase_price = format_purchase_price(subfield_952g)
+
+    if purchase_price is None:
+        pass
+        logger.debug("Field No. %s: 952$g = '%s', no valid 'purchase price' found!",
+                     holding_field_counter, subfield_952g)
+    else:
+        pass
+        logger.debug("Field No. %s: 952$g = '%s', valid 'purchase price' found.",
+                     holding_field_counter, purchase_price)
+
+    return purchase_price
 
 
 def map_aleph_vendor_code(aleph_z70_vendor_code):
@@ -184,91 +216,122 @@ def map_aleph_vendor_code(aleph_z70_vendor_code):
         # logger.info("aleph_code: %s", aleph_code)
         # logger.info("koha_id: %s", koha_id)
         if aleph_z70_vendor_code == aleph_code:
+
             return koha_id
     else:
-        return ''
+
+        return None
 
 
-def map_source_of_acquisition(marc_field_952):
-    source_of_acquisition = None
+def map_source_of_acquisition(subfield_952e):
+    source_of_acquisition = map_aleph_vendor_code(subfield_952e)
 
-    if 'e' in marc_field_952:
-        source_of_acquisition = marc_field_952['e']
-        if source_of_acquisition is not None:
-            # logger.info("Aleph vendor code: %s", source_of_acquisition)
-            source_of_acquisition = map_aleph_vendor_code(source_of_acquisition)
-            # logger.info("Koha bookseller name: %s", source_of_acquisition)
+    if source_of_acquisition is None:
+        pass
+        logger.debug("Field No. %s: 952$e = '%s', no valid 'source of aquisition' found!",
+                     holding_field_counter, subfield_952e)
+    else:
+        pass
+        logger.debug("Field No. %s: 952$e = '%s', valid 'source of aquisition' found.",
+                     holding_field_counter, source_of_acquisition)
 
     return source_of_acquisition
 
 
-def map_date_acquired(marc_field_952):
-    date_acquired = None
+def map_date_acquired(subfield_952d):
+    date_acquired = dates_helper.process_aleph_date(subfield_952d)
 
-    if 'd' in marc_field_952:
-        date_acquired = dates_helper.process_aleph_date(marc_field_952['d'])
+    if date_acquired is None:
+        logger.debug("Field No. %s: 952$d = '%s', no valid 'date aquired' found!",
+                     holding_field_counter, subfield_952d)
+    else:
+        logger.debug("Field No. %s: 952$d = '%s', valid 'date aquired' found.",
+                     holding_field_counter, date_acquired)
 
     return date_acquired
 
 
-def map_shelving_location_code(marc_field_952):
-    shelving_location_code = None
+def map_shelving_location_code(subfield_952c, koha_library_code):
+    shelving_location_code = marc_mappings.map_shelving_location(subfield_952c, koha_library_code)
 
-    if 'c' in marc_field_952:
-        shelving_location_code = marc_mappings.map_shelving_location(marc_field_952['c'], marc_field_952['a'])
+    if shelving_location_code is None:
+        logger.debug("Field No. %s: 952$c = '%s', no 'valid shelving location' found!",
+                     holding_field_counter, subfield_952c)
+    else:
+        logger.debug("Field No. %s: 952$c = '%s', valid 'shelving location' found.",
+                     holding_field_counter, shelving_location_code)
 
     return shelving_location_code
 
 
-def map_holding_library(marc_field_952):
-    holding_library_key = None
+def map_holding_library(subfield_952b):
+    holding_library = None
 
-    if 'b' in marc_field_952:
-        holding_library_key = library_keys.map_aleph_key(marc_field_952['b'])
+    if subfield_952b is None:
+        logger.error("Field No. %s: No required subfield 'b' found!", holding_field_counter)
+    else:
+        holding_library = library_keys.map_aleph_key(subfield_952b)
+        if holding_library is None:
+            logger.error("Field No. %s: 952$b = '%s', no valid 'holding library' code found!",
+                         holding_field_counter, subfield_952b)
+        else:
+            logger.debug("Field No. %s: 952$b = '%s', valid 'holding library' code found.",
+                         holding_field_counter, holding_library)
 
-    return holding_library_key
+    return holding_library
 
 
-def map_owning_library(marc_field_952):
-    owning_library_key = None
+def map_owning_library(subfield_952a):
+    owning_library = None
 
-    if 'a' in marc_field_952:
-        owning_library_key = library_keys.map_aleph_key(marc_field_952['a'])
+    if subfield_952a is None:
+        logger.error("Field No. %s: No required subfield 'a' found!", holding_field_counter)
+    else:
+        owning_library = library_keys.map_aleph_key(subfield_952a)
+        if owning_library is None:
+            logger.error("Field No. %s: 952$a = '%s' , no valid 'owning library' code found!",
+                         holding_field_counter, subfield_952a)
+        else:
+            logger.debug("Field No. %s: 952$a = '%s', valid 'owning library' code found.",
+                         holding_field_counter, owning_library)
 
-    return owning_library_key
+    return owning_library
 
 
 def check_required_subfields(marc_field_952):
-    is_successful = False
+    is_success = False
 
-    if all(subfields not in marc_field_952 for subfields in ('a', 'b')) or 'y' not in marc_field_952:
-        logger.error(
-            'Neither marc subfield 952$a and 952$b found nor subfield 952$y!')
-    elif 'a' and 'b' not in marc_field_952:
+    if all(subfields in marc_field_952 for subfields in ('a', 'b', 'y')):
+        logger.debug("Field No. %s: All required subfieds 'a', 'b', and 'y' found.", holding_field_counter)
+        is_success = True
+    elif 'y' in marc_field_952 and ('a' or 'b' in marc_field_952):
         if 'a' not in marc_field_952:
             marc_field_952.add_subfield('a', marc_field_952['b'])
             logger.debug(
-                'No marc subfield 952$a found! Copy subfield 952$b in subfield 952$a. Subfield 952$a = %s',
-                marc_field_952['a']
+                "Field No. %s: Required subfield 'a' not found! Copy subfield 'b' into subfield 'a': 952$a = %s",
+                holding_field_counter, marc_field_952['a']
             )
         if 'b' not in marc_field_952:
             marc_field_952.add_subfield('b', marc_field_952['a'])
             logger.debug(
-                'No marc subfield 952$b found! Copy subfield 952$a in subfield 952$b. Subfield 952$b = %s',
-                marc_field_952['b']
+                "Field No. %s: Required subfield 'b' not found! Copy subfield 'a' into subfield 'b': 952$b = %s",
+                holding_field_counter, marc_field_952['b']
             )
-
-        is_successful = True
+        is_success = True
     else:
-        is_successful = True
+        logger.error('Field No. %s: Neither required subfields 952$a and 952$b found nor required subfield 952$y!',
+                     holding_field_counter)
 
-    return is_successful
+    return is_success
 
 
 def prepare_holding_data(record):
-    global max_holdings
+    global holding_field_max
+    global holding_field_counter
+    global file_error_no
+    global record_error_no
 
-    logger.info("Processing holding information of Marc record: %s ...", record.leader)
+    logger.info("Processing holding information of Marc record: '%s' ...", record.leader)
 
     is_record_format_error = False
     is_record_format_warning = False
@@ -277,102 +340,105 @@ def prepare_holding_data(record):
 
     marc_holding_fields = record.get_fields('952')
     holding_field_no = len(marc_holding_fields)
-    if holding_field_no > max_holdings[1]:
-        max_holdings[0] = record.leader
-        max_holdings[1] = holding_field_no
+    if holding_field_no > holding_field_max[1]:
+        holding_field_max[0] = record.leader
+        holding_field_max[1] = holding_field_no
 
     logger.info("%s holding field(s) found.", holding_field_no)
 
-    counter = 1
+    holding_field_counter = 1
+    record_error_no = 0
     for marc_field_952 in marc_holding_fields:
-        logger.debug("Field No. %s: %s", counter, marc_field_952)
+        logger.debug("Field No. %s: %s", holding_field_counter, marc_field_952)
 
         if check_required_subfields(marc_field_952):
 
             # '952$a' Owning Library (required by Koha)
-            koha_owning_library = map_owning_library(marc_field_952)
-            if koha_owning_library is not None:
-                marc_field_952['a'] = koha_owning_library
-            else:
-                logger.error(
-                    'Field No. %s: No valid owning library key found: 952$a = "%s"', counter, marc_field_952['a'])
-                logger.error('Field No. %s: Skipping field: %s', counter, marc_field_952)
+            koha_owning_library = map_owning_library(marc_field_952['a'])
+            if koha_owning_library is None:
+                logger.error('Field No. %s: Skipping field: %s', holding_field_counter, marc_field_952)
                 record.remove_field(marc_field_952)
                 is_record_format_error = True
-                counter += 1
+                record_error_no += 1
+                holding_field_counter += 1
                 continue
+            else:
+                marc_field_952['a'] = koha_owning_library
 
             # '952$b' Holding library (required by Koha)
-            koha_holding_library = map_holding_library(marc_field_952)
-            if koha_holding_library is not None:
-                marc_field_952['b'] = koha_holding_library
-            else:
-                logger.error(
-                    'Field No. %s: No valid holding library key found: 952$b = "%s"', counter, marc_field_952['b'])
-                logger.error('Field No. %s: Skipping field: %s', counter, marc_field_952)
+            koha_holding_library = map_holding_library(marc_field_952['b'])
+            if koha_holding_library is None:
+                logger.error('Field No. %s: Skipping field: %s', holding_field_counter, marc_field_952)
                 record.remove_field(marc_field_952)
                 is_record_format_error = True
-                counter += 1
+                record_error_no += 1
+                holding_field_counter += 1
                 continue
+            else:
+                marc_field_952['b'] = koha_holding_library
 
             # '952$c' Shelving location code
-            koha_shelving_location = map_shelving_location_code(marc_field_952)
-            if koha_shelving_location is not None:
-                marc_field_952['c'] = koha_shelving_location
-                # logger.info('Field No. %s: shelving location found: 952$c = "%s"', counter, marc_field_952['c'])
-            else:
-                logger.info(
-                    'Field No. %s: No valid shelving location found: 952$c = "%s"', counter, marc_field_952['c'])
-                logger.debug('Field No. %s: Skipping subfield "c" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('c')
-                is_record_format_debugging = True
+            subfield_952c = marc_field_952['c']
+            if subfield_952c is not None:
+                koha_shelving_location = map_shelving_location_code(subfield_952c, koha_owning_library)
+                if koha_shelving_location is None:
+                    logger.info("Field No. %s: Skipping subfield 'c' in marc field %s",
+                                holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('c')
+                else:
+                    marc_field_952['c'] = koha_shelving_location
 
             # '952$d' Date acquired
-            koha_date_acquired = map_date_acquired(marc_field_952)
-            if koha_date_acquired is not None:
-                marc_field_952['d'] = koha_date_acquired
-            else:
-                logger.info('Field No. %s: No valid "date aquired" found: 952$d = "%s"', counter, marc_field_952['d'])
-                logger.debug('Field No. %s: Skipping subfield "d" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('d')
-                is_record_format_debugging = True
+            subfield_952d = marc_field_952['d']
+            if subfield_952d is not None:
+                koha_date_acquired = map_date_acquired(subfield_952d)
+                if koha_date_acquired is None:
+                    logger.info("Field No. %s: Skipping subfield 'd' in marc field %s",
+                                holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('d')
+                else:
+                    marc_field_952['d'] = koha_date_acquired
 
             # '952$e' Source of acquisition
-            koha_source_of_acquisition = map_source_of_acquisition(marc_field_952)
-            if koha_source_of_acquisition is not None:
-                marc_field_952['e'] = koha_source_of_acquisition
-            else:
-                logger.info(
-                    'Field No. %s: No valid "source of aquisition" found: 952$e = "%s"', counter, marc_field_952['e'])
-                logger.debug('Field No. %s: Skipping subfield "e" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('e')
-                is_record_format_debugging = True
+            subfield_952e = marc_field_952['e']
+            if subfield_952e is not None:
+                koha_source_of_aquisition = map_source_of_acquisition(subfield_952e)
+                if koha_source_of_aquisition is None:
+                    logger.info("Field No. %s: Skipping subfield 'e' in marc field %s",
+                                holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('e')
+                else:
+                    marc_field_952['e'] = koha_source_of_aquisition
 
             # '952$f' Coded location qualifier
             # 'This has no function in Koha.'
 
             # '952$g' Purchase price
-            koha_purchase_price = map_purchase_price(marc_field_952)
-            if koha_purchase_price is not None:
-                marc_field_952['g'] = koha_purchase_price
-            else:
-                logger.info('Field No. %s: No valid "purchase price" found: 952$g = "%s"', counter, marc_field_952['g'])
-                logger.debug('Field No. %s: Skipping subfield "g" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('g')
-                is_record_format_debugging = True
+            subfield_952g = marc_field_952['g']
+            if subfield_952g is not None:
+                koha_purchase_prise = map_purchase_price(subfield_952g)
+                if koha_purchase_prise is None:
+                    logger.info("Field No. %s: Skipping subfield 'g' in marc field %s",
+                                holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('g')
+                else:
+                    marc_field_952['g'] = koha_purchase_prise
 
             # TODO '952$h' Serial enumeration
+            subfield_952h = marc_field_952['h']
+            if subfield_952h is not None:
+                pass
 
             # '952$i' Inventory number
-            #logger.info('Field No. %s: "inventory number" found: 952$o = "%s"', counter, marc_field_952['i'])
-            koha_stock_number = map_inventory_number(marc_field_952)
-            if koha_stock_number is not None:
-                marc_field_952['i'] = koha_stock_number
-            else:
-                logger.info('Field No. %s: No valid "inventory number" found: 952$o = "%s"', counter, marc_field_952['i'])
-                logger.debug('Field No. %s: Skipping subfield "i" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('i')
-                is_record_format_debugging = True
+            subfield_952i = marc_field_952['i']
+            if subfield_952i is not None:
+                koha_inventory_number = map_inventory_number(subfield_952i)
+                if koha_inventory_number is None:
+                    logger.info("Field No. %s: Skipping subfield 'i' in marc field %s",
+                                holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('i')
+                else:
+                    marc_field_952['i'] = koha_inventory_number
 
             # '952$j' Shelving control number -> currently not applicable for Aleph
             # '952$k' Unused in Koha.
@@ -381,104 +447,126 @@ def prepare_holding_data(record):
             # '952$n' Total Holds -> currently not applicable for Aleph
 
             # '952$o' Koha full call number
-            koha_call_number = map_call_number(marc_field_952)
-            if koha_call_number is not None:
-                marc_field_952['o'] = koha_call_number
-            else:
-                logger.info('Field No. %s: No valid "call number" found: 952$o = "%s"', counter, marc_field_952['o'])
-                logger.debug('Field No. %s: Skipping subfield "o" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('o')
-                is_record_format_debugging = True
+            subfield_952o = marc_field_952['o']
+            if subfield_952o is not None:
+                koha_call_number = map_call_number(subfield_952o)
+                if koha_call_number is None:
+                    logger.info("Field No. %s: Skipping subfield 'o' in marc field %s",
+                                holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('o')
+                else:
+                    marc_field_952['o'] = koha_call_number
 
             # '952$p' Barcode (required for circulation)
-            koha_barcode = map_barcode(marc_field_952)
-            if koha_barcode is not None:
-                marc_field_952['p'] = koha_barcode
+            subfield_952p = marc_field_952['p']
+            if subfield_952p is None:
+                logger.warning("Field No. %s: No required subfield 'p' found!", holding_field_counter)
             else:
-                logger.info('Field No. %s: No valid "barcode" found: 952$p = "%s"', counter, marc_field_952['p'])
-                logger.debug('Field No. %s: Skipping subfield "p" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('p')
-                is_record_format_debugging = True
+                koha_barcode = map_barcode(subfield_952p)
+                if koha_barcode is None:
+                    logger.warning("Field No. %s: Skipping subfield 'p' in marc field %s",
+                                   holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('p')
+                    is_record_format_error = True
+                    record_error_no += 1
+                else:
+                    marc_field_952['p'] = koha_barcode
 
             # '952$q' Due date -> currently not applicable for Aleph
             # '952$r' Date last seen -> currently not applicable for Aleph
             # '952$s' Date last checked out -> currently not applicable for Aleph
 
             # '952$t' Copy number
-            koha_copy_number = map_copy_number(marc_field_952)
-            if koha_copy_number is not None:
-                marc_field_952['t'] = koha_copy_number
-            else:
-                logger.info('Field No. %s: No valid "copy number" found: 952$t = "%s"', counter, marc_field_952['t'])
-                logger.debug('Field No. %s: Skipping subfield "t" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('t')
-                is_record_format_debugging = True
+            subfield_952t = marc_field_952['t']
+            if subfield_952t is not None:
+                koha_copy_number = map_copy_number(subfield_952t)
+                if koha_copy_number is None:
+                    logger.info("Field No. %s: Skipping subfield 't' in marc field %s",
+                                holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('t')
+                else:
+                    marc_field_952['t'] = koha_copy_number
 
             # '952$u' Uniform Resource Identifier -> currently not applicable for Aleph
             # '952$v' Replacement price -> currently not applicable for Aleph
             # '952$w' Price effective from -> currently not applicable for Aleph
 
             # '952$x' Nonpublic note
-            koha_item_notes_nonpulic = map_nonpublic_note(marc_field_952)
-            if koha_item_notes_nonpulic is not None:
-                marc_field_952['x'] = koha_item_notes_nonpulic
-            else:
-                logger.info('Field No. %s: No valid "nonpublic note" found: 952$x = "%s"', counter, marc_field_952['x'])
-                logger.debug('Field No. %s: Skipping subfield "x" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('x')
-                is_record_format_debugging = True
+            subfield_952x = marc_field_952['x']
+            if subfield_952x is not None:
+                koha_nonpublic_note = map_nonpublic_note(subfield_952x)
+                if koha_nonpublic_note is None:
+                    logger.info("Field No. %s: Skipping subfield 'x' in marc field %s",
+                                holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('x')
+                else:
+                    marc_field_952['x'] = koha_nonpublic_note
 
             # '952$y' Item type (required by Koha)
-            koha_item_type = map_item_type(marc_field_952)
-            if koha_item_type is not None:
-                marc_field_952['y'] = koha_item_type
-            else:
-                logger.error('Field No. %s: No valid item type found: 952$y = "%s"', counter, marc_field_952['y'])
-                logger.error('Field No. %s: Skipping field: %s', counter, marc_field_952)
+            koha_item_type = map_item_type(marc_field_952['y'])
+            if koha_item_type is None:
+                logger.error('Field No. %s: Skipping field: %s', holding_field_counter, marc_field_952)
                 record.remove_field(marc_field_952)
                 is_record_format_error = True
-                counter += 1
+                record_error_no += 1
+                holding_field_counter += 1
                 continue
+            else:
+                marc_field_952['y'] = koha_item_type
 
             # '952$z' Public note
-            koha_item_notes = map_public_note(marc_field_952)
-            if koha_item_notes is not None:
-                marc_field_952['z'] = koha_item_notes
-            else:
-                logger.info('Field No. %s: No valid "public note" found: 952$z = "%s"', counter, marc_field_952['z'])
-                logger.debug('Field No. %s: Skipping subfield "z" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('z')
-                is_record_format_debugging = True
+            subfield_952z = marc_field_952['z']
+            if subfield_952z is not None:
+                koha_public_note = map_public_note(subfield_952z)
+                if koha_public_note is None:
+                    logger.info("Field No. %s: Skipping subfield 'z' in marc field %s",
+                                holding_field_counter, marc_field_952)
+                    marc_field_952.delete_subfield('z')
+                else:
+                    marc_field_952['z'] = koha_public_note
 
             # '952$0' Withdrawn status -> not applicable for Aleph
 
             # '952$1' Lost status
-            koha_item_lost = map_lost_status(marc_field_952)
-            if koha_item_lost is not None:
-                marc_field_952['1'] = koha_item_lost
-            else:
-                logger.info('Field No. %s: No valid "public note" found: 952$1 = "%s"', counter, marc_field_952['1'])
-                logger.debug('Field No. %s: Skipping subfield "1" in marc field %s', counter, marc_field_952)
-                marc_field_952.delete_subfield('1')
-                is_record_format_debugging = True
+            subfield_9521 = marc_field_952['1']
+            if subfield_9521 is not None:
+                marc_field_952['1'] = map_lost_status(subfield_9521)
 
             # '952$2' Classification
-            # '952$3' Materials specified
+
+            # '952$3' Materials specified -> not applicable for Aleph
+
             # '952$4' Damaged status
+
             # '952$5' Use restrictions
-            # '952$6' Koha normalized classification for sorting -> not applicable for Aleph?
-            #logger.info('Field No. %s: 952$6 = "%s"', counter, marc_field_952['6'])
+
+            # '952$6' Koha normalized classification for sorting -> not applicable for Aleph
 
             # '952$7' Not for loan
-            # '952$8' Collection code
-            # '952$9' Item number
+
+            # '952$8' Collection code -> not applicable for Aleph
+            # '952$9' Item number (autogenerated) -> not applicable for Aleph
+
+            # '952$A' Bestellnummer aus der Erwerbung
+
+            # '952$C' Umlauf-Notiz
+            # '952$D' Beschreibung
+            # '952$E' Erwartet zum(Zeitschriftenheft)
+            # '952$H' Jahreszählung bei Zetischriftenheften
+            # '952$J' Ex.status
+            # '952$O' 2.Signatur
+            # '952$P' Erfassungsdatum
+            # '952$S' Ex-Geschäftsgang-Status
+            # '952$T' Statistikwerte
+            # '952$U' Änderungsdatum
 
         else:
-            logger.error('Field No. %s: Skipping field: %s', counter, marc_field_952)
+            logger.error('Field No. %s: Skipping field: %s', holding_field_counter, marc_field_952)
             record.remove_field(marc_field_952)
             is_record_format_error = True
+            record_error_no += 1
 
-        counter += 1
+        holding_field_counter += 1
 
     if is_record_format_error:
         logger.error('In Record:\n%s', record)
@@ -489,6 +577,7 @@ def prepare_holding_data(record):
     elif is_record_format_debugging:
         logger.debug('In Record:\n%s', record)
 
+    logger.info('%s record error(s) found.', record_error_no)
     logger.info("Marc Record '%s' process completed!\n", record.leader)
 
     return record
@@ -514,6 +603,8 @@ def get_aleph_vendor_code_koha_bookseller_name_mapping():
 
 
 def process_bibliographic_data(input_path, output_path, mapping):
+    global file_error_no
+
     with open(input_path, 'rb') as input_file:
         with open(output_path, 'wb') as output_file:
             reader = MARCReader(input_file, force_utf8=True)
@@ -524,10 +615,8 @@ def process_bibliographic_data(input_path, output_path, mapping):
                 record = prepare_holding_data(record)
                 # TODO: instead of deleting 999, move to different fields/subfields
                 record.remove_fields('999')
+                file_error_no += record_error_no
                 writer.write(record)
-
-            reader.close()
-            writer.close()
 
 
 def create_authority_heading_to_authority_id_mapping(file_path):
@@ -571,6 +660,7 @@ if __name__ == '__main__':
 
     for filename in os.listdir(input_directory):
         if filename.endswith('.mrc'):
+            file_error_no = 0
             without_extension = os.path.splitext(filename)[0]
             logger.info("Processing file '%s' ...", filename)
             process_bibliographic_data(
@@ -578,6 +668,9 @@ if __name__ == '__main__':
                 output_directory + without_extension + '-preprocessed.mrc',
                 authority_heading_to_authority_id_mapping
             )
-            logger.info("Process '%s' completed.\n", filename)
+            logger.info("Number of format errors in marc file: %s", file_error_no)
+            logger.info("File '%s' processed.\n", filename)
+            total_error_no += file_error_no
 
-    logger.info("Holding field number maximum: %s (%s)", max_holdings[1], max_holdings[0])
+    logger.info("Holding field number maximum: %s (%s)", holding_field_max[1], holding_field_max[0])
+    logger.info("Total number of record format errors: %s", total_error_no)
