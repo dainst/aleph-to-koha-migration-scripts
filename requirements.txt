@@ -1,0 +1,3 @@
+pymarc
+cx_Oracle
+mysqlclient
