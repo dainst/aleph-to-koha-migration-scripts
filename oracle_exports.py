@@ -1,6 +1,6 @@
 import logging
 import sys
-from lib import aqbooksellers, aqcontacts, aqbasketgroups, aqbasket, aqbudgets_and_aqbudgetperiods
+from lib import aqbooksellers, aqcontacts, aqbasketgroups, aqbasket, aqbudgets_and_aqbudgetperiods, aqinvoices
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -18,3 +18,5 @@ if __name__ == '__main__':
     aqcontacts.start(sys.argv[1])
     aqbasketgroups.start(sys.argv[1])
     aqbasket.start(sys.argv[1])
+    aqinvoices.start(sys.argv[1])
+
