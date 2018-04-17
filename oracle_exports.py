@@ -13,7 +13,7 @@ if __name__ == '__main__':
         logger.error('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         sys.exit()
 
-    aqbudgets_and_aqbudgetperiods(sys.argv[1])
+    aqbudgets_and_aqbudgetperiods.start(sys.argv[1])
     aqbooksellers.start(sys.argv[1])
     aqcontacts.start(sys.argv[1])
     aqbasketgroups.start(sys.argv[1])
