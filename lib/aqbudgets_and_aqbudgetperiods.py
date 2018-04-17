@@ -163,12 +163,21 @@ def fetch_data(credentials):
     logger.info('Reading data from Oracle...')
     oracle.establish_connection(credentials)
 
+    data_cursor = oracle.get_still_valid_budgets()
+    logger.debug('Processing data for current budgets.')
+    for query_result in data_cursor:
+        parse_data({'z76': query_result})
+
+    data_cursor.close()
+
     data_cursor = oracle.get_budgets_for_open_orders()
+    logger.info('Processing data for budgets with open orders..')
     for query_result in data_cursor:
         data = split_budget_data_by_aleph_table(query_result)
         parse_data(data)
 
     data_cursor.close()
+
     oracle.close_connection()
 
 

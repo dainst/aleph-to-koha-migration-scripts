@@ -94,6 +94,13 @@ def get_budgets_for_open_orders():
                        'AND Z68.Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC', 'CNB'))
 
 
+def get_still_valid_budgets():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z76 WHERE Z76_VALID_DATE_TO > 20180000')
+
+
 def get_budget_by_budget_number(bundget_number):
     global connection
 
