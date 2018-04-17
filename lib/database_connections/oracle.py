@@ -112,8 +112,9 @@ def get_open_z68_with_invoices():
     global connection
 
     cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z601, Z68, Z77 WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 ' +
+    return cur.execute('SELECT * FROM Z601, Z68, Z77, Z76 WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 ' +
                        'AND Z77.Z77_REC_KEY = SUBSTR(Z601.Z601_REC_KEY_2, 1, 35) ' +
+                       'AND Z76.Z76_BUDGET_NUMBER = SUBSTR(Z601.Z601_REC_KEY, 1, 50) ' +
                        'AND Z68.Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:2 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC', 'CNB'))

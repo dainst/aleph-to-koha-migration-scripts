@@ -20,7 +20,7 @@ def process_data(data):
         'billingdate': dates_helper.process_aleph_date(data['z77'][13]),
         'closedate': dates_helper.process_aleph_date(data['z77'][18]),
         'shipmentcost': currency.parse_value(data['z77'][8]),
-        'shipmentcost_budgetid': 1  # TODO: passt das so oder müssen die Budgets doch irgendwie migriert werden?
+        'shipmentcost_budgetid': mariadb.get_budget_by_code(data['z76'][0])[0]
     }
 
     return result
@@ -30,7 +30,8 @@ def split_join(query_result):
     result = {
         "z601": query_result[:18],
         "z68": query_result[18:74],
-        "z77": query_result[74:]
+        "z77": query_result[74:104],
+        "z76": query_result[104:]
     }
     return result
 
@@ -42,14 +43,13 @@ def start(credentials):
     data_cursor = oracle.get_open_z68_with_invoices()
 
     counter = 0
-    # for each order z68
     for query_result in data_cursor:
         split = split_join(query_result)
         result = process_data(split)
         logger.debug(result)
         counter += 1
 
-    logger.debug('%s values' % counter)
+   # logger.debug('%s values' % counter)
     data_cursor.close()
 
     oracle.close_connection()
