@@ -38,6 +38,16 @@ file_error_no = 0
 total_error_no = 0
 
 
+def map_damaged_status(subfield_952_1):
+    damaged_status = '0'
+
+    if subfield_952_1 == 'BD' or subfield_952_1 == 'Binding':
+        damaged_status = '2'
+    logger.debug("Field No. %s: 952$4 = '%s', valid 'Damaged status' found.", holding_field_counter, damaged_status)
+
+    return damaged_status
+
+
 def copy_materials_specified(field_300_list):
     materials_specified = None
 
@@ -598,7 +608,6 @@ def prepare_holding_data(record):
             # '952$3' Materials specified
             subfield_952_3 = marc_field_952['3']
             if subfield_952_3 is not None:
-                logger.info("952$3 = %s", subfield_952_3)
                 koha_materials_specified = map_materials_specified(subfield_952_3)
                 if koha_materials_specified is None:
                     logger.info("Field No. %s: Skipping subfield '3' in marc field %s",
@@ -615,6 +624,8 @@ def prepare_holding_data(record):
                                 holding_field_counter, marc_field_952)
 
             # '952$4' Damaged status
+            if subfield_952_1 is not None:
+                marc_field_952.add_subfield('4', map_damaged_status(subfield_952_1))
 
             # '952$5' Use restrictions
 
