@@ -16,7 +16,7 @@ import lib.oracle_helper.dates as dates_helper
 #   2) Library keys are mapped between Aleph and Koha. The keys got refactored in Koha, to add more naming consistency.
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 # file_handler = logging.FileHandler('./bibliography_preparation.log')
 # file_handler.setLevel(logging.INFO)
@@ -100,6 +100,33 @@ def map_materials_specified(subfield_952_3):
                      holding_field_counter, subfield_952_3)
 
         return subfield_952_3
+
+
+def map_classification_source(field_082_list, field_084_list):
+    classification_source = 'z'
+
+    if field_082_list is not None:
+        for field_082 in field_082_list:
+            if 'a' in field_082:
+                classification_source = 'ddc'
+                logger.debug("Field No. %s: 082$a = '%s'.", holding_field_counter, field_082['a'])
+                break
+    else:
+        for field_084 in field_084_list:
+            if '2' in field_084:
+                subfield_84_2 = field_084['2']
+                logger.debug("Field No. %s: 084$2 = '%s'.", holding_field_counter, subfield_84_2)
+                if subfield_84_2 == 'sdnb':
+                    classification_source = 'sdnb'
+                    break
+                if subfield_84_2 == 'rvk':
+                    classification_source = 'rvk'
+                    break
+
+    logger.debug("Field No. %s: 952$2 = '%s', valid 'Classification source' found.",
+                 holding_field_counter, classification_source)
+
+    return classification_source
 
 
 def map_lost_status(subfield_952_1):
@@ -604,6 +631,19 @@ def prepare_holding_data(record):
                 marc_field_952['1'] = map_lost_status(subfield_952_1)
 
             # '952$2' Classification
+            subfield_952_2 = marc_field_952['2']
+            field_082_list = record.get_fields('082')
+            field_084_list = None
+
+            if field_082_list is None:
+                field_084_list = record.get_fields('084')
+
+            if subfield_952_2 is not None:
+                marc_field_952['2'] = map_classification_source(field_082_list, field_084_list)
+            else:
+                marc_field_952.add_subfield('2', map_classification_source(field_082_list, field_084_list))
+                logger.info("Field No. %s: Added subfield '2' in marc field %s",
+                            holding_field_counter, marc_field_952)
 
             # '952$3' Materials specified
             subfield_952_3 = marc_field_952['3']
@@ -746,8 +786,8 @@ def inspect_materials_specified_data(record):
             field_852_list = record.get_fields('852')
             for field_852 in field_852_list:
                 if '3' in field_852:
-                    field_001_list = record.get_fields('001')
                     field_852_3_no += 1
+                    field_001_list = record.get_fields('001')
                     for field_001 in field_001_list:
                         logger.debug('%s: 852$3 = %s', field_001, field_852['3'])
 
@@ -890,7 +930,7 @@ if __name__ == '__main__':
             file_error_no = 0
             without_extension = os.path.splitext(filename)[0]
             logger.info("Processing file '%s' ...", filename)
-            check_bibliographic_data(input_directory + '/' + filename)
+            # check_bibliographic_data(input_directory + '/' + filename)
             process_bibliographic_data(
                 input_directory + '/' + filename,
                 output_directory + without_extension + '-preprocessed.mrc',
