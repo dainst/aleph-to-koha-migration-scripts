@@ -16,7 +16,7 @@ import lib.oracle_helper.dates as dates_helper
 #   2) Library keys are mapped between Aleph and Koha. The keys got refactored in Koha, to add more naming consistency.
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 # file_handler = logging.FileHandler('./bibliography_preparation.log')
 # file_handler.setLevel(logging.INFO)
@@ -37,6 +37,15 @@ record_error_no = 0
 file_error_no = 0
 total_error_no = 0
 
+
+def map_restrictions(subfield_952_c):
+    restricted = '0'
+
+    if subfield_952_c == 'RARA' or subfield_952_c == 'RARAH':
+        restricted = '1'
+    logger.debug("Field No. %s: 952$5 = '%s', valid 'Restrictions' found.", holding_field_counter, restricted)
+
+    return restricted
 
 def map_damaged_status(subfield_952_1):
     damaged_status = '0'
@@ -666,8 +675,18 @@ def prepare_holding_data(record):
             # '952$4' Damaged status
             if subfield_952_1 is not None:
                 marc_field_952.add_subfield('4', map_damaged_status(subfield_952_1))
+                logger.info("Field No. %s: Added subfield '4' in marc field %s",
+                            holding_field_counter, marc_field_952)
 
             # '952$5' Use restrictions
+            subfield_952_5 = marc_field_952['5']
+            if subfield_952_c is not None:
+                if subfield_952_5 is not None:
+                    marc_field_952['5'] = map_restrictions(subfield_952_c)
+                else:
+                    marc_field_952.add_subfield('5', map_restrictions(subfield_952_c))
+                    logger.info("Field No. %s: Added subfield '5' in marc field %s",
+                            holding_field_counter, marc_field_952)
 
             # '952$6' Koha normalized classification for sorting -> not applicable for Aleph
 
