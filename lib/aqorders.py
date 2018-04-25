@@ -72,7 +72,7 @@ def construct_probable_budget_code(data):
 
     # Construct special pattern for Orient, and add Sanaa orders to Orient's budget
     if library_code == 'ORIEN' or library_code == 'SANAA':
-        if order_type == 'S':
+        if order_type == 'O':
             budget_code = 'ORIENTF-2018'
         elif order_type == 'M':
             budget_code = 'ORIENTM-2018'
@@ -150,7 +150,7 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
         'order_vendornote': vendor_note,
         'basketno': basket_no,
         'budget_id': budget_id,
-        'biblionumber': order_to_title_id[aleph_rec_key[0:9]],
+        'biblionumber': order_to_title_id[aleph_rec_key[0:9]],  # TODO: replace with bib id instead of zenonid
         'quantity': quantity,
         'quantityreceived': quantity_received
     }
