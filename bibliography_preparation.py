@@ -837,6 +837,27 @@ def process_bibliographic_data(input_path, output_path, mapping):
                 file_error_no += record_error_no
                 writer.write(record)
 
+field_952_A_no = 0
+special_order_number_counter = 0
+
+def inspect_order_numbers(record):
+    global field_952_A_no
+    global special_order_number_counter
+
+    field_952_list = record.get_fields('952')
+    for field_952 in field_952_list:
+        field_952_A = field_952['A']
+
+        if field_952_A is not None:
+            field_952_A_no += 1
+
+            if field_952_A == 'R/2005-397':
+                special_order_number_counter +=1
+
+            field_001_list = record.get_fields('001')
+            for field_001 in field_001_list:
+                logger.debug('%s: 952$A = %s', field_001, field_952_A)
+
 
 field_300_e_and_3_comb_no = 0
 field_300_e_no = 0
@@ -966,6 +987,7 @@ def check_bibliographic_data(input_path):
 
             # inspect_classification_data(record)
             # inspect_materials_specified_data(record)
+            # inspect_order_numbers(record)
 
     logger.info('Bibliographic data structure check done!')
 
@@ -1039,7 +1061,9 @@ if __name__ == '__main__':
             logger.info("Current number of 300$e subfields: %s", field_300_e_no)
             logger.info("Current number of 300$3 subfields: %s", field_300_3_no)
             logger.info("Current number of 852$3 subfields: %s", field_852_3_no)
-            logger.info("Current number of 952$3 subfields: %s", field_952_3_no)"""
+            logger.info("Current number of 952$3 subfields: %s", field_952_3_no)
+            logger.info("Current number of 952$A subfields: %s", field_952_A_no)
+            logger.info("Current number of 'R/2005-397 order number' subfields: %s", special_order_number_counter)"""
 
             logger.info("File '%s' processed.\n", filename)
 
@@ -1054,7 +1078,9 @@ if __name__ == '__main__':
     logger.info("Total number of 300$e subfields: %s", field_300_e_no)
     logger.info("Total number of 300$3 subfields: %s", field_300_3_no)
     logger.info("Total number of 852$3 subfields: %s", field_852_3_no)
-    logger.info("Total number of 952$3 subfields: %s", field_952_3_no)"""
+    logger.info("Total number of 952$3 subfields: %s", field_952_3_no)
+    logger.info("Total number of 952$A subfields: %s", field_952_A_no)
+    logger.info("Total number of 'R/2005-397 order number' subfields: %s", special_order_number_counter)"""
 
     logger.info("Holding field number maximum: %s (%s)", holding_field_max[1], holding_field_max[0])
     logger.info("Total number of record errors: %s", total_error_no)
