@@ -7,6 +7,8 @@ import lib.database_connections.mariadb as mariadb
 import lib.oracle_helper.dates as dates_helper
 import lib.mappings.currency as currency
 import lib.mappings.order_status as order_status_helper
+import lib.oracle_helper.z00 as z00
+
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -20,12 +22,15 @@ script_dir = os.path.dirname(__file__)
 MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/050000_aqorders_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqorders_data_import.sql'
 
+MISSING_BUDGET = []
+
 
 def get_biblio_number(key, z30_data):
     if key in z30_data:
         return z30_data[key][0][0:9]
 
 
+# TODO: Only open orders are processed, this function should be incorporated into process_68_data?
 def process_open_order(data):
     result = dict()
 
@@ -40,10 +45,51 @@ def process_open_order(data):
     return result
 
 
-def process_z68_data(previous_results, z30_data, basket_data, data):
+def construct_probable_budget_code(data):
+    order_type = data[2]
+
+    # Check if a valid library code exists in z68 data
+    if data[12] is not None and data[12].strip() != '':
+        library_code = data[12].strip()
+    else:
+        logger.debug('No sub library information:')
+        logger.debug(data)
+        return None
+
+    # Rewrite library code for Madrid without trailing D
+    if library_code == 'MADRD':
+        library_code = 'MADR'
+
+    # Construct default pattern for most library budgets
+    if order_type == 'S':
+        budget_code = '%sSER-2018' % library_code
+    elif order_type == 'O':
+        budget_code = '%sFOR-2018' % library_code
+    elif order_type == 'M':
+        budget_code = '%sMON-2018' % library_code
+    else:
+        budget_code = '%s-2018' % library_code
+
+    # Construct special pattern for Orient, and add Sanaa orders to Orient's budget
+    if library_code == 'ORIEN' or library_code == 'SANAA':
+        if order_type == 'S':
+            budget_code = 'ORIENTF-2018'
+        elif order_type == 'M':
+            budget_code = 'ORIENTM-2018'
+        else:
+            budget_code = 'ORIENTG-2018'
+
+    # Construct special pattern for Teheran
+    if library_code == 'TEHER':
+        budget_code = 'EURAS-TEHERAN-2018'
+
+    return budget_code
+
+
+def process_z68_data(previous_results, basket_data, order_to_budget_data, order_to_title_id,  data):
+    global MISSING_BUDGET
 
     aleph_rec_key = data[0]
-
     basket_no = None
     if aleph_rec_key in basket_data:
         basket_no = basket_data[aleph_rec_key][0]
@@ -74,6 +120,27 @@ def process_z68_data(previous_results, z30_data, basket_data, data):
     if order_status == 'complete':
         date_received = dates_helper.process_aleph_date(data[8])
         quantity_received = quantity
+        logger.debug('Complete order: %s' % data[2].strip())
+        # TODO: How to evaluate from aleph data?
+
+    if aleph_rec_key in order_to_budget_data:
+        budget_code = order_to_budget_data[aleph_rec_key]
+        budget_id = mariadb.get_budget_by_code(budget_code)
+    else:
+        budget_code = construct_probable_budget_code(data)
+        budget_id = mariadb.get_budget_by_code(budget_code)
+
+    if budget_id is None:
+        if data[2] is not None:
+            order_number = data[2].strip()
+        else:
+            order_number = None
+        MISSING_BUDGET.append(
+            {
+                'aleph_rec_key': aleph_rec_key,
+                'order_number': order_number
+            }
+        )
 
     result = {
         'order_status': order_status,
@@ -82,8 +149,8 @@ def process_z68_data(previous_results, z30_data, basket_data, data):
         'suppliers_reference_number': suppliers_reference_nubmer,
         'order_vendornote': vendor_note,
         'basketno': basket_no,
-        'budget_id': 1,
-        'biblionumber': get_biblio_number(data[2].strip(), z30_data),
+        'budget_id': budget_id,
+        'biblionumber': order_to_title_id[aleph_rec_key[0:9]],
         'quantity': quantity,
         'quantityreceived': quantity_received
     }
@@ -100,7 +167,6 @@ def process_z68_data(previous_results, z30_data, basket_data, data):
     return previous_results
 
     # `entrydate` date DEFAULT NULL,
-    # `quantity` smallint(6) DEFAULT NULL,
     # `listprice` decimal(28,6) DEFAULT NULL,
     # `invoiceid` int(11) DEFAULT NULL, # TODO
     # `freight` decimal(28,6) DEFAULT NULL,
@@ -140,14 +206,6 @@ def fetch_data(credentials):
     mariadb.establish_connection()
     logger.info('Connected.')
 
-    logger.info('Fetching z30 data (items)...')
-    z30_data = dict()
-    z30_data_cursor = oracle.get_z30_with_order_number()
-    for query_result in z30_data_cursor:
-        z30_data[query_result[24].strip()] = query_result
-    z30_data_cursor.close()
-    logger.info('Done.')
-
     logger.info('Fetching basket data...')
     basket_data = dict()
     basket_data_cursor = mariadb.get_aqbaskets()
@@ -155,12 +213,29 @@ def fetch_data(credentials):
         basket_data[query_result[-1]] = query_result
     logger.info('Done.')
 
-    results = dict()
-    data_cursor = oracle.get_not_cancelled_z68()
-
+    logger.info('Fetching budget data...')
+    order_to_budget_mapping = dict()
+    data_cursor = oracle.get_orders_to_budgets_mapping()
     for query_result in data_cursor:
-        results = process_z68_data(results, z30_data, basket_data, query_result)
+        order_to_budget_mapping[query_result[0]] = query_result[1].strip()
     data_cursor.close()
+    logger.info('Done.')
+
+    logger.info('Fetching title IDs...')
+    order_to_title_id = dict()
+    data_cursor = oracle.get_z00_data()
+    for query_result in data_cursor:
+        order_to_title_id[query_result[0]] = z00.get_bibliographic_id_for_adm_number(query_result)
+    data_cursor.close()
+    logger.info('Done.')
+
+    logger.info('Processing z68 (orders) data...')
+    results = dict()
+    data_cursor = oracle.get_open_z68()
+    for query_result in data_cursor:
+        results = process_z68_data(results, basket_data, order_to_budget_mapping, order_to_title_id, query_result)
+    data_cursor.close()
+    logger.info('Done.')
 
     oracle.close_connection()
 
@@ -260,17 +335,14 @@ def write_data(data):
 
 
 def start(oracle_credentials):
+    global MISSING_BUDGET
     results = fetch_data(oracle_credentials)
 
-    logger.warning('%s Z68-orders have no matching Z30-items:', len(MISSING_ITEM_DATA))
-    for missing in MISSING_ITEM_DATA:
-        logger.warning(missing)
+    with open('missing_budget.tsv', 'w') as error_log:
+        for item in MISSING_BUDGET:
+            error_log.write('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
 
-    logger.warning('%s Z68-orders have no matching basket:', len(MISSING_BASKET))
-    for missing in MISSING_BASKET:
-        logger.warning(missing)
-
-    write_data(results)
+    # write_data(results)
 
 
 if __name__ == '__main__':
