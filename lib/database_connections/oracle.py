@@ -168,3 +168,10 @@ def get_orders_to_budgets_mapping():
     cur = connection.cursor()
     return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, SUBSTR(Z601.Z601_REC_KEY, 1, 50) FROM Z68, Z601 ' +
                        'WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 AND Z601.Z601_TYPE=:1', ('ENC',))
+
+
+def get_z00_data():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z00')
