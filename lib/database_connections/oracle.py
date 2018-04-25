@@ -80,7 +80,7 @@ def get_open_z68():
     cur = connection.cursor()
     return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68_ORDER_STATUS!=:2 ' +
-                       'AND Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC', 'CNB'))
+                       'AND Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC ', 'CNB'))
 
 
 def get_budgets_for_open_orders():
@@ -91,7 +91,7 @@ def get_budgets_for_open_orders():
                        'AND Z76.Z76_BUDGET_NUMBER = SUBSTR(Z601.Z601_REC_KEY, 1, 50) ' +
                        'AND Z68.Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:2 ' +
-                       'AND Z68.Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC', 'CNB'))
+                       'AND Z68.Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC ', 'CNB'))
 
 
 def get_still_valid_budgets():
@@ -117,7 +117,7 @@ def get_open_z68_with_invoices():
                        'AND Z76.Z76_BUDGET_NUMBER = SUBSTR(Z601.Z601_REC_KEY, 1, 50) ' +
                        'AND Z68.Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:2 ' +
-                       'AND Z68.Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC', 'CNB'))
+                       'AND Z68.Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC ', 'CNB'))
 
 
 def get_open_z68_monograph():
@@ -127,7 +127,7 @@ def get_open_z68_monograph():
     return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68_ORDER_STATUS!=:2 ' +
                        'AND Z68_ORDER_STATUS!=:3 ' +
-                       'AND (Z68_ORDER_TYPE=:4 OR Z68_ORDER_TYPE=:5)', ('CLS', 'VC', 'CNB', 'M', 'O'))
+                       'AND (Z68_ORDER_TYPE=:4 OR Z68_ORDER_TYPE=:5)', ('CLS', 'VC ', 'CNB', 'M', 'O'))
 
 
 def get_open_z68_serials():
@@ -137,7 +137,7 @@ def get_open_z68_serials():
     return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68_ORDER_STATUS!=:2 ' +
                        'AND Z68_ORDER_STATUS!=:3 ' +
-                       'AND (Z68_ORDER_TYPE=:4)', ('CLS', 'VC', 'CNB', 'S'))
+                       'AND (Z68_ORDER_TYPE=:4)', ('CLS', 'VC ', 'CNB', 'S'))
 
 
 def get_not_cancelled_z68():
@@ -145,7 +145,7 @@ def get_not_cancelled_z68():
 
     cur = connection.cursor()
     return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
-                       'AND Z68_ORDER_STATUS!=:2 ', ('VC', 'CNB'))
+                       'AND Z68_ORDER_STATUS!=:2 ', ('VC ', 'CNB'))
 
 
 def get_closed_z68():
