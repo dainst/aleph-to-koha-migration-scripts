@@ -160,3 +160,11 @@ def get_sub_library_z602(key):
 
     cur = connection.cursor()
     return cur.execute('SELECT Z602_SUB_LIBRARY FROM Z602 WHERE Z602_REC_KEY=:1', (key,))
+
+
+def get_orders_to_budgets_mapping():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, SUBSTR(Z601.Z601_REC_KEY, 1, 50) FROM Z68, Z601 ' +
+                       'WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 AND Z601.Z601_TYPE=:1', ('ENC',))
