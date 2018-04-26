@@ -38,6 +38,15 @@ file_error_no = 0
 total_error_no = 0
 
 
+def map_aleph_order_number(subfield_952_A):
+    if subfield_952_A is None:
+        logger.error("Field No. %s: 952$A = '%s', no valid 'Z30_ORDER_NUMBER' found!",
+                     holding_field_counter, subfield_952_A)
+    else:
+        logger.debug("Field No. %s: 952$A = '%s', valid 'Z30_ORDER_NUMBER' code found.",
+                     holding_field_counter, subfield_952_A)
+
+
 def map_not_for_loan(subfield_952_J, subfield_952_1):
     not_for_loan = '1'
 
@@ -457,312 +466,314 @@ def prepare_holding_data(record):
 
     holding_field_counter = 1
     record_error_no = 0
-    for marc_field_952 in marc_holding_fields:
-        logger.debug("Field No. %s: %s", holding_field_counter, marc_field_952)
+    for field_952 in marc_holding_fields:
+        logger.debug("Field No. %s: %s", holding_field_counter, field_952)
 
-        if check_required_subfields(marc_field_952):
+        if check_required_subfields(field_952):
 
             # '952$a' Owning Library (required by Koha)
-            koha_owning_library = map_owning_library(marc_field_952['a'])
+            koha_owning_library = map_owning_library(field_952['a'])
             if koha_owning_library is None:
-                logger.error('Field No. %s: Skipping field: %s', holding_field_counter, marc_field_952)
-                record.remove_field(marc_field_952)
+                logger.error('Field No. %s: Skipping field: %s', holding_field_counter, field_952)
+                record.remove_field(field_952)
                 is_record_format_error = True
                 record_error_no += 1
                 holding_field_counter += 1
                 continue
             else:
-                marc_field_952['a'] = koha_owning_library
+                field_952['a'] = koha_owning_library
 
             # '952$b' Holding library (required by Koha)
-            koha_holding_library = map_holding_library(marc_field_952['b'])
+            koha_holding_library = map_holding_library(field_952['b'])
             if koha_holding_library is None:
-                logger.error('Field No. %s: Skipping field: %s', holding_field_counter, marc_field_952)
-                record.remove_field(marc_field_952)
+                logger.error('Field No. %s: Skipping field: %s', holding_field_counter, field_952)
+                record.remove_field(field_952)
                 is_record_format_error = True
                 record_error_no += 1
                 holding_field_counter += 1
                 continue
             else:
-                marc_field_952['b'] = koha_holding_library
+                field_952['b'] = koha_holding_library
 
             # '952$c' Shelving location code
-            subfield_952_c = marc_field_952['c']
+            subfield_952_c = field_952['c']
             if subfield_952_c is not None:
                 koha_shelving_location = map_shelving_location_code(subfield_952_c, koha_owning_library)
                 if koha_shelving_location is None:
                     logger.info("Field No. %s: Skipping subfield 'c' = %s", holding_field_counter, subfield_952_c)
-                    marc_field_952.delete_subfield('c')
+                    field_952.delete_subfield('c')
                 else:
-                    marc_field_952['c'] = koha_shelving_location
+                    field_952['c'] = koha_shelving_location
 
             # '952$d' Date acquired
-            subfield_952_d = marc_field_952['d']
+            subfield_952_d = field_952['d']
             if subfield_952_d is not None:
                 koha_date_acquired = map_date_acquired(subfield_952_d)
                 if koha_date_acquired is None:
                     logger.info("Field No. %s: Skipping subfield 'd' = %s", holding_field_counter, subfield_952_d)
-                    marc_field_952.delete_subfield('d')
+                    field_952.delete_subfield('d')
                 else:
-                    marc_field_952['d'] = koha_date_acquired
+                    field_952['d'] = koha_date_acquired
 
             # '952$e' Source of acquisition
-            subfield_952_e = marc_field_952['e']
+            subfield_952_e = field_952['e']
             if subfield_952_e is not None:
                 koha_source_of_aquisition = map_source_of_acquisition(subfield_952_e)
                 if koha_source_of_aquisition is None:
                     logger.info("Field No. %s: Skipping subfield 'e' = %s", holding_field_counter, subfield_952_e)
-                    marc_field_952.delete_subfield('e')
+                    field_952.delete_subfield('e')
                 else:
-                    marc_field_952['e'] = koha_source_of_aquisition
+                    field_952['e'] = koha_source_of_aquisition
 
             # '952$f' Coded location qualifier
             # 'This has no function in Koha.'
-            subfield_952_f = marc_field_952['f']
+            subfield_952_f = field_952['f']
             if subfield_952_f is not None:
                 logger.info("Field No. %s: Skipping subfield 'f' = %s", holding_field_counter, subfield_952_f)
-                marc_field_952.delete_subfield('f')
+                field_952.delete_subfield('f')
 
             # '952$g' Purchase price
-            subfield_952_g = marc_field_952['g']
+            subfield_952_g = field_952['g']
             if subfield_952_g is not None:
                 koha_purchase_prise = map_purchase_price(subfield_952_g)
                 if koha_purchase_prise is None:
                     logger.info("Field No. %s: Skipping subfield 'g' = %s", holding_field_counter, subfield_952_g)
-                    marc_field_952.delete_subfield('g')
+                    field_952.delete_subfield('g')
                 else:
-                    marc_field_952['g'] = koha_purchase_prise
+                    field_952['g'] = koha_purchase_prise
 
             # TODO '952$h' Serial enumeration
-            subfield_952_h = marc_field_952['h']
+            subfield_952_h = field_952['h']
             if subfield_952_h is not None:
                 pass
 
             # '952$i' Inventory number
-            subfield_952_i = marc_field_952['i']
+            subfield_952_i = field_952['i']
             if subfield_952_i is not None:
                 koha_inventory_number = map_inventory_number(subfield_952_i)
                 if koha_inventory_number is None:
                     logger.info("Field No. %s: Skipping subfield 'i' = %s", holding_field_counter, subfield_952_i)
-                    marc_field_952.delete_subfield('i')
+                    field_952.delete_subfield('i')
                 else:
-                    marc_field_952['i'] = koha_inventory_number
+                    field_952['i'] = koha_inventory_number
 
             # '952$j' Shelving control number -> currently not applicable for Aleph
-            subfield_952_j = marc_field_952['j']
+            subfield_952_j = field_952['j']
             if subfield_952_j is not None:
                 logger.info("Field No. %s: Skipping subfield 'j' = %s", holding_field_counter, subfield_952_j)
-                marc_field_952.delete_subfield('j')
+                field_952.delete_subfield('j')
 
             # '952$k' Unused in Koha.
-            subfield_952_k = marc_field_952['k']
+            subfield_952_k = field_952['k']
             if subfield_952_k is not None:
                 logger.info("Field No. %s: Skipping subfield 'k' = %s", holding_field_counter, subfield_952_k)
-                marc_field_952.delete_subfield('k')
+                field_952.delete_subfield('k')
 
             # '952$l' Total Checkouts -> currently not applicable for Aleph
-            subfield_952_l = marc_field_952['l']
+            subfield_952_l = field_952['l']
             if subfield_952_l is not None:
                 logger.info("Field No. %s: Skipping subfield 'l' = %s", holding_field_counter, subfield_952_l)
-                marc_field_952.delete_subfield('l')
+                field_952.delete_subfield('l')
 
             # '952$m' Total Renewals -> currently not applicable for Aleph
-            subfield_952_m = marc_field_952['m']
+            subfield_952_m = field_952['m']
             if subfield_952_m is not None:
                 logger.info("Field No. %s: Skipping subfield 'm' = %s", holding_field_counter, subfield_952_m)
-                marc_field_952.delete_subfield('m')
+                field_952.delete_subfield('m')
 
             # '952$n' Total Holds -> currently not applicable for Aleph
-            subfield_952_n = marc_field_952['n']
+            subfield_952_n = field_952['n']
             if subfield_952_n is not None:
                 logger.info("Field No. %s: Skipping subfield 'n' = %s", holding_field_counter, subfield_952_n)
-                marc_field_952.delete_subfield('n')
+                field_952.delete_subfield('n')
 
             # '952$o' Koha full call number
-            subfield_952_o = marc_field_952['o']
+            subfield_952_o = field_952['o']
             if subfield_952_o is not None:
                 koha_call_number = map_call_number(subfield_952_o)
                 if koha_call_number is None:
                     logger.info("Field No. %s: Skipping subfield 'o' = %s", holding_field_counter, subfield_952_o)
-                    marc_field_952.delete_subfield('o')
+                    field_952.delete_subfield('o')
                 else:
-                    marc_field_952['o'] = koha_call_number
+                    field_952['o'] = koha_call_number
 
             # '952$p' Barcode (required for circulation)
-            subfield_952_p = marc_field_952['p']
+            subfield_952_p = field_952['p']
             if subfield_952_p is None:
                 logger.warning("Field No. %s: No required subfield 'p' found!", holding_field_counter)
             else:
                 koha_barcode = map_barcode(subfield_952_p)
                 if koha_barcode is None:
                     logger.warning("Field No. %s: Skipping subfield 'p' in marc field %s",
-                                   holding_field_counter, marc_field_952)
-                    marc_field_952.delete_subfield('p')
+                                   holding_field_counter, field_952)
+                    field_952.delete_subfield('p')
                     is_record_format_error = True
                     record_error_no += 1
                 else:
-                    marc_field_952['p'] = koha_barcode
+                    field_952['p'] = koha_barcode
 
             # '952$q' Due date -> currently not applicable for Aleph
-            subfield_952_q = marc_field_952['q']
+            subfield_952_q = field_952['q']
             if subfield_952_q is not None:
                 logger.info("Field No. %s: Skipping subfield 'q' = %s", holding_field_counter, subfield_952_q)
-                marc_field_952.delete_subfield('q')
+                field_952.delete_subfield('q')
 
             # '952$r' Date last seen -> currently not applicable for Aleph
-            subfield_952_r = marc_field_952['r']
+            subfield_952_r = field_952['r']
             if subfield_952_r is not None:
                 logger.info("Field No. %s: Skipping subfield 'r' = %s", holding_field_counter, subfield_952_r)
-                marc_field_952.delete_subfield('r')
+                field_952.delete_subfield('r')
 
             # '952$s' Date last checked out -> currently not applicable for Aleph
-            subfield_952_s = marc_field_952['s']
+            subfield_952_s = field_952['s']
             if subfield_952_s is not None:
                 logger.info("Field No. %s: Skipping subfield 's' = %s", holding_field_counter, subfield_952_s)
-                marc_field_952.delete_subfield('s')
+                field_952.delete_subfield('s')
 
             # '952$t' Copy number
-            subfield_952_t = marc_field_952['t']
+            subfield_952_t = field_952['t']
             if subfield_952_t is not None:
                 koha_copy_number = map_copy_number(subfield_952_t)
                 if koha_copy_number is None:
                     logger.info("Field No. %s: Skipping subfield 't' = %s", holding_field_counter, subfield_952_t)
-                    marc_field_952.delete_subfield('t')
+                    field_952.delete_subfield('t')
                 else:
-                    marc_field_952['t'] = koha_copy_number
+                    field_952['t'] = koha_copy_number
 
             # '952$u' Uniform Resource Identifier -> currently not applicable for Aleph
-            subfield_952_u = marc_field_952['u']
+            subfield_952_u = field_952['u']
             if subfield_952_u is not None:
                 logger.info("Field No. %s: Skipping subfield 'u' = %s", holding_field_counter, subfield_952_u)
-                marc_field_952.delete_subfield('u')
+                field_952.delete_subfield('u')
 
             # '952$v' Replacement price -> currently not applicable for Aleph
-            subfield_952_v = marc_field_952['v']
+            subfield_952_v = field_952['v']
             if subfield_952_v is not None:
                 logger.info("Field No. %s: Skipping subfield 'v' = %s", holding_field_counter, subfield_952_v)
-                marc_field_952.delete_subfield('v')
+                field_952.delete_subfield('v')
 
             # '952$w' Price effective from -> currently not applicable for Aleph
-            subfield_952_w = marc_field_952['w']
+            subfield_952_w = field_952['w']
             if subfield_952_w is not None:
                 logger.info("Field No. %s: Skipping subfield 'w' = %s", holding_field_counter, subfield_952_w)
-                marc_field_952.delete_subfield('w')
+                field_952.delete_subfield('w')
 
             # '952$x' Nonpublic note
-            subfield_952_x = marc_field_952['x']
+            subfield_952_x = field_952['x']
             if subfield_952_x is not None:
                 koha_nonpublic_note = map_nonpublic_note(subfield_952_x)
                 if koha_nonpublic_note is None:
                     logger.info("Field No. %s: Skipping subfield 'x' = %s", holding_field_counter, subfield_952_x)
-                    marc_field_952.delete_subfield('x')
+                    field_952.delete_subfield('x')
                 else:
-                    marc_field_952['x'] = koha_nonpublic_note
+                    field_952['x'] = koha_nonpublic_note
 
             # '952$y' Item type (required by Koha)
-            koha_item_type = map_item_type(marc_field_952['y'])
+            koha_item_type = map_item_type(field_952['y'])
             if koha_item_type is None:
-                logger.error('Field No. %s: Skipping field: %s', holding_field_counter, marc_field_952)
-                record.remove_field(marc_field_952)
+                logger.error('Field No. %s: Skipping field: %s', holding_field_counter, field_952)
+                record.remove_field(field_952)
                 is_record_format_error = True
                 record_error_no += 1
                 holding_field_counter += 1
                 continue
             else:
-                marc_field_952['y'] = koha_item_type
+                field_952['y'] = koha_item_type
 
             # '952$z' Public note
-            subfield_952_z = marc_field_952['z']
+            subfield_952_z = field_952['z']
             if subfield_952_z is not None:
                 koha_public_note = map_public_note(subfield_952_z)
                 if koha_public_note is None:
                     logger.info("Field No. %s: Skipping subfield 'z' = %s", holding_field_counter, subfield_952_z)
-                    marc_field_952.delete_subfield('z')
+                    field_952.delete_subfield('z')
                 else:
-                    marc_field_952['z'] = koha_public_note
+                    field_952['z'] = koha_public_note
 
             # '952$0' Withdrawn status -> not applicable for Aleph
-            subfield_952_0 = marc_field_952['0']
+            subfield_952_0 = field_952['0']
             if subfield_952_0 is not None:
                 logger.info("Field No. %s: Skipping subfield '0' = %s", holding_field_counter, subfield_952_0)
-                marc_field_952.delete_subfield('0')
+                field_952.delete_subfield('0')
 
             # '952$1' Lost status
-            subfield_952_1 = marc_field_952['1']
+            subfield_952_1 = field_952['1']
             if subfield_952_1 is not None:
-                marc_field_952['1'] = map_lost_status(subfield_952_1)
+                field_952['1'] = map_lost_status(subfield_952_1)
 
-            # '952$2' Classification
-            subfield_952_2 = marc_field_952['2']
+            # '952$2' Classification source
+            subfield_952_2 = field_952['2']
             koha_classification_source = map_classification_source()
             if subfield_952_2 is not None:
-                marc_field_952['2'] = koha_classification_source
+                field_952['2'] = koha_classification_source
             else:
-                marc_field_952.add_subfield('2', koha_classification_source)
+                field_952.add_subfield('2', koha_classification_source)
                 logger.info("Field No. %s: Added subfield '2' = %s", holding_field_counter, koha_classification_source)
 
             # '952$3' Materials specified
-            subfield_952_3 = marc_field_952['3']
+            subfield_952_3 = field_952['3']
             if subfield_952_3 is not None:
                 koha_materials_specified = map_materials_specified(subfield_952_3)
                 if koha_materials_specified is None:
                     logger.info("Field No. %s: Skipping subfield '3' = %s", holding_field_counter, subfield_952_3)
-                    marc_field_952.delete_subfield('3')
+                    field_952.delete_subfield('3')
                 else:
-                    marc_field_952['3'] = koha_materials_specified
+                    field_952['3'] = koha_materials_specified
             elif koha_item_type == 'MX':
                 field_300_list = record.get_fields('300')
                 koha_materials_specified = copy_materials_specified(field_300_list)
                 if koha_materials_specified is not None:
-                    marc_field_952.add_subfield('3', koha_materials_specified)
+                    field_952.add_subfield('3', koha_materials_specified)
                     logger.info("Field No. %s: Added subfield '3' = %s",
                                 holding_field_counter, koha_materials_specified)
 
             # '952$4' Damaged status -> not applicable for Aleph
-            subfield_952_4 = marc_field_952['4']
+            subfield_952_4 = field_952['4']
             if subfield_952_4 is not None:
                 logger.info("Field No. %s: Skipping subfield '4' = %s", holding_field_counter, subfield_952_4)
-                marc_field_952.delete_subfield('4')
+                field_952.delete_subfield('4')
 
             # '952$5' Use restrictions
-            subfield_952_5 = marc_field_952['5']
+            subfield_952_5 = field_952['5']
             if subfield_952_c is not None:
                 koha_restrictions = map_restrictions(subfield_952_c)
                 if subfield_952_5 is not None:
-                    marc_field_952['5'] = koha_restrictions
+                    field_952['5'] = koha_restrictions
                 else:
-                    marc_field_952.add_subfield('5', koha_restrictions)
+                    field_952.add_subfield('5', koha_restrictions)
                     logger.info("Field No. %s: Added subfield '5' = %s", holding_field_counter, koha_restrictions)
 
             # '952$6' Koha normalized classification for sorting -> not applicable for Aleph
-            subfield_952_6 = marc_field_952['6']
+            subfield_952_6 = field_952['6']
             if subfield_952_6 is not None:
                 logger.info("Field No. %s: Skipping subfield '6' = %s", holding_field_counter, subfield_952_6)
-                marc_field_952.delete_subfield('6')
+                field_952.delete_subfield('6')
 
             # '952$7' Not for loan
-            subfield_952_7 = marc_field_952['7']
-            subfield_952_J = marc_field_952['J']
+            subfield_952_7 = field_952['7']
+            subfield_952_J = field_952['J']
             koha_not_for_loan = map_not_for_loan(subfield_952_J, subfield_952_1)
             if subfield_952_7 is not None:
-                marc_field_952['7'] = koha_not_for_loan
+                field_952['7'] = koha_not_for_loan
             else:
-                marc_field_952.add_subfield('7', koha_not_for_loan)
+                field_952.add_subfield('7', koha_not_for_loan)
                 logger.info("Field No. %s: Added subfield '7' = %s", holding_field_counter, koha_not_for_loan)
 
             # '952$8' Collection code -> not applicable for Aleph
-            subfield_952_8 = marc_field_952['8']
+            subfield_952_8 = field_952['8']
             if subfield_952_8 is not None:
                 logger.info("Field No. %s: Skipping subfield '8' = %s", holding_field_counter, subfield_952_8)
-                marc_field_952.delete_subfield('8')
+                field_952.delete_subfield('8')
 
             # '952$9' Item number (autogenerated) -> not applicable for Aleph
-            subfield_952_9 = marc_field_952['9']
+            subfield_952_9 = field_952['9']
             if subfield_952_9 is not None:
                 logger.info("Field No. %s: Skipping subfield '9' = %s", holding_field_counter, subfield_952_9)
-                marc_field_952.delete_subfield('9')
+                field_952.delete_subfield('9')
 
             # '952$A' Bestellnummer aus der Erwerbung
+            subfield_952_A = field_952['A']
+            map_aleph_order_number(subfield_952_A)
 
             # '952$C' Umlauf-Notiz
             # '952$D' Beschreibung
@@ -776,12 +787,12 @@ def prepare_holding_data(record):
             # '952$U' Änderungsdatum
 
         else:
-            logger.error('Field No. %s: Skipping field: %s', holding_field_counter, marc_field_952)
-            record.remove_field(marc_field_952)
+            logger.error('Field No. %s: Skipping field: %s', holding_field_counter, field_952)
+            record.remove_field(field_952)
             is_record_format_error = True
             record_error_no += 1
 
-        logger.debug("Field No. %s: %s", holding_field_counter, marc_field_952)
+        logger.debug("Field No. %s: %s", holding_field_counter, field_952)
         holding_field_counter += 1
 
     file_record_no += 1
