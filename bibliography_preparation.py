@@ -809,6 +809,18 @@ def prepare_holding_data(record):
             # '952$J' Exemplarstatus
             # '952$O' 2.Signatur
             # '952$P' Erfassungsdatum
+            open_date_subfield_code = 'P'
+            subfield_952_P = field_952[open_date_subfield_code]
+            if subfield_952_P is not None:
+                open_date = map_aleph_date_field(holding_field_code, open_date_subfield_code,
+                                                 subfield_952_P, 'Z30_OPEN_DATE')
+                if open_date is None:
+                    logger.info("Field No. %s: Skipping subfield '%s' = %s",
+                                holding_field_counter, open_date_subfield_code, subfield_952_P)
+                    field_952.delete_subfield(open_date_subfield_code)
+                else:
+                    field_952[open_date_subfield_code] = open_date
+
             # '952$S' Ex-Geschäftsgang-Status
             # '952$T' Statistikwerte
             # '952$U' Änderungsdatum
