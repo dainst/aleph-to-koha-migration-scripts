@@ -14,9 +14,9 @@ def process_aleph_date(aleph_date):
 
     if aleph_date is None:
         return None
-
     if type(aleph_date) == str:
-        if aleph_date == '00000000':
+        aleph_date.strip()
+        if aleph_date == '00000000' or aleph_date == '0':
             return None
         elif len(aleph_date) != 8:
             logger.error('Aleph date format error: %s', aleph_date)

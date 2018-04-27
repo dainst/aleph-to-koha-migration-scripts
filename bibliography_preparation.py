@@ -511,7 +511,7 @@ def prepare_holding_data(record):
             subfield_952_d = field_952[date_acquired_subfield_code]
             if subfield_952_d is not None:
                 koha_date_acquired = map_aleph_date_field(holding_field_code, date_acquired_subfield_code,
-                                                          subfield_952_d, 'Date aquired')
+                                                          'Date aquired', subfield_952_d)
                 if koha_date_acquired is None:
                     logger.info("Field No. %s: Skipping subfield '%s' = %s",
                                 holding_field_counter, date_acquired_subfield_code, subfield_952_d)
@@ -796,7 +796,7 @@ def prepare_holding_data(record):
             subfield_952_E = field_952[expected_arrival_date_subfield_code]
             if subfield_952_E is not None:
                 expected_arrival_date = map_aleph_date_field(holding_field_code, expected_arrival_date_subfield_code,
-                                                          subfield_952_E, 'Z30_EXPECTED_ARRIVAL_DATE')
+                                                          'Z30_EXPECTED_ARRIVAL_DATE', subfield_952_E)
                 if expected_arrival_date is None:
                     logger.info("Field No. %s: Skipping subfield '%s' = %s",
                                 holding_field_counter, expected_arrival_date_subfield_code, subfield_952_E)
@@ -813,7 +813,7 @@ def prepare_holding_data(record):
             subfield_952_P = field_952[open_date_subfield_code]
             if subfield_952_P is not None:
                 open_date = map_aleph_date_field(holding_field_code, open_date_subfield_code,
-                                                 subfield_952_P, 'Z30_OPEN_DATE')
+                                                 'Z30_OPEN_DATE', subfield_952_P)
                 if open_date is None:
                     logger.info("Field No. %s: Skipping subfield '%s' = %s",
                                 holding_field_counter, open_date_subfield_code, subfield_952_P)
@@ -824,7 +824,17 @@ def prepare_holding_data(record):
             # '952$S' Ex-Geschäftsgang-Status
             # '952$T' Statistikwerte
             # '952$U' Änderungsdatum
-
+            update_date_subfield_code = 'U'
+            subfield_952_U = field_952[update_date_subfield_code]
+            if subfield_952_U is not None:
+                update_date = map_aleph_date_field(holding_field_code, update_date_subfield_code,
+                                                   'Z30_OPEN_DATE', subfield_952_U)
+                if update_date is None:
+                    logger.info("Field No. %s: Skipping subfield '%s' = %s",
+                                holding_field_counter, update_date_subfield_code, subfield_952_U)
+                    field_952.delete_subfield(update_date_subfield_code)
+                else:
+                    field_952[update_date_subfield_code] = update_date
         else:
             logger.error('Field No. %s: Skipping field: %s', holding_field_counter, field_952)
             record.remove_field(field_952)
