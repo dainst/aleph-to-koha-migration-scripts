@@ -38,7 +38,7 @@ file_error_no = 0
 total_error_no = 0
 
 
-def map_aleph_item_field(marc_field_code, marc_subfield_code, aleph_item_field_name, aleph_item_field_value):
+def map_aleph_string_field(marc_field_code, marc_subfield_code, aleph_item_field_name, aleph_item_field_value):
     if aleph_item_field_value is None:
         logger.debug("Field No. %s: %s$%s = '%s', no valid '%s' found!", holding_field_counter,
                      marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
@@ -355,17 +355,17 @@ def map_source_of_acquisition(subfield_952_e):
     return source_of_acquisition
 
 
-def map_date_acquired(subfield_952_d):
-    date_acquired = dates_helper.process_aleph_date(subfield_952_d)
+def map_aleph_date_field(marc_field_code, marc_subfield_code, field_name, field_value):
+    date = dates_helper.process_aleph_date(field_value)
 
-    if date_acquired is None:
-        logger.debug("Field No. %s: 952$d = '%s', no valid 'Date aquired' found!",
-                     holding_field_counter, subfield_952_d)
+    if date is None:
+        logger.debug("Field No. %s: %s$%s = '%s', no valid '%s' found!",
+                     holding_field_counter, marc_field_code, marc_subfield_code, field_value, field_name)
     else:
-        logger.debug("Field No. %s: 952$d = '%s', valid 'Date aquired' found.",
-                     holding_field_counter, date_acquired)
+        logger.debug("Field No. %s: %s$%s = '%s', valid '%s' found.",
+                     holding_field_counter, marc_field_code, marc_subfield_code, date, field_name)
 
-    return date_acquired
+    return date
 
 
 def map_shelving_location_code(subfield_952_c, koha_library_code):
@@ -507,14 +507,17 @@ def prepare_holding_data(record):
                     field_952['c'] = koha_shelving_location
 
             # '952$d' Date acquired
-            subfield_952_d = field_952['d']
+            date_acquired_subfield_code = 'd'
+            subfield_952_d = field_952[date_acquired_subfield_code]
             if subfield_952_d is not None:
-                koha_date_acquired = map_date_acquired(subfield_952_d)
+                koha_date_acquired = map_aleph_date_field(holding_field_code, date_acquired_subfield_code,
+                                                          subfield_952_d, 'Date aquired')
                 if koha_date_acquired is None:
-                    logger.info("Field No. %s: Skipping subfield 'd' = %s", holding_field_counter, subfield_952_d)
-                    field_952.delete_subfield('d')
+                    logger.info("Field No. %s: Skipping subfield '%s' = %s",
+                                holding_field_counter, date_acquired_subfield_code, subfield_952_d)
+                    field_952.delete_subfield(date_acquired_subfield_code)
                 else:
-                    field_952['d'] = koha_date_acquired
+                    field_952[date_acquired_subfield_code] = koha_date_acquired
 
             # '952$e' Source of acquisition
             subfield_952_e = field_952['e']
@@ -775,23 +778,35 @@ def prepare_holding_data(record):
             # '952$A' Bestellnummer aus der Erwerbung
             order_number_subfield_code = 'A'
             subfield_952_A = field_952[order_number_subfield_code]
-            map_aleph_item_field(holding_field_code, order_number_subfield_code, 'Z30_ORDER_NUMBER', subfield_952_A)
+            map_aleph_string_field(holding_field_code, order_number_subfield_code, 'Z30_ORDER_NUMBER', subfield_952_A)
 
             # '952$C' Umlauf-Notiz
             note_circulation_subfield_code = 'C'
             subfield_952_C = field_952[note_circulation_subfield_code]
-            map_aleph_item_field(holding_field_code, note_circulation_subfield_code,
+            map_aleph_string_field(holding_field_code, note_circulation_subfield_code,
                                  'Z30_NOTE_CIRCULATION', subfield_952_C)
 
             # '952$D' Beschreibung
             description_subfield_code = 'D'
             subfield_952_D = field_952[description_subfield_code]
-            map_aleph_item_field(holding_field_code, description_subfield_code, 'Z30_DESCRIPTION', subfield_952_D)
+            map_aleph_string_field(holding_field_code, description_subfield_code, 'Z30_DESCRIPTION', subfield_952_D)
 
-            # '952$E' Erwartet zum(Zeitschriftenheft)
+            # '952$E' Erwartet zum (Zeitschriftenheft) Datum
+            expected_arrival_date_subfield_code = 'E'
+            subfield_952_E = field_952[expected_arrival_date_subfield_code]
+            if subfield_952_E is not None:
+                expected_arrival_date = map_aleph_date_field(holding_field_code, expected_arrival_date_subfield_code,
+                                                          subfield_952_E, 'Z30_EXPECTED_ARRIVAL_DATE')
+                if expected_arrival_date is None:
+                    logger.info("Field No. %s: Skipping subfield '%s' = %s",
+                                holding_field_counter, expected_arrival_date_subfield_code, subfield_952_E)
+                    field_952.delete_subfield(expected_arrival_date_subfield_code)
+                else:
+                    field_952[expected_arrival_date_subfield_code] = expected_arrival_date
 
-            # '952$H' Jahreszählung bei Zetischriftenheften
-            # '952$J' Ex.status
+            # TODO '952$H' Jahreszählung bei Zetischriftenheften
+
+            # '952$J' Exemplarstatus
             # '952$O' 2.Signatur
             # '952$P' Erfassungsdatum
             # '952$S' Ex-Geschäftsgang-Status
