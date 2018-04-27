@@ -784,6 +784,10 @@ def prepare_holding_data(record):
                                  'Z30_NOTE_CIRCULATION', subfield_952_C)
 
             # '952$D' Beschreibung
+            description_subfield_code = 'D'
+            subfield_952_D = field_952[description_subfield_code]
+            map_aleph_item_field(holding_field_code, description_subfield_code, 'Z30_DESCRIPTION', subfield_952_D)
+
             # '952$E' Erwartet zum(Zeitschriftenheft)
 
             # '952$H' Jahreszählung bei Zetischriftenheften
