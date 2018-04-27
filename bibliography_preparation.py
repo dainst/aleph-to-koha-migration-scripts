@@ -38,13 +38,13 @@ file_error_no = 0
 total_error_no = 0
 
 
-def map_aleph_order_number(subfield_952_A):
-    if subfield_952_A is None:
-        logger.error("Field No. %s: 952$A = '%s', no valid 'Z30_ORDER_NUMBER' found!",
-                     holding_field_counter, subfield_952_A)
+def map_aleph_item_field(marc_field_code, marc_subfield_code, aleph_item_field_name, aleph_item_field_value):
+    if aleph_item_field_value is None:
+        logger.debug("Field No. %s: %s$%s = '%s', no valid '%s' found!", holding_field_counter,
+                     marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
     else:
-        logger.debug("Field No. %s: 952$A = '%s', valid 'Z30_ORDER_NUMBER' code found.",
-                     holding_field_counter, subfield_952_A)
+        logger.debug("Field No. %s: %$% = '%s', valid '%' code found.", holding_field_counter,
+                     marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
 
 
 def map_not_for_loan(subfield_952_J, subfield_952_1):
@@ -456,7 +456,8 @@ def prepare_holding_data(record):
     is_record_format_info = False
     is_record_format_debugging = False
 
-    marc_holding_fields = record.get_fields('952')
+    holding_field_code = '952'
+    marc_holding_fields = record.get_fields(holding_field_code)
     holding_field_no = len(marc_holding_fields)
     if holding_field_no > holding_field_max[1]:
         holding_field_max[0] = record.leader
@@ -772,12 +773,19 @@ def prepare_holding_data(record):
                 field_952.delete_subfield('9')
 
             # '952$A' Bestellnummer aus der Erwerbung
-            subfield_952_A = field_952['A']
-            map_aleph_order_number(subfield_952_A)
+            order_number_subfield_code = 'A'
+            subfield_952_A = field_952[order_number_subfield_code]
+            map_aleph_item_field(holding_field_code, order_number_subfield_code, 'Z30_ORDER_NUMBER', subfield_952_A)
 
             # '952$C' Umlauf-Notiz
+            note_circulation_subfield_code = 'C'
+            subfield_952_C = field_952[note_circulation_subfield_code]
+            map_aleph_item_field(holding_field_code, note_circulation_subfield_code,
+                                 'Z30_NOTE_CIRCULATION', subfield_952_C)
+
             # '952$D' Beschreibung
             # '952$E' Erwartet zum(Zeitschriftenheft)
+
             # '952$H' Jahreszählung bei Zetischriftenheften
             # '952$J' Ex.status
             # '952$O' 2.Signatur
