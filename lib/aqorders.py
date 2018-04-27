@@ -1,6 +1,7 @@
 import logging
 import sys
 import os
+import pickle
 
 import lib.database_connections.oracle as oracle
 import lib.database_connections.mariadb as mariadb
@@ -23,11 +24,10 @@ MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/050000_aqor
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqorders_data_import.sql'
 
 MISSING_BUDGET = []
-
-
-def get_biblio_number(key, z30_data):
-    if key in z30_data:
-        return z30_data[key][0][0:9]
+SYS_NUMBER_TO_BIB_ID_MAPPING = None
+ORDER_COUNT = 0
+NO_BIBLIOGRAPHIC_ID = []
+BIBLIOGRAPHIC_ID_FOUND = []
 
 
 # TODO: Only open orders are processed, this function should be incorporated into process_68_data?
@@ -83,11 +83,16 @@ def construct_probable_budget_code(data):
     if library_code == 'TEHER':
         budget_code = 'EURAS-TEHERAN-2018'
 
+    # TODO: Mapping library key "KAIRO" as "ROM"
+
     return budget_code
 
 
 def process_z68_data(previous_results, basket_data, order_to_budget_data, order_to_title_id,  data):
     global MISSING_BUDGET
+    global SYS_NUMBER_TO_BIB_ID_MAPPING
+    global NO_BIBLIOGRAPHIC_ID
+    global BIBLIOGRAPHIC_ID_FOUND
 
     aleph_rec_key = data[0]
     basket_no = None
@@ -142,6 +147,26 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
             }
         )
 
+    try:
+        sys_number = order_to_title_id[aleph_rec_key[0:9]]
+        koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
+        BIBLIOGRAPHIC_ID_FOUND.append(
+            {
+                'aleph_rec_key': aleph_rec_key,
+                'order_number': data[2].strip(),
+                'zenon_id': sys_number
+            }
+        )
+    except KeyError:
+        koha_bib_id = None
+        NO_BIBLIOGRAPHIC_ID.append(
+            {
+                'aleph_rec_key': aleph_rec_key,
+                'order_number': data[2].strip(),
+                'order_type': data[1]
+            }
+        )
+
     result = {
         'order_status': order_status,
         'datereceived': date_received,
@@ -150,7 +175,7 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
         'order_vendornote': vendor_note,
         'basketno': basket_no,
         'budget_id': budget_id,
-        'biblionumber': order_to_title_id[aleph_rec_key[0:9]],  # TODO: replace with bib id instead of zenonid
+        'biblionumber': koha_bib_id,
         'quantity': quantity,
         'quantityreceived': quantity_received
     }
@@ -201,6 +226,7 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
 
 
 def fetch_data(credentials):
+    global ORDER_COUNT
     logger.info('Connecting...')
     oracle.establish_connection(credentials)
     mariadb.establish_connection()
@@ -225,7 +251,9 @@ def fetch_data(credentials):
     order_to_title_id = dict()
     data_cursor = oracle.get_z00_data()
     for query_result in data_cursor:
-        order_to_title_id[query_result[0]] = z00.get_bibliographic_id_for_adm_number(query_result)
+        bibliographic_id = z00.get_bibliographic_id_for_adm_number(query_result)
+        if bibliographic_id is not None:
+            order_to_title_id[query_result[0]] = bibliographic_id
     data_cursor.close()
     logger.info('Done.')
 
@@ -233,6 +261,7 @@ def fetch_data(credentials):
     results = dict()
     data_cursor = oracle.get_open_z68()
     for query_result in data_cursor:
+        ORDER_COUNT += 1
         results = process_z68_data(results, basket_data, order_to_budget_mapping, order_to_title_id, query_result)
     data_cursor.close()
     logger.info('Done.')
@@ -334,22 +363,35 @@ def write_data(data):
         cursor.close()
 
 
-def start(oracle_credentials):
-    global MISSING_BUDGET
+def start(oracle_credentials, id_pickle_path):
+    global SYS_NUMBER_TO_BIB_ID_MAPPING
+
+    with open(id_pickle_path, 'rb') as id_mapping_file:
+        SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(id_mapping_file)
+
     results = fetch_data(oracle_credentials)
+
+
+if __name__ == '__main__':
+
+    if len(sys.argv) != 3:
+        logger.info('Please provide as argument:')
+        logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
+        logger.info('2) Pickle with bibliographic id mapping.')
+        sys.exit()
+
+    start(sys.argv[1], sys.argv[2])
 
     with open('missing_budget.tsv', 'w') as error_log:
         for item in MISSING_BUDGET:
             error_log.write('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
 
-    # write_data(results)
+    logger.info('%i orders of %i without an associated bibliographic ID.' % (len(NO_BIBLIOGRAPHIC_ID), ORDER_COUNT))
 
+    with open('missing_bibliographic_id.tsv', 'w') as error_log:
+        for item in NO_BIBLIOGRAPHIC_ID:
+            error_log.write('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
 
-if __name__ == '__main__':
-
-    if len(sys.argv) != 2:
-        logger.info('Please provide as argument:')
-        logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
-        sys.exit()
-
-    start(sys.argv[1])
+    with open('successful_mapping.tsv', 'w') as log:
+        for item in BIBLIOGRAPHIC_ID_FOUND:
+            log.write('%s\t%s\t%s\n' % (item['aleph_rec_key'], item['order_number'], item['zenon_id']))
