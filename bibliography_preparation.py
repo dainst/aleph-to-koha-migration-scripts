@@ -984,6 +984,21 @@ def inspect_classification_data(record):
                 logger.debug('%s: 852$2 = %s', field_001, field_852['2'])
 
 
+subfield_code_counter = 0
+
+
+def inspect_subfield(record, field_code, subfield_code):
+    global subfield_code_counter
+
+    field_list = record.get_fields(field_code)
+    for field in field_list:
+        if subfield_code in field:
+            subfield_code_counter += 1
+            field_001_list = record.get_fields('001')
+            for field_001 in field_001_list:
+                logger.debug('%s: %s$%s = %s', field_001, field_code, subfield_code, field[subfield_code])
+
+
 def check_bibliographic_data(input_path):
     logger.info('check bibliographic data sturcture ...')
     global file_record_no
@@ -996,6 +1011,7 @@ def check_bibliographic_data(input_path):
             file_record_no += 1
             record.as_dict()
 
+            # inspect_subfield(record, '952', 'O')
             # inspect_classification_data(record)
             # inspect_materials_specified_data(record)
             # inspect_order_numbers(record)
@@ -1050,7 +1066,7 @@ if __name__ == '__main__':
             file_error_no = 0
             without_extension = os.path.splitext(filename)[0]
             logger.info("Processing file '%s' ...", filename)
-            # check_bibliographic_data(input_directory + '/' + filename)
+            check_bibliographic_data(input_directory + '/' + filename)
             process_bibliographic_data(
                 input_directory + '/' + filename,
                 output_directory + without_extension + '-preprocessed.mrc',
@@ -1061,7 +1077,8 @@ if __name__ == '__main__':
             logger.info("Number of records in marc file: %s", file_record_no)
             logger.info("Number of record errors in marc file: %s", file_error_no)
 
-            """logger.info("Current number of 052$2 subfields: %s", field_052_2_no)
+            """logger.info("Current occurrences of inspected subfield code: %s", subfield_code_counter)
+            logger.info("Current number of 052$2 subfields: %s", field_052_2_no)
             logger.info("Current number of 055$2 subfields: %s", field_055_2_no)
             logger.info("Current number of 082$a subfields: %s", field_082_a_no)
             logger.info("Current number of 084$2 subfields: %s", field_084_2_no)
@@ -1078,7 +1095,8 @@ if __name__ == '__main__':
 
             logger.info("File '%s' processed.\n", filename)
 
-    """logger.info("Total number of 052$2 subfields: %s", field_052_2_no)
+    """logger.info("Total occurrences of inspected subfield code: %s", subfield_code_counter)
+    logger.info("Total number of 052$2 subfields: %s", field_052_2_no)
     logger.info("Total number of 055$2 subfields: %s", field_055_2_no)
     logger.info("Total number of 082$a subfields: %s", field_082_a_no)
     logger.info("Total number of 084$2 subfields: %s", field_084_2_no)
