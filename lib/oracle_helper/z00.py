@@ -3,7 +3,7 @@ import re
 TITLE_PATTERN = re.compile('.*LKR\s\sL\$\$b(\d{9})\$\$lDAI01\$\$aADM.*')
 TITLE_PATTERN_2 = re.compile('.*LKR\s\sL\$\$b(\d{9})\$\$aADM\$\$lDAI01.*')
 TITLE_PATTERN_3 = re.compile('.*LKR\s\sL\$\$lDAI01\$\$b(\d{9})\$\$aADM.*')
-TITLE_PATTERN_4 = re.compile('.*LKR\s\sL\$\$\aADM$\$b(\d{9})\$\$lDAI01.*')
+TITLE_PATTERN_4 = re.compile('.*LKR\s\sL\$\$aADM\$\$b(\d{9})\$\$lDAI01.*')
 TITLE_PATTERN_5 = re.compile('.*LKR\s\sL\$\$lDAI01\$\$aADM\$\$b(\d{9}).*')
 TITLE_PATTERN_6 = re.compile('.*LKR\s\sL\$\$aADM\$\$lDAI01\$\$b(\d{9}).*')
 
