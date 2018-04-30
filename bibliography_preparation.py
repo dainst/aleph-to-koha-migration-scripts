@@ -811,7 +811,11 @@ def prepare_holding_data(record):
             subfield_952_J = field_952[item_status_subfield_code]
             map_aleph_string_field(holding_field_code, item_status_subfield_code, 'Z30_ITEM_STATUS', subfield_952_J)
 
-            # '952$O' 2.Signatur
+            # '952$O' 2. Signatur
+            call_no_2_subfield_code = 'O'
+            subfield_952_O = field_952[call_no_2_subfield_code]
+            map_aleph_string_field(holding_field_code, call_no_2_subfield_code, 'Z30_CALL_NO_2', subfield_952_O)
+
             # '952$P' Erfassungsdatum
             open_date_subfield_code = 'P'
             subfield_952_P = field_952[open_date_subfield_code]
