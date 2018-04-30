@@ -807,6 +807,10 @@ def prepare_holding_data(record):
             # TODO '952$H' Jahreszählung bei Zetischriftenheften
 
             # '952$J' Exemplarstatus
+            item_status_subfield_code = 'J'
+            subfield_952_J = field_952[item_status_subfield_code]
+            map_aleph_string_field(holding_field_code, item_status_subfield_code, 'Z30_ITEM_STATUS', subfield_952_J)
+
             # '952$O' 2.Signatur
             # '952$P' Erfassungsdatum
             open_date_subfield_code = 'P'
