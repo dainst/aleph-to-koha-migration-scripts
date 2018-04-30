@@ -827,6 +827,11 @@ def prepare_holding_data(record):
 
             # '952$S' Ex-Geschäftsgang-Status
             # '952$T' Statistikwerte
+            item_process_status_subfield_code = 'S'
+            subfield_952_S = field_952[item_process_status_subfield_code]
+            map_aleph_string_field(holding_field_code, item_process_status_subfield_code,
+                                   'Z30_ITEM_PROCESS_STATUS ', subfield_952_S)
+
             # '952$U' Änderungsdatum
             update_date_subfield_code = 'U'
             subfield_952_U = field_952[update_date_subfield_code]
