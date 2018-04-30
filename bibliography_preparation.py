@@ -38,12 +38,43 @@ file_error_no = 0
 total_error_no = 0
 
 
+def map_aleph_item_statistic(subfield_952_T):
+    item_statistic = None
+
+    if subfield_952_T == '04':
+        item_statistic = 'Tausch'
+    elif subfield_952_T =='05':
+        item_statistic = 'Erwerbungsart unbekannt'
+    elif subfield_952_T =='01':
+        item_statistic = 'Kauf'
+    elif subfield_952_T =='02':
+        item_statistic = 'Geschenk'
+    elif subfield_952_T =='14':
+        item_statistic = 'Vor- und Nachlass'
+    elif subfield_952_T =='15':
+        item_statistic = 'Kauf-Fortsetzung'
+    elif subfield_952_T =='03':
+        item_statistic = 'Pflichtexemplar'
+    elif subfield_952_T =='16':
+        item_statistic = 'Mitgliedschaft'
+    elif subfield_952_T =='06' or subfield_952_T =='08' or subfield_952_T =='07':
+        item_statistic = 'Fortlaufende Werke'
+    else:
+        logger.debug("Field No. %s: 952$T = '%s', no valid '%s' found!", holding_field_counter, subfield_952_T)
+
+    if item_statistic is not None:
+        logger.debug("Field No. %s: 952$T = '%s', valid 'Z30_ITEM_STATISTIC' found.",
+                     holding_field_counter, item_statistic)
+
+    return item_statistic
+
+
 def map_aleph_string_field(marc_field_code, marc_subfield_code, aleph_item_field_name, aleph_item_field_value):
     if aleph_item_field_value is None:
         logger.debug("Field No. %s: %s$%s = '%s', no valid '%s' found!", holding_field_counter,
                      marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
     else:
-        logger.debug("Field No. %s: %$% = '%s', valid '%' code found.", holding_field_counter,
+        logger.debug("Field No. %s: %$%s = '%s', valid '%s' code found.", holding_field_counter,
                      marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
 
 
@@ -829,12 +860,24 @@ def prepare_holding_data(record):
                 else:
                     field_952[open_date_subfield_code] = open_date
 
-            # '952$S' Ex-Geschäftsgang-Status
-            # '952$T' Statistikwerte
+            # '952$S' Exemplar-Geschäftsgang-Status
             item_process_status_subfield_code = 'S'
             subfield_952_S = field_952[item_process_status_subfield_code]
             map_aleph_string_field(holding_field_code, item_process_status_subfield_code,
                                    'Z30_ITEM_PROCESS_STATUS ', subfield_952_S)
+
+            # '952$T' Statistikwerte
+            item_statistic_subfield_code = 'T'
+            subfield_952_T = field_952[item_statistic_subfield_code]
+            if subfield_952_T is not None:
+                item_statistic = map_aleph_item_statistic(subfield_952_T)
+                if item_statistic is None:
+                    logger.info("Field No. %s: Skipping subfield '%s' = %s",
+                                holding_field_counter, item_statistic_subfield_code, item_statistic)
+                    field_952.delete_subfield(item_statistic_subfield_code)
+                else:
+                    field_952[item_statistic_subfield_code] = item_statistic
+
 
             # '952$U' Änderungsdatum
             update_date_subfield_code = 'U'
