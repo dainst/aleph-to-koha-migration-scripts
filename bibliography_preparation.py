@@ -60,7 +60,8 @@ def map_aleph_item_statistic(subfield_952_T):
     elif subfield_952_T =='06' or subfield_952_T =='08' or subfield_952_T =='07':
         item_statistic = 'Fortlaufende Werke'
     else:
-        logger.debug("Field No. %s: 952$T = '%s', no valid '%s' found!", holding_field_counter, subfield_952_T)
+        logger.debug("Field No. %s: 952$T = '%s', no valid 'Z30_ITEM_STATISTIC' code found!",
+                     holding_field_counter, subfield_952_T)
 
     if item_statistic is not None:
         logger.debug("Field No. %s: 952$T = '%s', valid 'Z30_ITEM_STATISTIC' found.",
@@ -74,7 +75,7 @@ def map_aleph_string_field(marc_field_code, marc_subfield_code, aleph_item_field
         logger.debug("Field No. %s: %s$%s = '%s', no valid '%s' found!", holding_field_counter,
                      marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
     else:
-        logger.debug("Field No. %s: %$%s = '%s', valid '%s' code found.", holding_field_counter,
+        logger.debug("Field No. %s: %s$%s = '%s', valid '%s' code found.", holding_field_counter,
                      marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
 
 
