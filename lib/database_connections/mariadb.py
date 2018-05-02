@@ -176,3 +176,19 @@ def get_budget_by_code(budget_code):
         return None
 
     return result[0]
+
+
+def get_invoice_by_aleph_rec_key(aleph_rec_key):
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT * FROM `aqinvoices` WHERE `ALEPH_Z68_REC_KEY`="%s";' % aleph_rec_key)
+
+    result = cursor.fetchall()
+
+    if len(result) > 1:
+        logger.error('Invalid number of invoices with code %s:' % aleph_rec_key)
+        logger.error(result)
+        return None
+
+    return result[0]
