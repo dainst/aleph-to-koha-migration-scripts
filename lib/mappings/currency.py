@@ -5,9 +5,9 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-PATTERN_CURRENCY_VALUE_DECIMAL = re.compile(r'\d+\.\d*')
+PATTERN_CURRENCY_VALUE_DECIMAL = re.compile(r'^\d+\.\d*$')
 PATTERN_CURRENCY_VALUE_LEADING_ZEROES = re.compile(r'[0]+(\d+)')
-PATTERN_CURRENCY_VALUE_ONLY_DIGITS = re.compile(r'\d+')
+PATTERN_CURRENCY_VALUE_ONLY_DIGITS = re.compile(r'^\d+$')
 
 # See http://confluence:8090/pages/viewpage.action?pageId=44859465
 
