@@ -38,30 +38,30 @@ file_error_no = 0
 total_error_no = 0
 
 
-def map_aleph_item_statistic(subfield_952_T):
+def map_aleph_item_statistic(aleph_item_statistic, aleph_item_order_number):
     item_statistic = None
 
-    if subfield_952_T == '04':
+    if aleph_item_statistic == '04':
         item_statistic = 'Tausch'
-    elif subfield_952_T =='05':
+    elif aleph_item_statistic == '05':
         item_statistic = 'Erwerbungsart unbekannt'
-    elif subfield_952_T =='01':
+    elif aleph_item_statistic == '01' or (aleph_item_statistic == '  / / /001' and aleph_item_order_number is not None):
         item_statistic = 'Kauf'
-    elif subfield_952_T =='02':
+    elif aleph_item_statistic == '02':
         item_statistic = 'Geschenk'
-    elif subfield_952_T =='14':
+    elif aleph_item_statistic == '14':
         item_statistic = 'Vor- und Nachlass'
-    elif subfield_952_T =='15':
+    elif aleph_item_statistic == '15':
         item_statistic = 'Kauf-Fortsetzung'
-    elif subfield_952_T =='03':
+    elif aleph_item_statistic == '03':
         item_statistic = 'Pflichtexemplar'
-    elif subfield_952_T =='16':
+    elif aleph_item_statistic == '16':
         item_statistic = 'Mitgliedschaft'
-    elif subfield_952_T =='06' or subfield_952_T =='08' or subfield_952_T =='07':
+    elif aleph_item_statistic == '06' or aleph_item_statistic == '08' or aleph_item_statistic == '07':
         item_statistic = 'Fortlaufende Werke'
     else:
         logger.debug("Field No. %s: 952$T = '%s', no valid 'Z30_ITEM_STATISTIC' code found!",
-                     holding_field_counter, subfield_952_T)
+                     holding_field_counter, aleph_item_statistic)
 
     if item_statistic is not None:
         logger.debug("Field No. %s: 952$T = '%s', valid 'Z30_ITEM_STATISTIC' found.",
@@ -872,7 +872,7 @@ def prepare_holding_data(record):
             item_statistic_subfield_code = 'T'
             subfield_952_T = field_952[item_statistic_subfield_code]
             if subfield_952_T is not None:
-                item_statistic = map_aleph_item_statistic(subfield_952_T)
+                item_statistic = map_aleph_item_statistic(subfield_952_T, subfield_952_A)
                 if item_statistic is None:
                     logger.info("Field No. %s: Skipping subfield '%s' = %s",
                                 holding_field_counter, item_statistic_subfield_code, item_statistic)
@@ -886,7 +886,7 @@ def prepare_holding_data(record):
             subfield_952_U = field_952[update_date_subfield_code]
             if subfield_952_U is not None:
                 update_date = map_aleph_date_field(holding_field_code, update_date_subfield_code,
-                                                   'Z30_OPEN_DATE', subfield_952_U)
+                                                   'Z30_UPDATE_DATE', subfield_952_U)
                 if update_date is None:
                     logger.info("Field No. %s: Skipping subfield '%s' = %s",
                                 holding_field_counter, update_date_subfield_code, subfield_952_U)
