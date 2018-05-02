@@ -79,28 +79,30 @@ def map_aleph_string_field(marc_field_code, marc_subfield_code, aleph_item_field
                      marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
 
 
-def map_not_for_loan(subfield_952_J, subfield_952_1):
+def map_not_for_loan(aleph_item_status, aleph_item_process_status):
     not_for_loan = '1'
 
-    if subfield_952_1 is not None or subfield_952_1 != 'Missing' or subfield_952_1 != 'Misshelved' or \
-            subfield_952_1 != 'MI' or subfield_952_1 != 'MS':
-        if subfield_952_1 == 'On order' or subfield_952_1 == 'OR':
+    if aleph_item_process_status is not None or \
+            aleph_item_process_status != 'Missing' or aleph_item_process_status != 'Misshelved' or \
+            aleph_item_process_status != 'MI' or aleph_item_process_status != 'MS':
+
+        if aleph_item_process_status == 'On order' or aleph_item_process_status == 'OR':
             not_for_loan = '-1'
-        elif subfield_952_1 == 'In Process' or subfield_952_1 == 'GG':
+        elif aleph_item_process_status == 'In Process' or aleph_item_process_status == 'GG':
             not_for_loan == '-2'
-        elif subfield_952_1 == 'Undeliverable' or subfield_952_1 == 'NL':
+        elif aleph_item_process_status == 'Undeliverable' or aleph_item_process_status == 'NL':
             not_for_loan == '-3'
-        elif subfield_952_1 == 'Binding' or subfield_952_1 == 'BD':
+        elif aleph_item_process_status == 'Binding' or aleph_item_process_status == 'BD':
             not_for_loan == '-4'
-        elif subfield_952_1 == 'Cancelled' or subfield_952_1 == 'CA':
+        elif aleph_item_process_status == 'Cancelled' or aleph_item_process_status == 'CA':
             not_for_loan == '-5'
-        elif subfield_952_1 == 'Order initiat.' or subfield_952_1 == 'OI':
+        elif aleph_item_process_status == 'Order initiat.' or aleph_item_process_status == 'OI':
             not_for_loan == '-1'
-        elif subfield_952_1 == 'Not Arrived' or subfield_952_1 == 'NA':
+        elif aleph_item_process_status == 'Not Arrived' or aleph_item_process_status == 'NA':
             not_for_loan == '-6'
-        elif subfield_952_1 == 'Not published' or subfield_952_1 == 'NP':
+        elif aleph_item_process_status == 'Not published' or aleph_item_process_status == 'NP':
             not_for_loan == '-7'
-    elif subfield_952_J == '04':
+    elif aleph_item_status == '04':
         not_for_loan = '2'
 
     logger.debug("Field No. %s: 952$7 = '%s', valid 'Not for loan' found.", holding_field_counter, not_for_loan)
@@ -787,9 +789,8 @@ def prepare_holding_data(record):
 
             # '952$7' Not for loan
             subfield_952_7 = field_952['7']
-            subfield_952_J = field_952['J']
-            koha_not_for_loan = map_not_for_loan(subfield_952_J, subfield_952_1)
             if subfield_952_7 is not None:
+                koha_not_for_loan = map_not_for_loan(subfield_952_7, subfield_952_1)
                 field_952['7'] = koha_not_for_loan
             else:
                 field_952.add_subfield('7', koha_not_for_loan)
@@ -954,8 +955,10 @@ def process_bibliographic_data(input_path, output_path, mapping):
                 file_error_no += record_error_no
                 writer.write(record)
 
+
 field_952_A_no = 0
 special_order_number_counter = 0
+
 
 def inspect_order_numbers(record):
     global field_952_A_no
@@ -1117,7 +1120,7 @@ def check_bibliographic_data(input_path):
             file_record_no += 1
             record.as_dict()
 
-            # inspect_subfield(record, '952', 'O')
+            # inspect_subfield(record, '952', 'J')
             # inspect_classification_data(record)
             # inspect_materials_specified_data(record)
             # inspect_order_numbers(record)
