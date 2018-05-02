@@ -9,7 +9,7 @@ TITLE_PATTERN_6 = re.compile('.*LKR\s\sL\$\$aADM\$\$lDAI01\$\$b(\d{9}).*')
 
 
 def get_bibliographic_id_for_adm_number(data):
-    global TITLE_PATTERN
+
     match = TITLE_PATTERN.match(data[3])
     if match is not None:
         return match.group(1)
@@ -28,4 +28,5 @@ def get_bibliographic_id_for_adm_number(data):
     match = TITLE_PATTERN_6.match(data[3])
     if match is not None:
         return match.group(1)
+
     return None
