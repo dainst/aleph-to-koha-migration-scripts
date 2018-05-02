@@ -15,7 +15,6 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-MISSING_ITEM_DATA = []
 MISSING_BASKET = []
 
 script_dir = os.path.dirname(__file__)
@@ -28,21 +27,6 @@ SYS_NUMBER_TO_BIB_ID_MAPPING = None
 ORDER_COUNT = 0
 NO_BIBLIOGRAPHIC_ID = []
 BIBLIOGRAPHIC_ID_FOUND = []
-
-
-# TODO: Only open orders are processed, this function should be incorporated into process_68_data?
-def process_open_order(data):
-    result = dict()
-
-    result['currency'] = currency.map_from_currency(data[33], True)
-    result['unitprice'] = currency.parse_value(data[31])
-    result['unitprice_tax_included'] = currency.parse_value(data[31])
-    result['listprice'] = currency.parse_value(data[34])
-    result['ecost'] = currency.parse_value(data[37])
-    result['ecost_tax_included'] = currency.parse_value(data[37])
-    result['uncertainprice'] = 1
-
-    return result
 
 
 def construct_probable_budget_code(data):
@@ -177,25 +161,23 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
         'budget_id': budget_id,
         'biblionumber': koha_bib_id,
         'quantity': quantity,
-        'quantityreceived': quantity_received
+        'quantityreceived': quantity_received,
+        'currency': currency.map_from_currency(data[33], True),
+        'unitprice': currency.parse_value(data[31]),
+        'unitprice_tax_included': currency.parse_value(data[31]),
+        'listprice': currency.parse_value(data[34]),
+        'ecost': currency.parse_value(data[37]),
+        'ecost_tax_included': currency.parse_value(data[37]),
+        'uncertainprice': 1
     }
-
-    if result['biblionumber'] is None:
-        MISSING_ITEM_DATA.append(data)
-        return previous_results
-
-    if order_status_helper.is_open(data[7]):
-        result = {**result, **process_open_order(data)}
 
     previous_results[aleph_rec_key] = result
 
     return previous_results
 
     # `entrydate` date DEFAULT NULL,
-    # `listprice` decimal(28,6) DEFAULT NULL,
     # `invoiceid` int(11) DEFAULT NULL, # TODO
     # `freight` decimal(28,6) DEFAULT NULL,
-    # `quantityreceived` smallint(6) NOT NULL DEFAULT 0,
     # `datecancellationprinted` date DEFAULT NULL,
     # `cancellationreason` text COLLATE utf8_unicode_ci DEFAULT NULL,
     # `purchaseordernumber` mediumtext COLLATE utf8_unicode_ci DEFAULT NULL,
@@ -213,7 +195,6 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
     # `sort2` varchar(80) COLLATE utf8_unicode_ci DEFAULT NULL,
     # `sort1_authcat` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
     # `sort2_authcat` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-    # `uncertainprice` tinyint(1) DEFAULT NULL,
     # `claims_count` int(11) DEFAULT 0,
     # `claimed_date` date DEFAULT NULL,
     # `subscriptionid` int(11) DEFAULT NULL, # TODO
@@ -381,10 +362,6 @@ if __name__ == '__main__':
         sys.exit()
 
     start(sys.argv[1], sys.argv[2])
-
-    with open('missing_budget.tsv', 'w') as error_log:
-        for item in MISSING_BUDGET:
-            error_log.write('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
 
     logger.info('%i orders of %i without an associated bibliographic ID.' % (len(NO_BIBLIOGRAPHIC_ID), ORDER_COUNT))
 
