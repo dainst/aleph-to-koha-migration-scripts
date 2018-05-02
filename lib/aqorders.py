@@ -153,6 +153,7 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
 
     result = {
         'order_status': order_status,
+        'entrydate': dates_helper.process_aleph_date(data[6]),
         'datereceived': date_received,
         'order_internalnote': internal_note,
         'suppliers_reference_number': suppliers_reference_nubmer,
@@ -168,15 +169,15 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
         'listprice': currency.parse_value(data[34]),
         'ecost': currency.parse_value(data[37]),
         'ecost_tax_included': currency.parse_value(data[37]),
-        'uncertainprice': 1
+        'uncertainprice': 1,
+        'invoiceid': mariadb.get_invoice_by_aleph_rec_key(data[0]),
+        'discount': float(data[36][:-2] + '.' + data[36][-2:])
     }
 
     previous_results[aleph_rec_key] = result
 
     return previous_results
 
-    # `entrydate` date DEFAULT NULL,
-    # `invoiceid` int(11) DEFAULT NULL, # TODO
     # `freight` decimal(28,6) DEFAULT NULL,
     # `datecancellationprinted` date DEFAULT NULL,
     # `cancellationreason` text COLLATE utf8_unicode_ci DEFAULT NULL,
@@ -190,7 +191,6 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
     # `tax_value_bak` decimal(28,6) DEFAULT NULL,
     # `tax_value_on_ordering` decimal(28,6) DEFAULT NULL,
     # `tax_value_on_receiving` decimal(28,6) DEFAULT NULL,
-    # `discount` float(6,4) DEFAULT NULL,
     # `sort1` varchar(80) COLLATE utf8_unicode_ci DEFAULT NULL,
     # `sort2` varchar(80) COLLATE utf8_unicode_ci DEFAULT NULL,
     # `sort1_authcat` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
