@@ -33,7 +33,7 @@ def construct_name(query_result):
     return name
 
 
-def process_z68_data(existing_results, query_result):
+def process_z68_data(existing_results, query_result, aleph_order_to_invoices_line_number_mapping):
 
     result = dict()
 
@@ -60,6 +60,10 @@ def process_z68_data(existing_results, query_result):
     result['booksellerid'] = mariadb.get_aqbookseller_by_aleph_vendor_key(vendor_key)[0]
     result['deliveryplace'] = library_keys.map_aleph_key(query_result[12].strip())
     result['billingplace'] = library_keys.map_aleph_key(query_result[12].strip())
+    if query_result[0] not in aleph_order_to_invoices_line_number_mapping:
+        result['ALEPH_Z601_REC_KEY_2'] = None
+    else:
+        result['ALEPH_Z601_REC_KEY_2'] = aleph_order_to_invoices_line_number_mapping[query_result[0]]
 
     existing_results[query_result[0]] = result
 
@@ -70,18 +74,24 @@ def fetch_data(credentials):
     logger.info('Connecting...')
     oracle.establish_connection(credentials)
     mariadb.establish_connection()
-    logger.info('Connected...')
+    logger.info('Connected.')
+
+    invoices_line_mapping = dict()
+    cursor = oracle.get_orders_to_invoices_mapping()
+    logger.info('Getting order to invoice mapping...')
+    for query_result in cursor:
+        invoices_line_mapping[query_result[0]] = query_result[1]
+    cursor.close()
 
     z68_result = dict()
     z68_data_cursor = oracle.get_open_z68()
     logger.info('Processing data from z68 table...')
     for query_result in z68_data_cursor:
-        z68_result = process_z68_data(z68_result, query_result)
-
+        z68_result = process_z68_data(z68_result, query_result, invoices_line_mapping)
     z68_data_cursor.close()
 
     oracle.close_connection()
-
+    logger.info('Done.')
     # Still unhandled fields for aqbookseller:
     # freedeliveryplace 	text 	65535 	 √  		null
     # deliverycomment 	varchar 	255 	 √  		null
@@ -99,7 +109,7 @@ def get_insert_statements(data_list, table_name, table_column_names):
             import_table_statement += key
 
             mapping_table_statement += key
-            mapping_table_statement += ',ALEPH_Z68_REC_KEY'
+            mapping_table_statement += ',ALEPH_Z68_REC_KEY,ALEPH_Z601_REC_KEY_2'
         else:
             import_table_statement += key + ','
             mapping_table_statement += key + ','
@@ -128,7 +138,10 @@ def get_insert_statements(data_list, table_name, table_column_names):
                     import_table_statement += 'NULL'
                     mapping_table_statement += 'NULL'
 
-                mapping_table_statement += ', "' + aleph_key + '"'
+                if basketgroup['ALEPH_Z601_REC_KEY_2'] is not None:
+                    mapping_table_statement += ', "' + aleph_key + '", "' + basketgroup['ALEPH_Z601_REC_KEY_2'] + '"'
+                else:
+                    mapping_table_statement += ', ' + aleph_key + ', NULL'
             else:
 
                 if key in basketgroup and basketgroup[key] is not None:

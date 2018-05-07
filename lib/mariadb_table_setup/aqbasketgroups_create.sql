@@ -10,6 +10,7 @@ CREATE TABLE `aqbasketgroups` (
   `deliverycomment` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `billingplace` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
   `ALEPH_Z68_REC_KEY` varchar(25) NOT NULL,
+  `ALEPH_Z601_REC_KEY_2` varchar(40) NULL,
   PRIMARY KEY (`id`),
   KEY `booksellerid` (`booksellerid`),
   CONSTRAINT `aqbasketgroups_ibfk_1` FOREIGN KEY (`booksellerid`) REFERENCES `aqbooksellers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
