@@ -18,6 +18,7 @@ CREATE TABLE `aqbasket` (
   `is_standing` tinyint(1) NOT NULL DEFAULT 0,
   `create_items` enum('ordering','receiving','cataloguing') COLLATE utf8_unicode_ci DEFAULT NULL,
   `ALEPH_Z68_REC_KEY` varchar(25) NOT NULL,
+  `ALEPH_Z601_REC_KEY_2` varchar(40),
   PRIMARY KEY (`basketno`),
   KEY `booksellerid` (`booksellerid`),
   KEY `basketgroupid` (`basketgroupid`),

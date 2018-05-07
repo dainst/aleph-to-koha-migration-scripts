@@ -63,6 +63,7 @@ def process_z68_data(previous_results, query_result, basket_groups):
 
     result['basketgroupid'] = basket_groups[query_result[0]][0]
     result['booksellerid'] = basket_groups[query_result[0]][3]
+    result['ALEPH_Z601_REC_KEY_2'] = basket_groups[query_result[0]][-1]
 
     previous_results[query_result[0]] = result
 
@@ -78,7 +79,8 @@ def fetch_data(credentials):
     aqbasketgroups_query = mariadb.get_aqbasketgroups()
     basket_groups = dict()
     for query_result in aqbasketgroups_query:
-        basket_groups[query_result[-1]] = query_result
+        basket_groups[query_result[-2]] = query_result
+
 
     z68_result = dict()
     z68_data_cursor = oracle.get_open_z68()
@@ -103,7 +105,7 @@ def generate_insert_statements(data_list, table_name, table_column_names):
             import_table_statement += key
 
             mapping_table_statement += key
-            mapping_table_statement += ',ALEPH_Z68_REC_KEY'
+            mapping_table_statement += ',ALEPH_Z68_REC_KEY,ALEPH_Z601_REC_KEY_2'
         else:
             import_table_statement += key + ','
             mapping_table_statement += key + ','
@@ -132,7 +134,10 @@ def generate_insert_statements(data_list, table_name, table_column_names):
                     import_table_statement += 'NULL'
                     mapping_table_statement += 'NULL'
 
-                mapping_table_statement += ', "' + aleph_key + '"'
+                if basket['ALEPH_Z601_REC_KEY_2'] is not None:
+                    mapping_table_statement += ', "' + aleph_key + '", "' + basket['ALEPH_Z601_REC_KEY_2'] + '"'
+                else:
+                    mapping_table_statement += ', "' + aleph_key + '", NULL'
             else:
 
                 if key in basket and basket[key] is not None:
