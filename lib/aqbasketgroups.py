@@ -141,7 +141,7 @@ def get_insert_statements(data_list, table_name, table_column_names):
                 if basketgroup['ALEPH_Z601_REC_KEY_2'] is not None:
                     mapping_table_statement += ', "' + aleph_key + '", "' + basketgroup['ALEPH_Z601_REC_KEY_2'] + '"'
                 else:
-                    mapping_table_statement += ', ' + aleph_key + ', NULL'
+                    mapping_table_statement += ', "' + aleph_key + '", NULL'
             else:
 
                 if key in basketgroup and basketgroup[key] is not None:
