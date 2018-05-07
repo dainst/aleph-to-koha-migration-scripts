@@ -170,6 +170,17 @@ def get_orders_to_budgets_mapping():
                        'WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 AND Z601.Z601_TYPE=:1', ('ENC',))
 
 
+def get_orders_to_invoices_mapping():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, Z601.Z601_REC_KEY_2 FROM Z68, Z601, Z75 ' +
+                       'WHERE '
+                       'Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 '
+                       'AND Z601.Z601_REC_KEY_2 = Z75.Z75_REC_KEY_2 '
+                       'AND Z601.Z601_TYPE=:1', ('INV',))
+
+
 def get_z00_data():
     global connection
 
