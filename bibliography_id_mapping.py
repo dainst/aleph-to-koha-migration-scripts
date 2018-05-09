@@ -10,45 +10,60 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-ID_MAPPING = dict()
+ADM_ITEM_MAPPING = dict()
+SYS_NUMBER_TO_BIB_ID_MAPPING = dict()
 
 
 def create_mapping(input_path):
-    global ID_MAPPING
+    global SYS_NUMBER_TO_BIB_ID_MAPPING
 
     with open(input_path, 'rb') as input_file:
         reader = MARCReader(input_file, force_utf8=True)
 
         for record in reader:
+            if '001' not in record:
+                logger.error('Record without 001 value: ')
+                logger.error(record.as_dict())
+                continue
+
+            SYS_NUMBER_TO_BIB_ID_MAPPING[record['001'].data] = record['999']['c']
+
             field_952_list = record.get_fields('952')
             for field in field_952_list:
                 if 'W' in field and 'V' in field:
                     z30_rec_key = field['W']+field['V']
                     koha_bib_id = record['999']['c']
 
-                    if z30_rec_key in ID_MAPPING:
+                    if z30_rec_key in ADM_ITEM_MAPPING:
                         logger.error('%s already present in mapping! This should not happen.' % z30_rec_key)
                         logger.error('Existing mapping Zenon-ID: %s, Koha-ID: %s'
-                                     % (ID_MAPPING[z30_rec_key]['zenon_id'], ID_MAPPING[z30_rec_key]['koha_id']))
+                                     % (ADM_ITEM_MAPPING[z30_rec_key]['zenon_id'], ADM_ITEM_MAPPING[z30_rec_key]['koha_id']))
                         logger.error('Current mapping Zenon-ID: %s, Koha-ID: %s'
                                      % (record['001'].data, koha_bib_id))
                         continue
 
-                    ID_MAPPING[z30_rec_key] = {
+                    ADM_ITEM_MAPPING[z30_rec_key] = {
                         'zenon_id': record['001'].data,
                         'koha_id': koha_bib_id
                     }
 
 
-def write_mapping(output_filepath):
-    global ID_MAPPING
+def write_mapping(output_path):
+    global ADM_ITEM_MAPPING
+    global SYS_NUMBER_TO_BIB_ID_MAPPING
 
-    logger.info('Pickling mapping data at %s.' % output_filepath)
-    if not os.path.exists(os.path.dirname(output_filepath)) and os.path.dirname(output_filepath) != '':
-        os.makedirs(os.path.dirname(output_filepath))
+    logger.info('Pickling mapping data at %s.' % output_path)
+    if not os.path.dirname(output_path).endswith('/'):
+        output_path += '/'
 
-    with open(output_filepath, 'wb') as output_file:
-        pickle.dump(ID_MAPPING, output_file)
+    if not os.path.exists(os.path.dirname(output_path)) and os.path.dirname(output_path) != '':
+        os.makedirs(os.path.dirname(output_path))
+
+    with open(output_path + 'ADM_ITEM_MAPPING.pickle', 'wb') as output_file:
+        pickle.dump(ADM_ITEM_MAPPING, output_file)
+
+    with open(output_path + 'SYS_NUMBER_TO_BIB_ID_MAPPING.pickle', 'wb') as output_file:
+        pickle.dump(SYS_NUMBER_TO_BIB_ID_MAPPING, output_file)
 
 
 if __name__ == '__main__':

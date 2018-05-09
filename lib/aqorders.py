@@ -72,7 +72,7 @@ def construct_probable_budget_code(data):
     return budget_code
 
 
-def process_z68_data(previous_results, basket_data, order_to_budget_data, order_to_title_id,  data):
+def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budget_data, order_to_title_id,  data):
     global MISSING_BUDGET
     global SYS_NUMBER_TO_BIB_ID_MAPPING
     global NO_BIBLIOGRAPHIC_ID
@@ -114,10 +114,15 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
 
     if aleph_rec_key in order_to_budget_data:
         budget_code = order_to_budget_data[aleph_rec_key]
-        budget_id = mariadb.get_budget_by_code(budget_code)
     else:
         budget_code = construct_probable_budget_code(data)
-        budget_id = mariadb.get_budget_by_code(budget_code)
+
+    aqinvoice_data = mariadb.get_budget_by_code(budget_code)
+
+    if aqinvoice_data is not None:
+        budget_id = aqinvoice_data[0]
+    else:
+        budget_id = None
 
     if budget_id is None:
         if data[2] is not None:
@@ -130,6 +135,7 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
                 'order_number': order_number
             }
         )
+        return previous_results
 
     try:
         sys_number = order_to_title_id[aleph_rec_key[0:9]]
@@ -170,11 +176,14 @@ def process_z68_data(previous_results, basket_data, order_to_budget_data, order_
         'ecost': currency.parse_value(data[37]),
         'ecost_tax_included': currency.parse_value(data[37]),
         'uncertainprice': 1,
-        'invoiceid': mariadb.get_invoice_by_aleph_rec_key(data[0]),
+        'invoiceid': koha_invoice,
         'discount': float(data[36][:-2] + '.' + data[36][-2:])
     }
 
-    previous_results[aleph_rec_key] = result
+    if aleph_rec_key in previous_results:
+        previous_results[aleph_rec_key].append(result)
+    else:
+        previous_results[aleph_rec_key] = [result]
 
     return previous_results
 
@@ -242,8 +251,16 @@ def fetch_data(credentials):
     results = dict()
     data_cursor = oracle.get_open_z68()
     for query_result in data_cursor:
-        ORDER_COUNT += 1
-        results = process_z68_data(results, basket_data, order_to_budget_mapping, order_to_title_id, query_result)
+
+        aqinvoice_data = mariadb.get_invoice_by_aleph_rec_key(query_result[0])
+        if aqinvoice_data is not None:
+            for koha_invoice in aqinvoice_data:
+                # check if multiple z75/aqinvoices associated
+                # for each, process data and set aqinvoices id
+                ORDER_COUNT += 1
+                results = process_z68_data(results, basket_data, koha_invoice[0], order_to_budget_mapping, order_to_title_id, query_result)
+        else:
+            results = process_z68_data(results, basket_data, None, order_to_budget_mapping, order_to_title_id, query_result)
     data_cursor.close()
     logger.info('Done.')
 
@@ -273,38 +290,39 @@ def generate_insert_statements(data_list, table_name, database_columns):
     counter = 0
 
     for aleph_key in data_list:
-        basket = data_list[aleph_key]
-        if counter != 0:
-            import_table_statement += ','
-            mapping_table_statement += ','
+        order_list = data_list[aleph_key]
+        for order in order_list:
+            if counter != 0:
+                import_table_statement += ','
+                mapping_table_statement += ','
 
-        import_table_statement += '\n('
-        mapping_table_statement += '\n('
+            import_table_statement += '\n('
+            mapping_table_statement += '\n('
 
-        for idx, key in enumerate(database_columns):
-            if idx == keys_len - 1:
+            for idx, key in enumerate(database_columns):
+                if idx == keys_len - 1:
 
-                if key in basket and basket[key] is not None:
-                    import_table_statement += '"' + str(basket[key]) + '"'
-                    mapping_table_statement += '"' + str(basket[key]) + '"'
+                    if key in order and order[key] is not None:
+                        import_table_statement += '"' + str(order[key]) + '"'
+                        mapping_table_statement += '"' + str(order[key]) + '"'
+                    else:
+                        import_table_statement += 'NULL'
+                        mapping_table_statement += 'NULL'
+
+                    mapping_table_statement += ', "' + aleph_key + '"'
                 else:
-                    import_table_statement += 'NULL'
-                    mapping_table_statement += 'NULL'
 
-                mapping_table_statement += ', "' + aleph_key + '"'
-            else:
+                    if key in order and order[key] is not None:
+                        import_table_statement += '"' + str(order[key]) + '",'
+                        mapping_table_statement += '"' + str(order[key]) + '",'
+                    else:
+                        import_table_statement += 'NULL,'
+                        mapping_table_statement += 'NULL,'
 
-                if key in basket and basket[key] is not None:
-                    import_table_statement += '"' + str(basket[key]) + '",'
-                    mapping_table_statement += '"' + str(basket[key]) + '",'
-                else:
-                    import_table_statement += 'NULL,'
-                    mapping_table_statement += 'NULL,'
+            import_table_statement += ')'
+            mapping_table_statement += ')'
 
-        import_table_statement += ')'
-        mapping_table_statement += ')'
-
-        counter = counter + 1
+            counter = counter + 1
 
     import_table_statement += ';\n'
     mapping_table_statement += ';\n'
@@ -351,6 +369,7 @@ def start(oracle_credentials, id_pickle_path):
         SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(id_mapping_file)
 
     results = fetch_data(oracle_credentials)
+    write_data(results)
 
 
 if __name__ == '__main__':
