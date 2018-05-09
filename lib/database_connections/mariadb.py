@@ -191,4 +191,7 @@ def get_invoice_by_aleph_rec_key(aleph_rec_key):
         logger.error(result)
         return None
 
+    if len(result) == 0:
+        return None
+
     return result[0]
