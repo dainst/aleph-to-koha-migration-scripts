@@ -11,11 +11,18 @@ logger.setLevel(logging.DEBUG)
 
 
 ADM_ITEM_MAPPING = dict()
+BARCODE_TO_ORDER_MAPPING = dict()
 SYS_NUMBER_TO_BIB_ID_MAPPING = dict()
 
 
 def create_mapping(input_path):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
+    global BARCODE_TO_ORDER_MAPPING
+
+    item_count = 0
+    missing_barcode_count = 0
+    missing_order_number_count = 0
+
 
     with open(input_path, 'rb') as input_file:
         reader = MARCReader(input_file, force_utf8=True)
@@ -47,6 +54,21 @@ def create_mapping(input_path):
                         'koha_id': koha_bib_id
                     }
 
+                if 'p' not in field:
+                    missing_barcode_count += 1
+                elif 'A' not in field:
+                    missing_order_number_count += 1
+                else:
+                    barcode = field['p']
+                    BARCODE_TO_ORDER_MAPPING[barcode] = field['A']
+
+                item_count += 1
+
+    logger.info('%i items processed. %i missing barcodes and %i missing order numbers.' % (item_count,
+                                                                                           missing_barcode_count,
+                                                                                           missing_order_number_count)
+                )
+
 
 def write_mapping(output_path):
     global ADM_ITEM_MAPPING
@@ -65,6 +87,9 @@ def write_mapping(output_path):
     with open(output_path + 'SYS_NUMBER_TO_BIB_ID_MAPPING.pickle', 'wb') as output_file:
         pickle.dump(SYS_NUMBER_TO_BIB_ID_MAPPING, output_file)
 
+    with open(output_path + 'BARCODE_TO_ORDER_MAPPING.pickle', 'wb') as output_file:
+        pickle.dump(BARCODE_TO_ORDER_MAPPING, output_file)
+
 
 if __name__ == '__main__':
 
@@ -75,6 +100,10 @@ if __name__ == '__main__':
         sys.exit()
 
     input_directory = sys.argv[1]
+
+    if not os.path.dirname(input_directory).endswith('/'):
+        input_directory += '/'
+
     for filename in os.listdir(input_directory):
         logger.info('Reading file %s.' % filename)
         if filename.endswith('.mrc'):
