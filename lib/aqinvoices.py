@@ -17,20 +17,30 @@ MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/046000_aqin
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqinvoices_data_import.sql'
 
 AQINVOICESDATA = dict()
+ORDER_TO_BUDGET_MAPPING = dict()
+MISSING_BUDGET = []
 
 
 def split_join(query_result):
     result = {
-        "z601": query_result[:18],
-        "z68": query_result[18:74],
-        "z77": query_result[74:104],
-        "z76": query_result[104:]
+        "z68": query_result[0:56],
+        "z75": query_result[56:70],
+        "z77": query_result[70:]
     }
     return result
 
 
 def process_data(data):
     global AQINVOICESDATA
+    global ORDER_TO_BUDGET_MAPPING
+
+    if data['z68'][0] not in ORDER_TO_BUDGET_MAPPING:
+        MISSING_BUDGET.append(data['z68'][0])
+        koha_budget_id = None
+    else:
+        budget_code = ORDER_TO_BUDGET_MAPPING[data['z68'][0]]
+        koha_budget_id = mariadb.get_budget_by_code(budget_code)[0]
+
     invoice_number = str(data['z77'][0][20:]).strip()
     result = {
         'invoicenumber': invoice_number,
@@ -39,22 +49,35 @@ def process_data(data):
         'billingdate': dates_helper.process_aleph_date(data['z77'][13]),
         'closedate': dates_helper.process_aleph_date(data['z77'][18]),
         'shipmentcost': currency.parse_value(data['z77'][8]),
-        'shipmentcost_budgetid': mariadb.get_budget_by_code(data['z76'][0])[0],
+        'shipmentcost_budgetid': koha_budget_id,
         'ALEPH_Z68_REC_KEY': data['z68'][0]
     }
-
     AQINVOICESDATA[invoice_number] = result
 
 
 def fetch_data(credentials):
+    global ORDER_TO_BUDGET_MAPPING
+
     oracle.establish_connection(credentials)
     mariadb.establish_connection()
-    data_cursor = oracle.get_open_z68_with_invoices()
 
+    data_cursor = oracle.get_orders_to_budgets_mapping()
+    for query_result in data_cursor:
+        ORDER_TO_BUDGET_MAPPING[query_result[0]] = query_result[1]
+
+    data_cursor = oracle.get_open_z68_with_invoices()
+    counter = 0
     for query_result in data_cursor:
         split = split_join(query_result)
         process_data(split)
+        counter += 1
     data_cursor.close()
+
+    logger.debug(' %i of %i orders are missing a budget.' % (len(MISSING_BUDGET), counter))
+
+    with open('missing_budget.log', 'w') as log_file:
+        for order in MISSING_BUDGET:
+            log_file.write('%s\n' % order)
 
     oracle.close_connection()
 
