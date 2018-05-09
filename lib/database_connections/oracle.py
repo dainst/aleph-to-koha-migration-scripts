@@ -7,6 +7,10 @@ logger.setLevel(logging.DEBUG)
 
 connection = None
 
+CLOSED = 'CLS'
+VENDOR_CANCELLED = 'VC '
+LIBRARY_CANCELLED = 'CNB'
+
 
 def establish_connection(credentials):
     global connection
@@ -80,7 +84,7 @@ def get_open_z68():
     cur = connection.cursor()
     return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68_ORDER_STATUS!=:2 ' +
-                       'AND Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC ', 'CNB'))
+                       'AND Z68_ORDER_STATUS!=:3 ', (CLOSED, VENDOR_CANCELLED, LIBRARY_CANCELLED))
 
 
 def get_budgets_for_open_orders():
@@ -91,7 +95,16 @@ def get_budgets_for_open_orders():
                        'AND Z76.Z76_BUDGET_NUMBER = SUBSTR(Z601.Z601_REC_KEY, 1, 50) ' +
                        'AND Z68.Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:2 ' +
-                       'AND Z68.Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC ', 'CNB'))
+                       'AND Z68.Z68_ORDER_STATUS!=:3 ' +
+                       'AND Z601.Z601_TYPE=:4', (CLOSED, VENDOR_CANCELLED, LIBRARY_CANCELLED, 'ENC'))
+
+
+def get_orders_to_budgets_mapping():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, SUBSTR(Z601.Z601_REC_KEY, 1, 50) FROM Z68, Z601 ' +
+                       'WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 AND Z601.Z601_TYPE=:1', ('ENC',))
 
 
 def get_still_valid_budgets():
@@ -112,47 +125,19 @@ def get_open_z68_with_invoices():
     global connection
 
     cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z601, Z68, Z77, Z76 WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 ' +
-                       'AND Z77.Z77_REC_KEY = SUBSTR(Z601.Z601_REC_KEY_2, 1, 35) ' +
-                       'AND Z76.Z76_BUDGET_NUMBER = SUBSTR(Z601.Z601_REC_KEY, 1, 50) ' +
+    return cur.execute('SELECT * FROM Z68, Z75, Z77 WHERE ' +
+                       'Z68.Z68_REC_KEY = Z75.Z75_REC_KEY ' +
+                       'AND Z77.Z77_REC_KEY = SUBSTR(Z75.Z75_REC_KEY_2, 1, 35) ' +
                        'AND Z68.Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:2 ' +
-                       'AND Z68.Z68_ORDER_STATUS!=:3 ', ('CLS', 'VC ', 'CNB'))
-
-
-def get_open_z68_monograph():
-    global connection
-
-    cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
-                       'AND Z68_ORDER_STATUS!=:2 ' +
-                       'AND Z68_ORDER_STATUS!=:3 ' +
-                       'AND (Z68_ORDER_TYPE=:4 OR Z68_ORDER_TYPE=:5)', ('CLS', 'VC ', 'CNB', 'M', 'O'))
-
-
-def get_open_z68_serials():
-    global connection
-
-    cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
-                       'AND Z68_ORDER_STATUS!=:2 ' +
-                       'AND Z68_ORDER_STATUS!=:3 ' +
-                       'AND (Z68_ORDER_TYPE=:4)', ('CLS', 'VC ', 'CNB', 'S'))
-
-
-def get_not_cancelled_z68():
-    global connection
-
-    cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS!=:1 ' +
-                       'AND Z68_ORDER_STATUS!=:2 ', ('VC ', 'CNB'))
+                       'AND Z68.Z68_ORDER_STATUS!=:3', (CLOSED, VENDOR_CANCELLED, LIBRARY_CANCELLED))
 
 
 def get_closed_z68():
     global connection
 
     cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS=:1 ', ('CLS',))
+    return cur.execute('SELECT * FROM Z68 WHERE Z68_ORDER_STATUS=:1 ', (CLOSED,))
 
 
 def get_sub_library_z602(key):
@@ -160,14 +145,6 @@ def get_sub_library_z602(key):
 
     cur = connection.cursor()
     return cur.execute('SELECT Z602_SUB_LIBRARY FROM Z602 WHERE Z602_REC_KEY=:1', (key,))
-
-
-def get_orders_to_budgets_mapping():
-    global connection
-
-    cur = connection.cursor()
-    return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, SUBSTR(Z601.Z601_REC_KEY, 1, 50) FROM Z68, Z601 ' +
-                       'WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 AND Z601.Z601_TYPE=:1', ('ENC',))
 
 
 def get_orders_to_invoices_mapping():
