@@ -163,3 +163,9 @@ def get_z00_data():
 
     cur = connection.cursor()
     return cur.execute('SELECT * FROM Z00')
+
+
+def get_z08_data():
+    global connection
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z08')
