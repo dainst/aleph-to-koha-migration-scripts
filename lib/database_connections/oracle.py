@@ -92,7 +92,7 @@ def get_budgets_for_open_orders():
 
     cur = connection.cursor()
     return cur.execute('SELECT * FROM Z601, Z68, Z76 WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 ' +
-                       'AND Z76.Z76_BUDGET_NUMBER = SUBSTR(Z601.Z601_REC_KEY, 1, 50) ' +
+                       'AND Z76.Z76_BUDGET_NUMBER = SUBSTRB(Z601.Z601_REC_KEY, 1, 50) ' +
                        'AND Z68.Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:2 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:3 ' +
@@ -103,7 +103,7 @@ def get_orders_to_budgets_mapping():
     global connection
 
     cur = connection.cursor()
-    return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, SUBSTR(Z601.Z601_REC_KEY, 1, 50) FROM Z68, Z601 ' +
+    return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, SUBSTRB(Z601.Z601_REC_KEY, 1, 50) FROM Z68, Z601 ' +
                        'WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 AND Z601.Z601_TYPE=:1', ('ENC',))
 
 
@@ -127,7 +127,7 @@ def get_open_z68_with_invoices():
     cur = connection.cursor()
     return cur.execute('SELECT * FROM Z68, Z75, Z77 WHERE ' +
                        'Z68.Z68_REC_KEY = Z75.Z75_REC_KEY ' +
-                       'AND Z77.Z77_REC_KEY = SUBSTR(Z75.Z75_REC_KEY_2, 1, 35) ' +
+                       'AND Z77.Z77_REC_KEY = SUBSTRB(Z75.Z75_REC_KEY_2, 1, 35) ' +
                        'AND Z68.Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:2 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:3', (CLOSED, VENDOR_CANCELLED, LIBRARY_CANCELLED))
