@@ -44,37 +44,16 @@ def create_description(unit, units_per_issue):
             return 'alle %i Tage' % units_per_issue
 
 
-def parse_frequencies(result_dict, data_row):
+def parse_frequencies(result_dict, data_row, type_index, units_per_issue_index):
     global FREQUENCY_COUNTER
     global FREQUENCY_RELEVANCE_COUNTER
 
-    unit = z08_helper.map_interval_type(data_row[14].strip())
-    units_per_issue = data_row[13]
+    unit = z08_helper.map_interval_type(data_row[type_index].strip())
+    units_per_issue = data_row[units_per_issue_index]
 
-    description = create_description(unit, units_per_issue)
-
-    result = {
-        'id': FREQUENCY_COUNTER,
-        'description': description,
-        'unit': unit,
-        'unitsperissue': units_per_issue,
-        'issuesperunit': 1,
-    }
-
-    key = (unit, units_per_issue)
-
-    if  units_per_issue != 0:
-        if key not in result_dict:
-            result_dict[key] = result
-            FREQUENCY_COUNTER += 1
-
-        if key not in FREQUENCY_RELEVANCE_COUNTER:
-            FREQUENCY_RELEVANCE_COUNTER[key] = 1
-        else:
-            FREQUENCY_RELEVANCE_COUNTER[key] += 1
-
-    unit = z08_helper.map_interval_type(data_row[10].strip())
-    units_per_issue = data_row[9]
+    if unit == 'month' and units_per_issue % 12 == 0:
+        unit = 'year'
+        units_per_issue = units_per_issue / 12
 
     description = create_description(unit, units_per_issue)
 
@@ -108,7 +87,8 @@ def fetch_data(credentials):
     cursor = oracle.get_z08_data()
     frequencies = dict()
     for row in cursor:
-        frequencies = parse_frequencies(frequencies, row)
+        frequencies = parse_frequencies(frequencies, row, 14, 13)
+        frequencies = parse_frequencies(frequencies, row, 10, 9)
     cursor.close()
 
     sorted_frequency_counter = sorted(FREQUENCY_RELEVANCE_COUNTER, key=FREQUENCY_RELEVANCE_COUNTER.get)
