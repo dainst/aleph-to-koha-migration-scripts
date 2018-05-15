@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 
 import lib.database_connections.oracle as oracle
 import lib.database_connections.mariadb as mariadb
@@ -8,6 +9,11 @@ import lib.oracle_helper.z08 as z08_helper
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+script_dir = os.path.dirname(__file__)
+
+MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/029000_subscription_frequencies_data_mapping.sql'
+IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_frequencies_data_import.sql'
 
 
 FREQUENCY_COUNTER = 1
@@ -101,8 +107,68 @@ def fetch_data(credentials):
     return frequencies
 
 
+def generate_insert_statements(data_list, database_columns):
+    import_table_statement = 'INSERT INTO subscription_frequencies ('
+    keys_len = len(database_columns)
+
+    for idx, key in enumerate(database_columns):
+
+        if idx == keys_len - 1:
+            import_table_statement += key
+        else:
+            import_table_statement += key + ','
+
+    import_table_statement += ')\nVALUES'
+
+    counter = 0
+
+    for aleph_key in data_list:
+        frequency = data_list[aleph_key]
+        if counter != 0:
+            import_table_statement += ','
+
+        import_table_statement += '\n('
+
+        for idx, key in enumerate(database_columns):
+            if idx == keys_len - 1:
+                if key in frequency and frequency[key] is not None:
+                    import_table_statement += '"' + str(frequency[key]) + '"'
+                else:
+                    import_table_statement += 'NULL'
+            else:
+                if key in frequency and frequency[key] is not None:
+                    import_table_statement += '"' + str(frequency[key]) + '",'
+                else:
+                    import_table_statement += 'NULL,'
+
+        import_table_statement += ')'
+        counter = counter + 1
+
+    import_table_statement += ';\n'
+
+    return import_table_statement
+
+
 def write_data(result_dict):
-    logger.debug(result_dict)
+
+    database_columns = ['id', 'description', 'displayorder', 'unit', 'unitsperissue', 'issuesperunit']
+
+    with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
+
+        mapping_file.write('USE ' + mariadb.get_db_name() + ";\n\n")
+        mariadb.establish_connection()
+
+        cursor = mariadb.get_cursor()
+
+        import_table_statement = \
+            generate_insert_statements(result_dict, database_columns)
+
+        import_file.write(import_table_statement)
+        mapping_file.write(import_table_statement)
+        cursor.execute(import_table_statement)
+
+        mariadb.commit()
+        cursor.close()
 
 
 def start(credentials):
