@@ -50,12 +50,6 @@ def parse_frequencies(result_dict, data_row):
 
     unit = z08_helper.map_interval_type(data_row[14].strip())
     units_per_issue = data_row[13]
-    if units_per_issue == 0:
-        unit = z08_helper.map_interval_type(data_row[10].strip())
-        units_per_issue = data_row[9]
-
-    if units_per_issue == 0:
-        logger.debug(data_row)
 
     description = create_description(unit, units_per_issue)
 
@@ -69,14 +63,40 @@ def parse_frequencies(result_dict, data_row):
 
     key = (unit, units_per_issue)
 
-    if key not in result_dict:
-        result_dict[key] = result
-        FREQUENCY_COUNTER += 1
+    if  units_per_issue != 0:
+        if key not in result_dict:
+            result_dict[key] = result
+            FREQUENCY_COUNTER += 1
 
-    if key not in FREQUENCY_RELEVANCE_COUNTER:
-        FREQUENCY_RELEVANCE_COUNTER[key] = 1
-    else:
-        FREQUENCY_RELEVANCE_COUNTER[key] += 1
+        if key not in FREQUENCY_RELEVANCE_COUNTER:
+            FREQUENCY_RELEVANCE_COUNTER[key] = 1
+        else:
+            FREQUENCY_RELEVANCE_COUNTER[key] += 1
+
+    unit = z08_helper.map_interval_type(data_row[10].strip())
+    units_per_issue = data_row[9]
+
+    description = create_description(unit, units_per_issue)
+
+    result = {
+        'id': FREQUENCY_COUNTER,
+        'description': description,
+        'unit': unit,
+        'unitsperissue': units_per_issue,
+        'issuesperunit': 1,
+    }
+
+    key = (unit, units_per_issue)
+
+    if units_per_issue != 0:
+        if key not in result_dict:
+            result_dict[key] = result
+            FREQUENCY_COUNTER += 1
+
+        if key not in FREQUENCY_RELEVANCE_COUNTER:
+            FREQUENCY_RELEVANCE_COUNTER[key] = 1
+        else:
+            FREQUENCY_RELEVANCE_COUNTER[key] += 1
 
     return result_dict
 
@@ -94,7 +114,7 @@ def fetch_data(credentials):
     sorted_frequency_counter = sorted(FREQUENCY_RELEVANCE_COUNTER, key=FREQUENCY_RELEVANCE_COUNTER.get)
     display_order = len(sorted_frequency_counter)
     for idx in sorted_frequency_counter:
-        # logger.debug('%i -- %s' %(FREQUENCY_COUNTER[idx], frequencies[idx]))
+        # logger.debug('%i -- %s' % (FREQUENCY_RELEVANCE_COUNTER[idx], frequencies[idx]))
         frequencies[idx]['displayorder'] = display_order
         display_order -= 1
 
