@@ -92,6 +92,43 @@ SINGLE_VARIABLE_PATTERN = re.compile('^(.*)\$(.)(.*)$')
 TWO_VARIABLES_PATTERN = re.compile('^(.*)\$(.)(.*)\$(.)(.*)$')
 
 
+def handle_two_variable_pattern(previous_results, data):
+    global UNHANDLED_PATTERNS
+
+    result = dict()
+
+    aleph_pattern = data[2].upper()
+    koha_pattern = None
+    match = TWO_VARIABLES_PATTERN.match(aleph_pattern)
+    first_variable_type = None
+    second_variable_type = None
+
+    # In Koha, the variables in the pattern are {X}, {Y}, {Z}
+    # while in Aleph $Y denotes a year, $V a volume etc. So Koha is more generic. Also, if $Y is the "highest order"
+    # variable, it has to be represented as {X}
+    if match is not None:
+        (first_variable_type, second_variable_type) = (match.group(2), match.group(4))
+        if first_variable_type == 'Y':
+            if second_variable_type == 'V':
+                result['label'] = '%sJahr%sBand%s' % (match.group(1), match.group(3), match.group(5))
+                result['label2'] = 'Band'
+                # result['add2'] =
+            result['label1'] = 'Band'
+            result['add1'] = 1
+            result['every1'] = data[9]
+            result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
+            result['numberingmethod'] = koha_pattern
+
+            koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
+        elif second_variable_type == 'Y':
+            koha_pattern = '%s{Y}%s{X}%s' % (match.group(1), match.group(3), match.group(5))
+    else:
+        UNHANDLED_PATTERNS.append(aleph_pattern)
+        return previous_results
+
+    result['numberingmethod'] = koha_pattern
+
+    return previous_results
 
 
 def handle_single_variable_pattern(previous_results, data):
@@ -144,8 +181,8 @@ def parse_numbering_pattern(previous_results, data):
         if data[2] not in UNHANDLED_PATTERNS:
             UNHANDLED_PATTERNS.append(aleph_pattern)
         return previous_results
-    # elif variable_count == 2:
-    #     return handle_two_variable_pattern(previous_results, data)
+    elif variable_count == 2:
+        return handle_two_variable_pattern(previous_results, data)
     else:
         return handle_single_variable_pattern(previous_results, data)
 
