@@ -2,6 +2,7 @@ import logging
 import sys
 import os
 import re
+import pickle
 
 import lib.database_connections.oracle as oracle
 import lib.database_connections.mariadb as mariadb
@@ -12,51 +13,10 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-'''
-SUBSCRIPTION
-  `biblionumber` int(11) NOT NULL DEFAULT '0',
-  `subscriptionid` int(11) NOT NULL AUTO_INCREMENT,
-  `librarian` varchar(100) COLLATE utf8_unicode_ci DEFAULT '',
-  `startdate` date DEFAULT NULL,
-  `aqbooksellerid` int(11) DEFAULT '0',
-  `cost` int(11) DEFAULT '0',
-  `aqbudgetid` int(11) DEFAULT '0',
-  `weeklength` int(11) DEFAULT '0',
-  `monthlength` int(11) DEFAULT '0',
-  `numberlength` int(11) DEFAULT '0',
-  `periodicity` int(11) DEFAULT NULL,
-  `countissuesperunit` int(11) NOT NULL DEFAULT '1',
-  `notes` mediumtext COLLATE utf8_unicode_ci,
-  `status` varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
-  `lastvalue1` int(11) DEFAULT NULL,
-  `innerloop1` int(11) DEFAULT '0',
-  `lastvalue2` int(11) DEFAULT NULL,
-  `innerloop2` int(11) DEFAULT '0',
-  `lastvalue3` int(11) DEFAULT NULL,
-  `innerloop3` int(11) DEFAULT '0',
-  `firstacquidate` date DEFAULT NULL,
-  `manualhistory` tinyint(1) NOT NULL DEFAULT '0',
-  `irregularity` text COLLATE utf8_unicode_ci,
-  `skip_serialseq` tinyint(1) NOT NULL DEFAULT '0',
-  `letter` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `numberpattern` int(11) DEFAULT NULL,
-  `locale` varchar(80) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `distributedto` text COLLATE utf8_unicode_ci,
-  `internalnotes` longtext COLLATE utf8_unicode_ci,
-  `callnumber` text COLLATE utf8_unicode_ci,
-  `location` varchar(80) COLLATE utf8_unicode_ci DEFAULT '',
-  `branchcode` varchar(10) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
-  `lastbranch` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `serialsadditems` tinyint(1) NOT NULL DEFAULT '0',
-  `staffdisplaycount` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `opacdisplaycount` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `graceperiod` int(11) NOT NULL DEFAULT '0',
-  `enddate` date DEFAULT NULL,
-  `closed` int(1) NOT NULL DEFAULT '0',
-  `reneweddate` date DEFAULT NULL,
-  `itemtype` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `previousitemtype` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-'''
+script_dir = os.path.dirname(__file__)
+
+ALEPH_TO_KOHA_MAPPING = {}
+ALEPH_TO_KOHA_MAPPING_PATH = script_dir + '/subscription_patterns_mapping.pickle'
 
 '''
 NUMBERPATTERNS
@@ -91,8 +51,10 @@ UNHANDLED_PATTERNS = []
 SINGLE_VARIABLE_PATTERN = re.compile('^(.*)\$(.)(.*)$')
 TWO_VARIABLES_PATTERN = re.compile('^(.*)\$(.)(.*)\$(.)(.*)$')
 
+ADDED_PATTERN_COUNTER = 1
 
-def handle_two_variable_pattern(previous_results, data):
+
+def handle_two_variable_pattern(previous_results, data, mapping):
     global UNHANDLED_PATTERNS
 
     result = dict()
@@ -131,16 +93,21 @@ def handle_two_variable_pattern(previous_results, data):
     return previous_results
 
 
-def handle_single_variable_pattern(previous_results, data):
+def handle_single_variable_pattern(parsed_data, data, mapping):
     global MAX_NUMBER_PATTERN_VALUE
     global UNHANDLED_PATTERNS
     global SINGLE_VARIABLE_PATTERN
+    global ADDED_PATTERN_COUNTER
 
     aleph_pattern = data[2].upper()
     koha_pattern = None
     match = SINGLE_VARIABLE_PATTERN.match(aleph_pattern)
 
     result = dict()
+    unique_frequencies = list(set([frequency[1] for frequency in mapping[data[0]]]))
+
+    result['add1'] = 1
+    result['every1'] = 1
 
     if match is not None:
         koha_pattern = '%s{X}%s' % (match.group(1), match.group(3))
@@ -148,30 +115,43 @@ def handle_single_variable_pattern(previous_results, data):
         if variable_type == 'Y':
             result['label'] = '%sJahr%s' % (match.group(1), match.group(3))
             result['label1'] = 'Jahr'
+            if len(unique_frequencies) == 1 and unique_frequencies[0][0] == 'year' and unique_frequencies[0][1] == 1:
+                result['add1'] = 1
+                result['every1'] = 1
+            elif len(unique_frequencies) == 1 and unique_frequencies[0][0] == 'year' and unique_frequencies[0][1] > 1:
+                result['add1'] = unique_frequencies[0][1]
+                result['every1'] = 1
+            elif len(unique_frequencies) == 1 and unique_frequencies[0][0] == 'month':
+                result['add1'] = 1
+                result['every1'] = int(12 / unique_frequencies[0][1])
+            else:
+                logger.error('Unhandled case of unique_frequencies for dataset %s.' % data[0])
+                logger.error(unique_frequencies)
+                return parsed_data
         elif variable_type == 'V':
             result['label'] = '%sBand%s' % (match.group(1), match.group(3))
             result['label1'] = 'Band'
+            result['add1'] = 1
+            result['every1'] = 1
         else:
             UNHANDLED_PATTERNS.append(data[2])
-            return previous_results
+            return parsed_data
 
-    result['add1'] = 1
-    result['every1'] = 1
     result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
     result['numberingmethod'] = koha_pattern
+    values = tuple(result.values())
+    result['id'] = ADDED_PATTERN_COUNTER
 
-    index_set = tuple(result.values())
+    if values not in parsed_data:
+        parsed_data[values] = result
+        ADDED_PATTERN_COUNTER += 1
 
-    result['Z08_REC_KEY'] = data[0]
-    if index_set in previous_results:
-        previous_results[index_set].append(result)
-    else:
-        previous_results[index_set] = [result]
+    ALEPH_TO_KOHA_MAPPING[data[0]] = values
 
-    return previous_results
+    return parsed_data
 
 
-def parse_numbering_pattern(previous_results, data):
+def parse_numbering_pattern(previous_results, data, mapping):
     global UNHANDLED_PATTERNS
 
     aleph_pattern = data[2].upper()
@@ -182,9 +162,9 @@ def parse_numbering_pattern(previous_results, data):
             UNHANDLED_PATTERNS.append(aleph_pattern)
         return previous_results
     elif variable_count == 2:
-        return handle_two_variable_pattern(previous_results, data)
+        return handle_two_variable_pattern(previous_results, data, mapping)
     else:
-        return handle_single_variable_pattern(previous_results, data)
+        return handle_single_variable_pattern(previous_results, data, mapping)
 
 
 def fetch_data(credentials):
@@ -194,22 +174,31 @@ def fetch_data(credentials):
     cursor = oracle.get_z08_data()
     numbering_patterns_data = dict()
 
-    for row in cursor:
-        numbering_patterns_data = parse_numbering_pattern(numbering_patterns_data, row)
+    with open(script_dir + '/subscription_frequencies_mapping.pickle', 'rb') as mapping_file:
+        mapping = pickle.load(mapping_file)
+        for row in cursor:
+            numbering_patterns_data = parse_numbering_pattern(numbering_patterns_data, row, mapping)
 
     cursor.close()
 
-    print(numbering_patterns_data)
+    for key in numbering_patterns_data:
+        logger.debug(numbering_patterns_data[key])
 
-    print('Unhandled patterns: ')
+    logger.warning('Unhandled patterns: ')
     for pattern in UNHANDLED_PATTERNS:
-        print(pattern)
+        logger.warning(pattern)
 
     logger.debug('Todo')
 
 
 def start(credentials):
+    global ALEPH_TO_KOHA_MAPPING
+    global ALEPH_TO_KOHA_MAPPING_PATH
+
     fetch_data(credentials)
+
+    with open(ALEPH_TO_KOHA_MAPPING_PATH, 'wb') as mapping_file:
+        pickle.dump(ALEPH_TO_KOHA_MAPPING, mapping_file)
 
 
 if __name__ == '__main__':
