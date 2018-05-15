@@ -6,6 +6,7 @@
 
 lib/ready_for_import/*.sql
 lib/mariadb_intermediate_values/*.sql
+lib/*.pickle
 # Python 
 
 **/__pycache__
