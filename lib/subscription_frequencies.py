@@ -67,7 +67,7 @@ def parse_frequencies(result_dict, data_row, volume_or_issue):
 
     if unit == 'month' and units_per_issue % 12 == 0:
         unit = 'year'
-        units_per_issue = units_per_issue / 12
+        units_per_issue = int(units_per_issue / 12)
 
     description = create_description(unit, units_per_issue)
 
@@ -89,7 +89,8 @@ def parse_frequencies(result_dict, data_row, volume_or_issue):
         else:
             koha_key = result_dict[key]['id']
 
-        if data_row[0] in ALEPH_TO_KOHA_MAPPING and koha_key not in ALEPH_TO_KOHA_MAPPING[data_row[0]]:
+        if data_row[0] in ALEPH_TO_KOHA_MAPPING \
+                and (koha_key, key, volume_or_issue) not in ALEPH_TO_KOHA_MAPPING[data_row[0]]:
             ALEPH_TO_KOHA_MAPPING[data_row[0]].append((koha_key, key, volume_or_issue))
         else:
             ALEPH_TO_KOHA_MAPPING[data_row[0]] = [(koha_key, key, volume_or_issue)]
