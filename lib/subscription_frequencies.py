@@ -1,6 +1,7 @@
 import logging
 import sys
 import os
+import pickle
 
 import lib.database_connections.oracle as oracle
 import lib.database_connections.mariadb as mariadb
@@ -15,6 +16,8 @@ script_dir = os.path.dirname(__file__)
 MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/029000_subscription_frequencies_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_frequencies_data_import.sql'
 
+ALEPH_TO_KOHA_MAPPING = {}
+ALEPH_TO_KOHA_MAPPING_PATH = script_dir + '/subscription_frequencies_mapping.pickle'
 
 FREQUENCY_COUNTER = 1
 FREQUENCY_RELEVANCE_COUNTER = {}
@@ -50,12 +53,17 @@ def create_description(unit, units_per_issue):
             return 'alle %i Tage' % units_per_issue
 
 
-def parse_frequencies(result_dict, data_row, type_index, units_per_issue_index):
+def parse_frequencies(result_dict, data_row, volume_or_issue):
+    global ALEPH_TO_KOHA_MAPPING
     global FREQUENCY_COUNTER
     global FREQUENCY_RELEVANCE_COUNTER
 
-    unit = z08_helper.map_interval_type(data_row[type_index].strip())
-    units_per_issue = data_row[units_per_issue_index]
+    if volume_or_issue == 'volume':
+        unit = z08_helper.map_interval_type(data_row[10].strip())
+        units_per_issue = data_row[9]
+    else:
+        unit = z08_helper.map_interval_type(data_row[14].strip())
+        units_per_issue = data_row[13]
 
     if unit == 'month' and units_per_issue % 12 == 0:
         unit = 'year'
@@ -74,9 +82,17 @@ def parse_frequencies(result_dict, data_row, type_index, units_per_issue_index):
     key = (unit, units_per_issue)
 
     if units_per_issue != 0:
+        koha_key = result['id']
         if key not in result_dict:
             result_dict[key] = result
             FREQUENCY_COUNTER += 1
+        else:
+            koha_key = result_dict[key]['id']
+
+        if data_row[0] in ALEPH_TO_KOHA_MAPPING and koha_key not in ALEPH_TO_KOHA_MAPPING[data_row[0]]:
+            ALEPH_TO_KOHA_MAPPING[data_row[0]].append((koha_key, key, volume_or_issue))
+        else:
+            ALEPH_TO_KOHA_MAPPING[data_row[0]] = [(koha_key, key, volume_or_issue)]
 
         if key not in FREQUENCY_RELEVANCE_COUNTER:
             FREQUENCY_RELEVANCE_COUNTER[key] = 1
@@ -93,8 +109,8 @@ def fetch_data(credentials):
     cursor = oracle.get_z08_data()
     frequencies = dict()
     for row in cursor:
-        frequencies = parse_frequencies(frequencies, row, 14, 13)
-        frequencies = parse_frequencies(frequencies, row, 10, 9)
+        frequencies = parse_frequencies(frequencies, row, 'issue')
+        frequencies = parse_frequencies(frequencies, row, 'volume')
     cursor.close()
 
     sorted_frequency_counter = sorted(FREQUENCY_RELEVANCE_COUNTER, key=FREQUENCY_RELEVANCE_COUNTER.get)
@@ -174,6 +190,9 @@ def write_data(result_dict):
 def start(credentials):
     frequencies = fetch_data(credentials)
     write_data(frequencies)
+
+    with open(ALEPH_TO_KOHA_MAPPING_PATH, 'wb') as mapping_file:
+        pickle.dump(ALEPH_TO_KOHA_MAPPING, mapping_file)
 
 
 if __name__ == '__main__':
