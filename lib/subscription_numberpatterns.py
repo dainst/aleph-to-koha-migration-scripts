@@ -30,7 +30,6 @@ UNHANDLED_PATTERNS = []
 SINGLE_VARIABLE_PATTERN = re.compile('^(.*)\$(.)(.*)$')
 TWO_VARIABLES_PATTERN = re.compile('^(.*)\$(.)(.*)\$(.)(.*)$')
 
-ADDED_PATTERN_COUNTER = 1
 FREQUENCY_MAPPING = None
 
 
@@ -85,7 +84,6 @@ def calculate_volume_variables(data):
 
 def handle_two_variable_pattern(previous_results, data):
     global UNHANDLED_PATTERNS
-    global ADDED_PATTERN_COUNTER
     global FREQUENCY_MAPPING
 
     result = dict()
@@ -147,11 +145,9 @@ def handle_two_variable_pattern(previous_results, data):
     result['numberingmethod'] = koha_pattern
 
     values = tuple(result.values())
-    result['id'] = ADDED_PATTERN_COUNTER
 
     if values not in previous_results:
         previous_results[values] = result
-        ADDED_PATTERN_COUNTER += 1
 
     ALEPH_TO_KOHA_MAPPING[data[0]] = values
 
@@ -162,7 +158,6 @@ def handle_single_variable_pattern(parsed_data, data):
     global MAX_NUMBER_PATTERN_VALUE
     global UNHANDLED_PATTERNS
     global SINGLE_VARIABLE_PATTERN
-    global ADDED_PATTERN_COUNTER
 
     aleph_pattern = data[2].upper()
     match = SINGLE_VARIABLE_PATTERN.match(aleph_pattern)
@@ -205,11 +200,9 @@ def handle_single_variable_pattern(parsed_data, data):
     result['description'] = description[0]
 
     values = tuple(result.values())
-    result['id'] = ADDED_PATTERN_COUNTER
 
     if values not in parsed_data:
         parsed_data[values] = result
-        ADDED_PATTERN_COUNTER += 1
 
     ALEPH_TO_KOHA_MAPPING[data[0]] = values
     return parsed_data
@@ -247,14 +240,21 @@ def fetch_data(credentials):
 
     cursor.close()
 
-    # for key in numbering_patterns_data:
-    #     logger.debug(numbering_patterns_data[key])
-
     logger.warning('Unhandled patterns: ')
     for pattern in UNHANDLED_PATTERNS:
         logger.warning(pattern)
 
-    return numbering_patterns_data
+    numbering_patterns_data = numbering_patterns_data.values()
+
+    sorted_patterns_data = sorted(numbering_patterns_data,  key=lambda k: k['label'])
+
+    final_patterns_data = []
+    counter = 1
+    for item in sorted_patterns_data:
+        item['id'] = counter
+        final_patterns_data.append(item)
+        counter += 1
+    return final_patterns_data
 
 
 def generate_insert_statements(data_list, database_columns):
@@ -272,8 +272,7 @@ def generate_insert_statements(data_list, database_columns):
 
     counter = 0
 
-    for aleph_key in data_list:
-        frequency = data_list[aleph_key]
+    for frequency in data_list:
         if counter != 0:
             import_table_statement += ','
 
@@ -317,9 +316,9 @@ def write_data(data):
 
         import_file.write(import_table_statement)
         mapping_file.write(import_table_statement)
-        #cursor.execute(import_table_statement)
+        cursor.execute(import_table_statement)
 
-        #mariadb.commit()
+        mariadb.commit()
         cursor.close()
 
 
