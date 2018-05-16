@@ -39,6 +39,8 @@ TWO_VARIABLES_PATTERN = re.compile('^(.*)\$(.)(.*)\$(.)(.*)$')
 
 FREQUENCY_MAPPING = None
 
+PATTERN_RELEVANCE_COUNTER = {}
+
 
 def calculate_year_variables(data):
 
@@ -129,6 +131,7 @@ def calculate_volume_variables(data):
 def handle_two_variable_pattern(previous_results, data):
     global UNHANDLED_PATTERNS
     global FREQUENCY_MAPPING
+    global PATTERN_RELEVANCE_COUNTER
 
     result = dict()
 
@@ -184,13 +187,18 @@ def handle_two_variable_pattern(previous_results, data):
         return previous_results
 
     result['numberingmethod'] = koha_pattern
-
+    result['label'] += ', %s' % result['description']
     values = tuple(result.values())
 
     if values not in previous_results:
         previous_results[values] = result
 
     ALEPH_TO_KOHA_MAPPING[data[0]] = values
+
+    if values in PATTERN_RELEVANCE_COUNTER:
+        PATTERN_RELEVANCE_COUNTER[values] += 1
+    else:
+        PATTERN_RELEVANCE_COUNTER[values] = 1
 
     return previous_results
 
@@ -239,6 +247,7 @@ def handle_single_variable_pattern(parsed_data, data):
     result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
     result['numberingmethod'] = koha_pattern
     result['description'] = description[0]
+    result['label'] += ', %s' % result['description']
 
     values = tuple(result.values())
 
@@ -246,6 +255,11 @@ def handle_single_variable_pattern(parsed_data, data):
         parsed_data[values] = result
 
     ALEPH_TO_KOHA_MAPPING[data[0]] = values
+
+    if values in PATTERN_RELEVANCE_COUNTER:
+        PATTERN_RELEVANCE_COUNTER[values] += 1
+    else:
+        PATTERN_RELEVANCE_COUNTER[values] = 1
     return parsed_data
 
 
@@ -285,8 +299,14 @@ def fetch_data(credentials):
     for pattern in UNHANDLED_PATTERNS:
         logger.warning(pattern)
 
-    numbering_patterns_data = numbering_patterns_data.values()
+    sorted_frequency_counter = sorted(PATTERN_RELEVANCE_COUNTER, key=PATTERN_RELEVANCE_COUNTER.get)
+    display_order = len(sorted_frequency_counter)
+    for idx in sorted_frequency_counter:
+        # logger.debug('%i -- %s' % (FREQUENCY_RELEVANCE_COUNTER[idx], frequencies[idx]))
+        numbering_patterns_data[idx]['displayorder'] = display_order
+        display_order -= 1
 
+    numbering_patterns_data = numbering_patterns_data.values()
     sorted_patterns_data = sorted(numbering_patterns_data,  key=lambda k: k['label'])
 
     final_patterns_data = []
@@ -295,6 +315,7 @@ def fetch_data(credentials):
         item['id'] = counter
         final_patterns_data.append(item)
         counter += 1
+
     return final_patterns_data
 
 
