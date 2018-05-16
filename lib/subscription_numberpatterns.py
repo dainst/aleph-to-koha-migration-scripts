@@ -38,22 +38,25 @@ def calculate_year_variables(data):
 
     global FREQUENCY_MAPPING
 
-    unique_frequencies = list(set([frequency[1] for frequency in FREQUENCY_MAPPING[data[0]]]))
+    single_frequency = list(set([frequency[1] for frequency in FREQUENCY_MAPPING[data[0]]]))
 
-    label1 = 'Jahr'
-    if len(unique_frequencies) == 1 and unique_frequencies[0][0] == 'year' and unique_frequencies[0][1] == 1:
-        add1 = 1
-        every1 = 1
-    elif len(unique_frequencies) == 1 and unique_frequencies[0][0] == 'year' and unique_frequencies[0][1] > 1:
-        add1 = unique_frequencies[0][1]
-        every1 = 1
-    elif len(unique_frequencies) == 1 and unique_frequencies[0][0] == 'month':
-        add1 = 1
-        every1 = int(12 / unique_frequencies[0][1])
+    if len(single_frequency) != 1:
+        return None
+
+    label = 'Jahr'
+    if single_frequency[0][0] == 'year' and single_frequency[0][1] == 1:
+        add = 1
+        every = 1
+    elif single_frequency[0][0] == 'year' and single_frequency[0][1] > 1:
+        add = single_frequency[0][1]
+        every = 1
+    elif single_frequency[0][0] == 'month':
+        add = 1
+        every = int(12 / single_frequency[0][1])
     else:
         return None
 
-    return [label1, add1, every1]
+    return [label, add, every]
 
 
 def calculate_volume_variables(data):
@@ -66,11 +69,15 @@ def calculate_volume_variables(data):
     issue_frequency = [frequency[1] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'issue']
 
     label = 'Band'
-    if issue_frequency == [] or volume_frequency[0] == issue_frequency[0]:
+    if issue_frequency == [] or volume_frequency[0][0] == issue_frequency[0][0]:
         add = 1
         every = 1
     else:
         logger.debug('Unhandled case: volume and issue frequency not equal.')
+        logger.debug(volume_frequency)
+        logger.debug(issue_frequency)
+        logger.debug(data)
+        logger.debug(FREQUENCY_MAPPING[data[0]])
         return None
 
     return [label, add, every, whenmorethan, setto]
@@ -79,6 +86,7 @@ def calculate_volume_variables(data):
 def handle_two_variable_pattern(previous_results, data):
     global UNHANDLED_PATTERNS
     global ADDED_PATTERN_COUNTER
+    global FREQUENCY_MAPPING
 
     result = dict()
 
@@ -103,6 +111,8 @@ def handle_two_variable_pattern(previous_results, data):
             result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
 
             if first_variable_type == 'V' or second_variable_type == 'V':
+
+                description = [frequency[3] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'volume']
                 volume_variables = calculate_volume_variables(data)
                 if volume_variables is None:
                     UNHANDLED_PATTERNS.append(data[2])
@@ -113,6 +123,7 @@ def handle_two_variable_pattern(previous_results, data):
                 result['every2'] = volume_variables[2]
                 result['whenmorethan1'] = volume_variables[3]
                 result['setto'] = volume_variables[4]
+                result['description'] = description[0]
 
                 if first_variable_type == 'V':
                     result['label'] = '%sBand%sJahr%s' % (match.group(1), match.group(3), match.group(5))
@@ -134,9 +145,6 @@ def handle_two_variable_pattern(previous_results, data):
         return previous_results
 
     result['numberingmethod'] = koha_pattern
-    description = koha_pattern.replace('{', '')
-    description = description.replace('}', '')
-    result['description'] = description
 
     values = tuple(result.values())
     result['id'] = ADDED_PATTERN_COUNTER
@@ -167,7 +175,7 @@ def handle_single_variable_pattern(parsed_data, data):
         if variable_type == 'Y':
             year_variables = calculate_year_variables(data)
             if year_variables is None:
-                logger.error('Unhandled case for year pattern in dataset %s.' % data[0])
+                UNHANDLED_PATTERNS.append(data[2])
                 return parsed_data
 
             result['label'] = '%sJahr%s' % (match.group(1), match.group(3))
@@ -187,11 +195,14 @@ def handle_single_variable_pattern(parsed_data, data):
         UNHANDLED_PATTERNS.append(data[2])
         return parsed_data
 
+    description = list(set([frequency[3] for frequency in FREQUENCY_MAPPING[data[0]]]))
+    if len(description) != 1:
+        UNHANDLED_PATTERNS.append(data[2])
+        return parsed_data
+
     result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
     result['numberingmethod'] = koha_pattern
-    description = koha_pattern.replace('{', '')
-    description = description.replace('}', '')
-    result['description'] = description
+    result['description'] = description[0]
 
     values = tuple(result.values())
     result['id'] = ADDED_PATTERN_COUNTER
@@ -201,7 +212,6 @@ def handle_single_variable_pattern(parsed_data, data):
         ADDED_PATTERN_COUNTER += 1
 
     ALEPH_TO_KOHA_MAPPING[data[0]] = values
-
     return parsed_data
 
 
@@ -245,33 +255,6 @@ def fetch_data(credentials):
         logger.warning(pattern)
 
     return numbering_patterns_data
-
-'''
-NUMBERPATTERNS
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `label` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  `displayorder` int(11) DEFAULT NULL,
-  `description` text COLLATE utf8_unicode_ci NOT NULL,
-  `numberingmethod` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  `label1` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `add1` int(11) DEFAULT NULL,
-  `every1` int(11) DEFAULT NULL,
-  `whenmorethan1` int(11) DEFAULT NULL,
-  `setto1` int(11) DEFAULT NULL,
-  `numbering1` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `label2` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `add2` int(11) DEFAULT NULL,
-  `every2` int(11) DEFAULT NULL,
-  `whenmorethan2` int(11) DEFAULT NULL,
-  `setto2` int(11) DEFAULT NULL,
-  `numbering2` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `label3` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `add3` int(11) DEFAULT NULL,
-  `every3` int(11) DEFAULT NULL,
-  `whenmorethan3` int(11) DEFAULT NULL,
-  `setto3` int(11) DEFAULT NULL,
-  `numbering3` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-'''
 
 
 def generate_insert_statements(data_list, database_columns):
@@ -334,9 +317,9 @@ def write_data(data):
 
         import_file.write(import_table_statement)
         mapping_file.write(import_table_statement)
-        cursor.execute(import_table_statement)
+        #cursor.execute(import_table_statement)
 
-        mariadb.commit()
+        #mariadb.commit()
         cursor.close()
 
 

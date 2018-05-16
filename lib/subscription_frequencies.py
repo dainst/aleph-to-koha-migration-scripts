@@ -90,10 +90,10 @@ def parse_frequencies(result_dict, data_row, volume_or_issue):
             koha_key = result_dict[key]['id']
 
         if data_row[0] in ALEPH_TO_KOHA_MAPPING \
-                and (koha_key, key, volume_or_issue) not in ALEPH_TO_KOHA_MAPPING[data_row[0]]:
-            ALEPH_TO_KOHA_MAPPING[data_row[0]].append((koha_key, key, volume_or_issue))
+                and (koha_key, key, volume_or_issue, description) not in ALEPH_TO_KOHA_MAPPING[data_row[0]]:
+            ALEPH_TO_KOHA_MAPPING[data_row[0]].append((koha_key, key, volume_or_issue, description))
         else:
-            ALEPH_TO_KOHA_MAPPING[data_row[0]] = [(koha_key, key, volume_or_issue)]
+            ALEPH_TO_KOHA_MAPPING[data_row[0]] = [(koha_key, key, volume_or_issue, description)]
 
         if key not in FREQUENCY_RELEVANCE_COUNTER:
             FREQUENCY_RELEVANCE_COUNTER[key] = 1
