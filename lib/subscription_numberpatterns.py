@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 file_logger = logging.getLogger(__name__ + '_file')
-file_logger.setLevel(logging.DEBUG)
+file_logger.setLevel(logging.INFO)
 
 log_file_handler = logging.FileHandler('fehlerhafte_heft_zu_band_angaben.log')
 log_file_handler.setLevel(logging.DEBUG)
@@ -58,23 +58,28 @@ def calculate_year_variables(data):
         issues_per_volume = data[11]
 
         if issue_type == 'M' and volume_type == 'Y' and issue_count * issues_per_volume == volume_count * 12:
+
             if '$V' in data[2].upper() and '$I' not in data[2].upper():
-                volume_frequency = [frequency[1] for
-                                    frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'volume']
-                label = 'Jahr'
-                if volume_frequency[0] == 'year' and volume_frequency[1] == 1:
-                    add = 1
-                    every = 1
-                elif volume_frequency[0] == 'year' and volume_frequency[1] > 1:
-                    add = single_frequency[0][1]
-                    every = 1
-                elif volume_frequency[0] == 'month':
-                    add = 1
-                    every = int(12 / single_frequency[0][1])
-                else:
-                    return None
+                relevant_frequency = [frequency[1] for
+                                      frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'volume']
+            elif '$V' not in data[2].upper() and '$I' in data[2].upper():
+                relevant_frequency = [frequency[1] for
+                                      frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'issue']
             else:
                 return None
+            label = 'Jahr'
+            if relevant_frequency[0][0] == 'year' and relevant_frequency[0][1] == 1:
+                add = 1
+                every = 1
+            elif relevant_frequency[0][0] == 'year' and relevant_frequency[0][1] > 1:
+                add = relevant_frequency[0][1]
+                every = 1
+            elif relevant_frequency[0][0] == 'month':
+                add = 1
+                every = int(12 / relevant_frequency[0][1])
+            else:
+                return None
+
         else:
             file_logger.debug('Fehlerhafte Angaben zu Erscheinungszyklus von %s:' % data[0])
             file_logger.debug('Heft erscheint %i alle %s, Band erscheint %i alle %s.' % (issue_count, issue_type, volume_count, volume_type))
@@ -108,21 +113,42 @@ def calculate_volume_variables(data):
 
     label = 'Band'
     if '$Y' in data[2].upper() and '$I' not in data[2].upper():
-        if issue_frequency == [] or volume_frequency[0][0] == issue_frequency[0][0]:
-            if volume_frequency[0][0] == 'year' and volume_frequency[0][1] >= 1:
-                add = 1
-                every = 1
-            elif volume_frequency[0][0] == 'month':
-                add = 1
-                every = 1
-                whenmorethan = int(12 / volume_frequency[0][1])
-            else:
-                return None
+        if volume_frequency[0][0] == 'year' and volume_frequency[0][1] >= 1:
+            add = 1
+            every = 1
+        elif volume_frequency[0][0] == 'month':
+            add = 1
+            every = 1
+            whenmorethan = int(12 / volume_frequency[0][1])
         else:
-            logger.debug(data)
             return None
     else:
-        logger.debug(data)
+        return None
+
+    return [label, add, every, whenmorethan, setto]
+
+
+def calculate_issue_variables(data):
+    global FREQUENCY_MAPPING
+    global MAX_NUMBER_PATTERN_VALUE
+
+    whenmorethan = MAX_NUMBER_PATTERN_VALUE
+    setto = 1
+    volume_frequency = [frequency[1] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'volume']
+    issue_frequency = [frequency[1] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'issue']
+
+    label = 'Heft'
+    if '$Y' in data[2].upper() and '$V' not in data[2].upper():
+        if issue_frequency[0][0] == 'year' and issue_frequency[0][1] >= 1:
+            add = 1
+            every = 1
+        elif issue_frequency[0][0] == 'month':
+            add = 1
+            every = 1
+            whenmorethan = int(12 / issue_frequency[0][1])
+        else:
+            return None
+    else:
         return None
 
     return [label, add, every, whenmorethan, setto]
@@ -175,6 +201,41 @@ def handle_two_variable_pattern(previous_results, data):
                 koha_pattern = '%s{Y}%s{X}%s' % (match.group(1), match.group(3), match.group(5))
             elif second_variable_type == 'V':
                 result['label'] = '%s{Jahr}%s{Band}%s' % (match.group(1), match.group(3), match.group(5))
+                koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
+            else:
+                UNHANDLED_PATTERNS.append(aleph_pattern)
+                return previous_results
+        elif (first_variable_type == 'Y' or second_variable_type == 'Y') \
+                and (first_variable_type == 'I' or second_variable_type == 'I'):
+
+            year_variables = calculate_year_variables(data)
+            if year_variables is None:
+                UNHANDLED_PATTERNS.append(aleph_pattern)
+                return previous_results
+
+            # Always use {X} as year variable
+            result['label1'] = year_variables[0]
+            result['add1'] = year_variables[1]
+            result['every1'] = year_variables[2]
+            result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
+            description = [frequency[3] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'issue']
+            issue_variables = calculate_issue_variables(data)
+            if issue_variables is None:
+                UNHANDLED_PATTERNS.append(aleph_pattern)
+                return previous_results
+
+            result['label2'] = issue_variables[0]
+            result['add2'] = issue_variables[1]
+            result['every2'] = issue_variables[2]
+            result['whenmorethan2'] = issue_variables[3]
+            result['setto2'] = issue_variables[4]
+            result['description'] = description[0]
+
+            if first_variable_type == 'I':
+                result['label'] = '%s{Heft}%s{Jahr}%s' % (match.group(1), match.group(3), match.group(5))
+                koha_pattern = '%s{Y}%s{X}%s' % (match.group(1), match.group(3), match.group(5))
+            elif second_variable_type == 'I':
+                result['label'] = '%s{Jahr}%s{Heft}%s' % (match.group(1), match.group(3), match.group(5))
                 koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
             else:
                 UNHANDLED_PATTERNS.append(aleph_pattern)
