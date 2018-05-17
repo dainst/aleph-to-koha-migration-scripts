@@ -154,7 +154,17 @@ def calculate_issue_variables(data):
     return [label, add, every, whenmorethan, setto]
 
 
-def handle_two_variable_pattern(previous_results, data):
+def handle_three_variables_pattern(previous_results, data):
+    global UNHANDLED_PATTERNS
+    global PATTERN_RELEVANCE_COUNTER
+
+    result = dict()
+
+    UNHANDLED_PATTERNS.append(data[2])
+    return previous_results
+
+
+def handle_two_variables_pattern(previous_results, data):
     global UNHANDLED_PATTERNS
     global FREQUENCY_MAPPING
     global PATTERN_RELEVANCE_COUNTER
@@ -334,8 +344,10 @@ def parse_numbering_pattern(previous_results, data):
         if data[2] not in UNHANDLED_PATTERNS:
             UNHANDLED_PATTERNS.append(aleph_pattern)
         return previous_results
+    elif variable_count == 3:
+        return handle_three_variables_pattern(previous_results, data)
     elif variable_count == 2:
-        return handle_two_variable_pattern(previous_results, data)
+        return handle_two_variables_pattern(previous_results, data)
     else:
         return handle_single_variable_pattern(previous_results, data)
 
