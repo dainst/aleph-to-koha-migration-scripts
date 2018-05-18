@@ -25,7 +25,6 @@ MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/' \
                                        '030000_subscription_numberpatterns_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_numberpatterns_data_import.sql'
 
-
 ALEPH_TO_KOHA_MAPPING = {}
 ALEPH_TO_KOHA_MAPPING_PATH = script_dir + '/subscription_patterns_mapping.pickle'
 
@@ -39,6 +38,7 @@ THREE_VARIABLES_PATTERN = re.compile(r'^(.*)\$(.)(.*)\$(.)(.*)\$(.)(.*)$')
 
 FREQUENCY_MAPPING = None
 
+PATTERN_COUNTER = 1
 PATTERN_RELEVANCE_COUNTER = {}
 
 
@@ -205,6 +205,8 @@ def calculate_issue_variables(data):
 
 def handle_three_variables_pattern(parsed_data, data):
     global UNHANDLED_PATTERNS
+    global FREQUENCY_MAPPING
+    global PATTERN_COUNTER
     global PATTERN_RELEVANCE_COUNTER
 
     result = dict()
@@ -223,33 +225,44 @@ def handle_three_variables_pattern(parsed_data, data):
     third_variable = match.group(6)
 
     pattern = match.group(1)
+    label = match.group(1)
 
     if first_variable == 'Y':
         pattern += '{X}'
+        label += '{Jahr}'
     elif first_variable == 'V':
         pattern += '{Y}'
+        label += '{Band}'
     elif first_variable == 'I':
+        label += '{Heft}'
         pattern += '{Z}'
 
     pattern += match.group(3)
 
     if second_variable == 'Y':
         pattern += '{X}'
+        label += '{Jahr}'
     elif second_variable == 'V':
+        label += '{Band}'
         pattern += '{Y}'
     elif second_variable == 'I':
+        label += '{Heft}'
         pattern += '{Z}'
 
     pattern += match.group(5)
 
     if third_variable == 'Y':
         pattern += '{X}'
+        label += '{Jahr}'
     elif third_variable == 'V':
+        label += '{Band}'
         pattern += '{Y}'
     elif third_variable == 'I':
+        label += '{Heft}'
         pattern += '{Z}'
 
     pattern += match.group(7)
+    result['numberingmethod'] = pattern
 
     year_variables = calculate_year_variables(data)
     if year_variables is None:
@@ -280,9 +293,27 @@ def handle_three_variables_pattern(parsed_data, data):
     result['every3'] = issue_variables[2]
     result['whenmorethan3'] = issue_variables[3]
     result['setto3'] = issue_variables[4]
-    # issue definiert "unit", d.h. da ist es dann 1:1?
-    # volume ist definiert durch anzahl issues oder datum -> überprüfen ob sinnvoll ansonsten raus schreiben
-    # jahr ist definiert durch taktung der issues
+
+    description = [frequency[3] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'issue']
+    issue_variables = calculate_issue_variables(data)
+    if issue_variables is None:
+        log_unhandled_patterns(data, 'unable to parse issue variables')
+        return parsed_data
+    result['description'] = description[0]
+    result['label'] = '%s, %s' % (label, result['description'])
+
+    values = tuple(result.values())
+    result['id'] = PATTERN_COUNTER
+    if values not in parsed_data:
+        parsed_data[values] = result
+        PATTERN_COUNTER += 1
+
+    ALEPH_TO_KOHA_MAPPING[data[0]] = result
+
+    if values in PATTERN_RELEVANCE_COUNTER:
+        PATTERN_RELEVANCE_COUNTER[values] += 1
+    else:
+        PATTERN_RELEVANCE_COUNTER[values] = 1
 
     return parsed_data
 
@@ -290,6 +321,7 @@ def handle_three_variables_pattern(parsed_data, data):
 def handle_two_variables_pattern(parsed_data, data):
     global UNHANDLED_PATTERNS
     global FREQUENCY_MAPPING
+    global PATTERN_COUNTER
     global PATTERN_RELEVANCE_COUNTER
 
     result = dict()
@@ -382,12 +414,14 @@ def handle_two_variables_pattern(parsed_data, data):
 
     result['numberingmethod'] = koha_pattern
     result['label'] += ', %s' % result['description']
-    values = tuple(result.values())
 
+    values = tuple(result.values())
+    result['id'] = PATTERN_COUNTER
     if values not in parsed_data:
         parsed_data[values] = result
+        PATTERN_COUNTER += 1
 
-    ALEPH_TO_KOHA_MAPPING[data[0]] = values
+    ALEPH_TO_KOHA_MAPPING[data[0]] = result
 
     if values in PATTERN_RELEVANCE_COUNTER:
         PATTERN_RELEVANCE_COUNTER[values] += 1
@@ -401,6 +435,8 @@ def handle_single_variable_pattern(parsed_data, data):
     global MAX_NUMBER_PATTERN_VALUE
     global UNHANDLED_PATTERNS
     global SINGLE_VARIABLE_PATTERN
+    global PATTERN_COUNTER
+    global PATTERN_RELEVANCE_COUNTER
 
     aleph_pattern = data[2].upper()
     match = SINGLE_VARIABLE_PATTERN.match(aleph_pattern)
@@ -445,10 +481,12 @@ def handle_single_variable_pattern(parsed_data, data):
 
     values = tuple(result.values())
 
+    result['id'] = PATTERN_COUNTER
     if values not in parsed_data:
         parsed_data[values] = result
+        PATTERN_COUNTER += 1
 
-    ALEPH_TO_KOHA_MAPPING[data[0]] = values
+    ALEPH_TO_KOHA_MAPPING[data[0]] = result
 
     if values in PATTERN_RELEVANCE_COUNTER:
         PATTERN_RELEVANCE_COUNTER[values] += 1
@@ -507,16 +545,8 @@ def fetch_data(credentials):
         display_order -= 1
 
     numbering_patterns_data = numbering_patterns_data.values()
-    sorted_patterns_data = sorted(numbering_patterns_data,  key=lambda k: k['label'])
 
-    final_patterns_data = []
-    counter = 1
-    for item in sorted_patterns_data:
-        item['id'] = counter
-        final_patterns_data.append(item)
-        counter += 1
-
-    return final_patterns_data
+    return numbering_patterns_data
 
 
 def generate_insert_statements(data_list, database_columns):
@@ -589,7 +619,7 @@ def start(credentials):
     global ALEPH_TO_KOHA_MAPPING_PATH
 
     data = fetch_data(credentials)
-    # write_data(data)
+    write_data(data)
 
     with open(ALEPH_TO_KOHA_MAPPING_PATH, 'wb') as mapping_file:
         pickle.dump(ALEPH_TO_KOHA_MAPPING, mapping_file)
