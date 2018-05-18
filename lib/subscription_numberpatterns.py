@@ -416,7 +416,7 @@ def handle_two_variables_pattern(parsed_data, data):
             return parsed_data
 
     elif issue_exists and volume_exists:
-        volume_variables = calculate_volume_variables()
+        volume_variables = calculate_volume_variables(data)
         if volume_variables is None:
             log_unhandled_patterns(data, 'unhandled case for two variables (no valid year variables)')
             return parsed_data
