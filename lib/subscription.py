@@ -73,10 +73,17 @@ def parse_z16(parsed_results, data):
 
     result = dict()
 
+    logger.debug('%s <> %s' % (data[2], data[-2][0:50]))
+
     result['branchcode'] = library_keys.map_aleph_key(data[2].strip())
 
-    result['periodicity'] = FREQUENCY_MAPPING[data[0][0:9]]
-    result['numberpattern'] = PATTERN_MAPPING[data[0][0:9]]
+    doc_key = data[0][0:9]
+
+    if doc_key in PATTERN_MAPPING:
+        result['numberpattern'] = PATTERN_MAPPING[data[0][0:9]]
+
+    if doc_key in FREQUENCY_MAPPING:
+        result['periodicity'] = FREQUENCY_MAPPING[data[0][0:9]]
 
     return parsed_results
 
@@ -91,8 +98,9 @@ def fetch_data(credentials):
         PATTERN_MAPPING = pickle.load(mapping_file)
 
     oracle.establish_connection(credentials)
+    mariadb.establish_connection()
 
-    cursor = oracle.get_z16_data()
+    cursor = oracle.get_subscription_data()
     subscriptions = dict()
     for row in cursor:
         subscriptions = parse_z16(subscriptions, row)
