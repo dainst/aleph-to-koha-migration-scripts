@@ -347,7 +347,6 @@ def handle_two_variables_pattern(parsed_data, data):
     second_variable_type = match.group(4)
 
     if year_exists and volume_exists:
-
         year_variables = calculate_year_variables(data)
         if year_variables is None:
             log_unhandled_patterns(data, 'unhandled case for two variables (no valid year variables)')
@@ -379,8 +378,9 @@ def handle_two_variables_pattern(parsed_data, data):
             result['label'] = '%s{Jahr}%s{Band}%s' % (match.group(1), match.group(3), match.group(5))
             koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
         else:
-            log_unhandled_patterns(data, 'unhandled case for two variables including volume')
+            log_unhandled_patterns(data, 'unhandled case for two variables')
             return parsed_data
+
     elif year_exists and issue_exists:
         year_variables = calculate_year_variables(data)
         if year_variables is None:
@@ -412,12 +412,46 @@ def handle_two_variables_pattern(parsed_data, data):
             result['label'] = '%s{Jahr}%s{Heft}%s' % (match.group(1), match.group(3), match.group(5))
             koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
         else:
-            log_unhandled_patterns(data, 'unhandled case for two variables including issue')
+            log_unhandled_patterns(data, 'unhandled case for two variables')
             return parsed_data
+
     elif issue_exists and volume_exists:
-        # TODO
-        log_unhandled_patterns(data, 'unhandled case for two variables including issue')
-        return parsed_data
+        volume_variables = calculate_volume_variables()
+        if volume_variables is None:
+            log_unhandled_patterns(data, 'unhandled case for two variables (no valid year variables)')
+            return parsed_data
+
+        description = [frequency[3] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'issue']
+
+        result['label1'] = volume_variables[0]
+        result['add1'] = volume_variables[1]
+        result['every1'] = volume_variables[2]
+        result['whenmorethan1'] = volume_variables[3]
+        result['setto1'] = volume_variables[4]
+        result['description'] = description[0]
+
+        issue_variables = calculate_issue_variables(data)
+        if issue_variables is None:
+            log_unhandled_patterns(data, 'unhandled case for two variables (no valid issue variables)')
+            return parsed_data
+
+        result['label2'] = issue_variables[0]
+        result['add2'] = issue_variables[1]
+        result['every2'] = issue_variables[2]
+        result['whenmorethan2'] = issue_variables[3]
+        result['setto2'] = issue_variables[4]
+        result['description'] = description[0]
+
+        if first_variable_type == 'I':
+            result['label'] = '%s{Heft}%s{Band}%s' % (match.group(1), match.group(3), match.group(5))
+            koha_pattern = '%s{Y}%s{X}%s' % (match.group(1), match.group(3), match.group(5))
+        elif second_variable_type == 'I':
+            result['label'] = '%s{Band}%s{Heft}%s' % (match.group(1), match.group(3), match.group(5))
+            koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
+        else:
+            log_unhandled_patterns(data, 'unhandled case for two variables')
+            return parsed_data
+
     else:
         log_unhandled_patterns(data, 'unhandled case for two variables (neither Y+I nor Y+V)')
         return parsed_data
