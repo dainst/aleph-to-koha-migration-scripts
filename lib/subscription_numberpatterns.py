@@ -266,15 +266,15 @@ def handle_three_variables_pattern(parsed_data, data):
 
     year_variables = calculate_year_variables(data)
     if year_variables is None:
-        log_unhandled_patterns(data, 'unhandled case for three variables (no year variables)')
+        log_unhandled_patterns(data, 'unhandled case for three variables (no valid year variables)')
         return parsed_data
     volume_variables = calculate_volume_variables(data)
     if volume_variables is None:
-        log_unhandled_patterns(data, 'unhandled case for three variables (no volume variables)')
+        log_unhandled_patterns(data, 'unhandled case for three variables (no valid volume variables)')
         return parsed_data
     issue_variables = calculate_issue_variables(data)
     if issue_variables is None:
-        log_unhandled_patterns(data, 'unhandled case for three variables (no issue variables)')
+        log_unhandled_patterns(data, 'unhandled case for three variables (no valid issue variables)')
         return parsed_data
 
     result['label1'] = year_variables[0]
@@ -326,90 +326,100 @@ def handle_two_variables_pattern(parsed_data, data):
 
     result = dict()
 
-    aleph_pattern = data[2].upper()
-    match = TWO_VARIABLES_PATTERN.match(aleph_pattern)
+    year_exists = '$Y' in data[2].upper()
+    volume_exists = '$V' in data[2].upper()
+    issue_exists = '$I' in data[2].upper()
+
+    if not ((year_exists and volume_exists) or (year_exists and issue_exists) or (volume_exists and issue_exists)):
+        log_unhandled_patterns(data, 'unhandled case for two variables (neither $Y and $I, nor $Y and $V)')
+        return parsed_data
+
+    match = TWO_VARIABLES_PATTERN.match(data[2].upper())
+    if match is None:
+        log_unhandled_patterns(data, 'unhandled case for two variables (pattern match failed)')
+        return parsed_data
 
     # In Koha, the variables in the pattern are {X}, {Y}, {Z}
     # while in Aleph $Y denotes a year, $V a volume etc. So Koha is more generic. Also, if $Y is the "highest order"
     # variable, it has to be represented as {X}
-    if match is not None:
-        (first_variable_type, second_variable_type) = (match.group(2), match.group(4))
-        if (first_variable_type == 'Y' or second_variable_type == 'Y') \
-                and (first_variable_type == 'V' or second_variable_type == 'V'):
 
-            year_variables = calculate_year_variables(data)
-            if year_variables is None:
-                log_unhandled_patterns(data, 'unable to parse year variables')
-                return parsed_data
+    first_variable_type = match.group(2)
+    second_variable_type = match.group(4)
 
-            # Always use {X} as year variable
-            result['label1'] = year_variables[0]
-            result['add1'] = year_variables[1]
-            result['every1'] = year_variables[2]
-            result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
+    if year_exists and volume_exists:
 
-            description = [frequency[3] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'volume']
-            volume_variables = calculate_volume_variables(data)
-            if volume_variables is None:
-                log_unhandled_patterns(data, 'unable to parse volume variables')
-                return parsed_data
-
-            result['label2'] = volume_variables[0]
-            result['add2'] = volume_variables[1]
-            result['every2'] = volume_variables[2]
-            result['whenmorethan2'] = volume_variables[3]
-            result['setto2'] = volume_variables[4]
-            result['description'] = description[0]
-
-            if first_variable_type == 'V':
-                result['label'] = '%s{Band}%s{Jahr}%s' % (match.group(1), match.group(3), match.group(5))
-                koha_pattern = '%s{Y}%s{X}%s' % (match.group(1), match.group(3), match.group(5))
-            elif second_variable_type == 'V':
-                result['label'] = '%s{Jahr}%s{Band}%s' % (match.group(1), match.group(3), match.group(5))
-                koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
-            else:
-                log_unhandled_patterns(data, 'unhandled case for two variables including volume')
-                return parsed_data
-        elif (first_variable_type == 'Y' or second_variable_type == 'Y') \
-                and (first_variable_type == 'I' or second_variable_type == 'I'):
-
-            year_variables = calculate_year_variables(data)
-            if year_variables is None:
-                log_unhandled_patterns(data, 'unable to parse year variables')
-                return parsed_data
-
-            # Always use {X} as year variable
-            result['label1'] = year_variables[0]
-            result['add1'] = year_variables[1]
-            result['every1'] = year_variables[2]
-            result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
-            description = [frequency[3] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'issue']
-            issue_variables = calculate_issue_variables(data)
-            if issue_variables is None:
-                log_unhandled_patterns(data, 'unable to parse issue variables')
-                return parsed_data
-
-            result['label2'] = issue_variables[0]
-            result['add2'] = issue_variables[1]
-            result['every2'] = issue_variables[2]
-            result['whenmorethan2'] = issue_variables[3]
-            result['setto2'] = issue_variables[4]
-            result['description'] = description[0]
-
-            if first_variable_type == 'I':
-                result['label'] = '%s{Heft}%s{Jahr}%s' % (match.group(1), match.group(3), match.group(5))
-                koha_pattern = '%s{Y}%s{X}%s' % (match.group(1), match.group(3), match.group(5))
-            elif second_variable_type == 'I':
-                result['label'] = '%s{Jahr}%s{Heft}%s' % (match.group(1), match.group(3), match.group(5))
-                koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
-            else:
-                log_unhandled_patterns(data, 'unhandled case for two variables including issue')
-                return parsed_data
-        else:
-            log_unhandled_patterns(data, 'unhandled case for two variables (neither Y+I nor Y+V)')
+        year_variables = calculate_year_variables(data)
+        if year_variables is None:
+            log_unhandled_patterns(data, 'unhandled case for two variables (no valid year variables)')
             return parsed_data
+
+        # Always use {X} as year variable
+        result['label1'] = year_variables[0]
+        result['add1'] = year_variables[1]
+        result['every1'] = year_variables[2]
+        result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
+
+        description = [frequency[3] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'volume']
+        volume_variables = calculate_volume_variables(data)
+        if volume_variables is None:
+            log_unhandled_patterns(data, 'unhandled case for two variables (no valid volume variables)')
+            return parsed_data
+
+        result['label2'] = volume_variables[0]
+        result['add2'] = volume_variables[1]
+        result['every2'] = volume_variables[2]
+        result['whenmorethan2'] = volume_variables[3]
+        result['setto2'] = volume_variables[4]
+        result['description'] = description[0]
+
+        if first_variable_type == 'V':
+            result['label'] = '%s{Band}%s{Jahr}%s' % (match.group(1), match.group(3), match.group(5))
+            koha_pattern = '%s{Y}%s{X}%s' % (match.group(1), match.group(3), match.group(5))
+        elif second_variable_type == 'V':
+            result['label'] = '%s{Jahr}%s{Band}%s' % (match.group(1), match.group(3), match.group(5))
+            koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
+        else:
+            log_unhandled_patterns(data, 'unhandled case for two variables including volume')
+            return parsed_data
+    elif year_exists and issue_exists:
+        year_variables = calculate_year_variables(data)
+        if year_variables is None:
+            log_unhandled_patterns(data, 'unhandled case for two variables (no valid year variables)')
+            return parsed_data
+
+        # Always use {X} as year variable
+        result['label1'] = year_variables[0]
+        result['add1'] = year_variables[1]
+        result['every1'] = year_variables[2]
+        result['whenmorethan1'] = MAX_NUMBER_PATTERN_VALUE
+        description = [frequency[3] for frequency in FREQUENCY_MAPPING[data[0]] if frequency[2] == 'issue']
+        issue_variables = calculate_issue_variables(data)
+        if issue_variables is None:
+            log_unhandled_patterns(data, 'unhandled case for two variables (no valid issue variables)')
+            return parsed_data
+
+        result['label2'] = issue_variables[0]
+        result['add2'] = issue_variables[1]
+        result['every2'] = issue_variables[2]
+        result['whenmorethan2'] = issue_variables[3]
+        result['setto2'] = issue_variables[4]
+        result['description'] = description[0]
+
+        if first_variable_type == 'I':
+            result['label'] = '%s{Heft}%s{Jahr}%s' % (match.group(1), match.group(3), match.group(5))
+            koha_pattern = '%s{Y}%s{X}%s' % (match.group(1), match.group(3), match.group(5))
+        elif second_variable_type == 'I':
+            result['label'] = '%s{Jahr}%s{Heft}%s' % (match.group(1), match.group(3), match.group(5))
+            koha_pattern = '%s{X}%s{Y}%s' % (match.group(1), match.group(3), match.group(5))
+        else:
+            log_unhandled_patterns(data, 'unhandled case for two variables including issue')
+            return parsed_data
+    elif issue_exists and volume_exists:
+        # TODO
+        log_unhandled_patterns(data, 'unhandled case for two variables including issue')
+        return parsed_data
     else:
-        log_unhandled_patterns(data, 'unhandled case for two variables (pattern match failed)')
+        log_unhandled_patterns(data, 'unhandled case for two variables (neither Y+I nor Y+V)')
         return parsed_data
 
     result['numberingmethod'] = koha_pattern
