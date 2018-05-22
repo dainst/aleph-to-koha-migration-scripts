@@ -33,25 +33,19 @@ Z08_DATA = dict()
   `weeklength` int(11) DEFAULT '0',
   `monthlength` int(11) DEFAULT '0',
   `numberlength` int(11) DEFAULT '0',
-  `countissuesperunit` int(11) NOT NULL DEFAULT '1',
   `notes` mediumtext COLLATE utf8_unicode_ci,
-  `status` varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   `lastvalue1` int(11) DEFAULT NULL,
   `innerloop1` int(11) DEFAULT '0',
   `lastvalue2` int(11) DEFAULT NULL,
   `innerloop2` int(11) DEFAULT '0',
   `lastvalue3` int(11) DEFAULT NULL,
   `innerloop3` int(11) DEFAULT '0',
-  `manualhistory` tinyint(1) NOT NULL DEFAULT '0',
   `irregularity` text COLLATE utf8_unicode_ci,
   `skip_serialseq` tinyint(1) NOT NULL DEFAULT '0',
   `letter` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL,
   `locale` varchar(80) COLLATE utf8_unicode_ci DEFAULT NULL,
   `distributedto` text COLLATE utf8_unicode_ci,
   `callnumber` text COLLATE utf8_unicode_ci,
-  `serialsadditems` tinyint(1) NOT NULL DEFAULT '0',
-  `graceperiod` int(11) NOT NULL DEFAULT '0',
-  `closed` int(1) NOT NULL DEFAULT '0',
   `reneweddate` date DEFAULT NULL,
 '''
 
@@ -89,6 +83,11 @@ def parse_z16(parsed_results, data):
     result['internalnotes'] = data[24]
     result['status'] = 1  # status == 1 means "expected"
     result['countissuesperunit'] = 1
+    result['serialsadditems'] = 0  # does receiving this serial create an item record
+    result['manualhistory'] = 0  # yes or no to managing the history manually
+    result['skip_serialseq'] = 0
+    result['graceperiod'] = 0
+    result['closed'] = 0
 
     if data[4] == '20991231':
         end_date = None
