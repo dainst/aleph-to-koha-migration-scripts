@@ -26,7 +26,7 @@ MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/' \
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_numberpatterns_data_import.sql'
 
 ALEPH_TO_KOHA_MAPPING = {}
-ALEPH_TO_KOHA_MAPPING_PATH = script_dir + '/subscription_patterns_mapping.pickle'
+ALEPH_TO_KOHA_MAPPING_PATH = script_dir + '/../pickles/subscription_patterns_mapping.pickle'
 
 
 MAX_NUMBER_PATTERN_VALUE = 99999
@@ -36,6 +36,7 @@ SINGLE_VARIABLE_PATTERN = re.compile(r'^(.*)\$(.)(.*)$')
 TWO_VARIABLES_PATTERN = re.compile(r'^(.*)\$(.)(.*)\$(.)(.*)$')
 THREE_VARIABLES_PATTERN = re.compile(r'^(.*)\$(.)(.*)\$(.)(.*)\$(.)(.*)$')
 
+FREQUENCY_ALEPH_TO_KOHA_MAPPING_PATH = script_dir + '/../pickles/subscription_frequencies_mapping.pickle'
 FREQUENCY_MAPPING = None
 
 PATTERN_COUNTER = 1
@@ -564,13 +565,14 @@ def parse_numbering_pattern(parsed_data, data):
 def fetch_data(credentials):
 
     global FREQUENCY_MAPPING
+    global FREQUENCY_ALEPH_TO_KOHA_MAPPING_PATH
 
     oracle.establish_connection(credentials)
 
     cursor = oracle.get_z08_data()
     numbering_patterns_data = dict()
 
-    with open(script_dir + '/subscription_frequencies_mapping.pickle', 'rb') as mapping_file:
+    with open(FREQUENCY_ALEPH_TO_KOHA_MAPPING_PATH, 'rb') as mapping_file:
         FREQUENCY_MAPPING = pickle.load(mapping_file)
         for row in cursor:
             numbering_patterns_data = parse_numbering_pattern(numbering_patterns_data, row)

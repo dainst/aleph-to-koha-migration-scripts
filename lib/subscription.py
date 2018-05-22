@@ -24,6 +24,7 @@ IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_data_impor
 SUBSCRIPTION_COUNTER = 1
 FREQUENCY_MAPPING = None
 PATTERN_MAPPING = None
+SYS_NUMBER_TO_BIB_ID_MAPPING_PATH = script_dir + '/../pickles/SYS_NUMBER_TO_BIB_ID_MAPPING.pickle'
 SYS_NUMBER_TO_BIB_ID_MAPPING = None
 Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
 Z08_DATA = dict()
@@ -132,9 +133,9 @@ def fetch_data(credentials):
     global PATTERN_MAPPING
     global Z00_TO_BIBLIOGRAPHIC_ID_MAPPING
 
-    with open(script_dir + '/subscription_frequencies_mapping.pickle', 'rb') as mapping_file:
+    with open(script_dir + '/../pickles/subscription_frequencies_mapping.pickle', 'rb') as mapping_file:
         FREQUENCY_MAPPING = pickle.load(mapping_file)
-    with open(script_dir + '/subscription_patterns_mapping.pickle', 'rb') as mapping_file:
+    with open(script_dir + '/../pickles/subscription_patterns_mapping.pickle', 'rb') as mapping_file:
         PATTERN_MAPPING = pickle.load(mapping_file)
 
     oracle.establish_connection(credentials)
@@ -236,10 +237,11 @@ def write_data(result_dict):
         cursor.close()
 
 
-def start(credentials, sys_number_to_bib_id_mapping_file):
+def start(credentials):
+    global SYS_NUMBER_TO_BIB_ID_MAPPING_PATH
     global SYS_NUMBER_TO_BIB_ID_MAPPING
 
-    with open(sys_number_to_bib_id_mapping_file, 'rb') as id_mapping_file:
+    with open(SYS_NUMBER_TO_BIB_ID_MAPPING_PATH, 'rb') as id_mapping_file:
         SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(id_mapping_file)
 
     subscriptions = fetch_data(credentials)
@@ -248,10 +250,9 @@ def start(credentials, sys_number_to_bib_id_mapping_file):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 1:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
-        logger.info('2) Pickle with bibliographic id mapping.')
         sys.exit()
 
-    start(sys.argv[1], sys.argv[2])
+    start(sys.argv[1])

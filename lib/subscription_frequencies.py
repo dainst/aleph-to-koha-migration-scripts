@@ -17,7 +17,7 @@ MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/029000_subs
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_frequencies_data_import.sql'
 
 ALEPH_TO_KOHA_MAPPING = {}
-ALEPH_TO_KOHA_MAPPING_PATH = script_dir + '/subscription_frequencies_mapping.pickle'
+ALEPH_TO_KOHA_MAPPING_PATH = script_dir + '/../pickles/subscription_frequencies_mapping.pickle'
 
 FREQUENCY_COUNTER = 1
 FREQUENCY_RELEVANCE_COUNTER = {}
