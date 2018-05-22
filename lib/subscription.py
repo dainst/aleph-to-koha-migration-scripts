@@ -25,10 +25,10 @@ FREQUENCY_MAPPING = None
 PATTERN_MAPPING = None
 SYS_NUMBER_TO_BIB_ID_MAPPING = None
 Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
+Z08_DATA = dict()
 
 '''
   `cost` int(11) DEFAULT '0',
-  `aqbudgetid` int(11) DEFAULT '0',
   `weeklength` int(11) DEFAULT '0',
   `monthlength` int(11) DEFAULT '0',
   `numberlength` int(11) DEFAULT '0',
@@ -64,6 +64,13 @@ def parse_z16(parsed_results, data):
     result = dict()
     doc_key = data[0][0:9]
 
+    budget = mariadb.get_budget_by_code(data[-2][0:50])
+
+    if budget is None:
+        logger.warning('No found for Aleph code "%s". Subscription (Z16): %s' % (data[-2][0:50], data[0]))
+    else:
+        result['aqbudgetid'] = budget[0]
+
     try:
         sys_number = Z00_TO_BIBLIOGRAPHIC_ID_MAPPING[doc_key]
         koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
@@ -86,7 +93,6 @@ def parse_z16(parsed_results, data):
     result['enddate'] = end_date
 
     result['location'] = marc_mapping.map_shelving_location(data[13], koha_bib_id)
-
 
     if doc_key in PATTERN_MAPPING:
         result['numberpattern'] = PATTERN_MAPPING[doc_key]
