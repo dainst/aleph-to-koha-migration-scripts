@@ -155,6 +155,14 @@ def fetch_data(credentials):
         subscriptions = parse_z16(subscriptions, row)
     cursor.close()
 
+    subscription_to_order_mapping = dict()
+    data_cursor = oracle.get_subscription_to_order_mapping()
+    for query_result in data_cursor:
+        subscription_to_order_mapping[query_result[0]] = query_result[1]
+
+    with open(script_dir + '/../pickles/subscription_to_order_mapping.pickle', 'wb') as mapping_file:
+        pickle.dump(subscription_to_order_mapping, mapping_file)
+
     return subscriptions
 
 

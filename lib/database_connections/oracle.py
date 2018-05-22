@@ -179,3 +179,10 @@ def get_subscription_data():
                        'Z16.Z16_ORDER_NUMBER = Z68.Z68_ORDER_NUMBER ' +
                        'AND Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 ' +
                        'AND Z601.Z601_TYPE=:1', ('ENC',))
+
+
+def get_subscription_to_order_mapping():
+    global connection
+    cur = connection.cursor()
+    return cur.execute('SELECT Z16.Z16_REC_KEY, Z68.Z68_REC_KEY FROM Z16, Z68 ' +
+                       'WHERE Z16.Z16_ORDER_NUMBER = Z68.Z68_ORDER_NUMBER')
