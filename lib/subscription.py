@@ -228,10 +228,10 @@ def write_data(result_dict):
         cursor.close()
 
 
-def start(credentials, id_mapping_file):
+def start(credentials, sys_number_to_bib_id_mapping_file):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
 
-    with open(id_mapping_file, 'rb') as id_mapping_file:
+    with open(sys_number_to_bib_id_mapping_file, 'rb') as id_mapping_file:
         SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(id_mapping_file)
 
     subscriptions = fetch_data(credentials)
