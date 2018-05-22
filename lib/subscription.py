@@ -7,7 +7,7 @@ import pickle
 import lib.database_connections.oracle as oracle
 import lib.mappings.library_keys as library_keys
 import lib.database_connections.mariadb as mariadb
-import lib.oracle_helper.z08 as z08_helper
+import lib.oracle_helper.z00 as z00_helper
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -21,6 +21,8 @@ IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_numberpatt
 
 FREQUENCY_MAPPING = None
 PATTERN_MAPPING = None
+SYS_NUMBER_TO_BIB_ID_MAPPING = None
+Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
 
 '''
   `biblionumber` int(11) NOT NULL DEFAULT '0',
@@ -33,7 +35,6 @@ PATTERN_MAPPING = None
   `weeklength` int(11) DEFAULT '0',
   `monthlength` int(11) DEFAULT '0',
   `numberlength` int(11) DEFAULT '0',
-  `periodicity` int(11) DEFAULT NULL,
   `countissuesperunit` int(11) NOT NULL DEFAULT '1',
   `notes` mediumtext COLLATE utf8_unicode_ci,
   `status` varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
@@ -69,12 +70,21 @@ PATTERN_MAPPING = None
 def parse_z16(parsed_results, data):
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
+    global Z00_TO_BIBLIOGRAPHIC_ID_MAPPING
+    global SYS_NUMBER_TO_BIB_ID_MAPPING
 
     result = dict()
-
-    result['branchcode'] = library_keys.map_aleph_key(data[2].strip())
-
     doc_key = data[0][0:9]
+
+    try:
+        sys_number = Z00_TO_BIBLIOGRAPHIC_ID_MAPPING[doc_key]
+        koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
+    except KeyError:
+        logger.warning('Koha bibliographic ID missing for subscription (Z16): %s.' % data[0])
+        koha_bib_id = None
+
+    result['biblionumber'] = koha_bib_id
+    result['branchcode'] = library_keys.map_aleph_key(data[2].strip())
 
     if doc_key in PATTERN_MAPPING:
         result['numberpattern'] = PATTERN_MAPPING[doc_key]
@@ -99,6 +109,7 @@ def parse_z16(parsed_results, data):
 def fetch_data(credentials):
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
+    global Z00_TO_BIBLIOGRAPHIC_ID_MAPPING
 
     with open(script_dir + '/subscription_frequencies_mapping.pickle', 'rb') as mapping_file:
         FREQUENCY_MAPPING = pickle.load(mapping_file)
@@ -107,6 +118,15 @@ def fetch_data(credentials):
 
     oracle.establish_connection(credentials)
     mariadb.establish_connection()
+
+    logger.info('Fetching title IDs...')
+    data_cursor = oracle.get_z00_data()
+    for query_result in data_cursor:
+        bibliographic_id = z00_helper.get_bibliographic_id_for_adm_number(query_result)
+        if bibliographic_id is not None:
+            Z00_TO_BIBLIOGRAPHIC_ID_MAPPING[query_result[0]] = bibliographic_id
+    data_cursor.close()
+    logger.info('Done.')
 
     cursor = oracle.get_subscription_data()
     subscriptions = dict()
@@ -117,15 +137,21 @@ def fetch_data(credentials):
     return subscriptions
 
 
-def start(credentials):
+def start(credentials, id_mapping_file):
+    global SYS_NUMBER_TO_BIB_ID_MAPPING
+
+    with open(id_mapping_file, 'rb') as id_mapping_file:
+        SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(id_mapping_file)
+
     subscriptions = fetch_data(credentials)
 
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
+        logger.info('2) Pickle with bibliographic id mapping.')
         sys.exit()
 
-    start(sys.argv[1])
+    start(sys.argv[1], sys.argv[2])
