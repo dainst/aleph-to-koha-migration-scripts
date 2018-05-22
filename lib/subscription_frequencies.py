@@ -124,7 +124,7 @@ def fetch_data(credentials):
     return frequencies
 
 
-def generate_insert_statements(data_list, database_columns):
+def generate_insert_statements(data_dict, database_columns):
     import_table_statement = 'INSERT INTO subscription_frequencies ('
     keys_len = len(database_columns)
 
@@ -139,8 +139,8 @@ def generate_insert_statements(data_list, database_columns):
 
     counter = 0
 
-    for aleph_key in data_list:
-        frequency = data_list[aleph_key]
+    for aleph_key in data_dict:
+        frequency = data_dict[aleph_key]
         if counter != 0:
             import_table_statement += ','
 
