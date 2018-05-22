@@ -6,6 +6,8 @@ import pickle
 
 import lib.database_connections.oracle as oracle
 import lib.mappings.library_keys as library_keys
+import lib.mappings.marc_mappings as marc_mapping
+import lib.oracle_helper.dates as date_helper
 import lib.database_connections.mariadb as mariadb
 import lib.oracle_helper.z00 as z00_helper
 
@@ -25,11 +27,7 @@ SYS_NUMBER_TO_BIB_ID_MAPPING = None
 Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
 
 '''
-  `biblionumber` int(11) NOT NULL DEFAULT '0',
-  `subscriptionid` int(11) NOT NULL AUTO_INCREMENT,
-  `librarian` varchar(100) COLLATE utf8_unicode_ci DEFAULT '',
   `startdate` date DEFAULT NULL,
-  `aqbooksellerid` int(11) DEFAULT '0',
   `cost` int(11) DEFAULT '0',
   `aqbudgetid` int(11) DEFAULT '0',
   `weeklength` int(11) DEFAULT '0',
@@ -59,7 +57,6 @@ Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
   `staffdisplaycount` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
   `opacdisplaycount` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
   `graceperiod` int(11) NOT NULL DEFAULT '0',
-  `enddate` date DEFAULT NULL,
   `closed` int(1) NOT NULL DEFAULT '0',
   `reneweddate` date DEFAULT NULL,
   `itemtype` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
@@ -85,6 +82,14 @@ def parse_z16(parsed_results, data):
 
     result['biblionumber'] = koha_bib_id
     result['branchcode'] = library_keys.map_aleph_key(data[2].strip())
+    result['startdate'] = date_helper.process_aleph_date(data[3])
+
+    if data[4] == '20991231':
+        end_date = None
+    else:
+        end_date = date_helper.process_aleph_date(data[4])
+    result['enddate'] = end_date
+
 
     if doc_key in PATTERN_MAPPING:
         result['numberpattern'] = PATTERN_MAPPING[doc_key]
