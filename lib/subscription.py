@@ -47,17 +47,11 @@ Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
   `letter` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL,
   `locale` varchar(80) COLLATE utf8_unicode_ci DEFAULT NULL,
   `distributedto` text COLLATE utf8_unicode_ci,
-  `internalnotes` longtext COLLATE utf8_unicode_ci,
   `callnumber` text COLLATE utf8_unicode_ci,
-  `lastbranch` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
   `serialsadditems` tinyint(1) NOT NULL DEFAULT '0',
-  `staffdisplaycount` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `opacdisplaycount` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
   `graceperiod` int(11) NOT NULL DEFAULT '0',
   `closed` int(1) NOT NULL DEFAULT '0',
   `reneweddate` date DEFAULT NULL,
-  `itemtype` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `previousitemtype` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
 '''
 
 
@@ -83,6 +77,7 @@ def parse_z16(parsed_results, data):
     result['firstacquidate'] = date_helper.process_aleph_date(data[3])  # ^---
 
     result['itemtype'] = 'CR'
+    result['internalnotes'] = data[24]
 
     if data[4] == '20991231':
         end_date = None
@@ -91,6 +86,7 @@ def parse_z16(parsed_results, data):
     result['enddate'] = end_date
 
     result['location'] = marc_mapping.map_shelving_location(data[13], koha_bib_id)
+
 
     if doc_key in PATTERN_MAPPING:
         result['numberpattern'] = PATTERN_MAPPING[doc_key]
