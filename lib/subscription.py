@@ -21,6 +21,7 @@ MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/' \
                                        '043000_subscription_numberpatterns_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_numberpatterns_data_import.sql'
 
+SUBSCRIPTION_COUNTER = 1
 FREQUENCY_MAPPING = None
 PATTERN_MAPPING = None
 SYS_NUMBER_TO_BIB_ID_MAPPING = None
@@ -56,6 +57,7 @@ Z08_DATA = dict()
 
 
 def parse_z16(parsed_results, data):
+    global SUBSCRIPTION_COUNTER
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
     global Z00_TO_BIBLIOGRAPHIC_ID_MAPPING
@@ -95,12 +97,17 @@ def parse_z16(parsed_results, data):
     result['location'] = marc_mapping.map_shelving_location(data[13], koha_bib_id)
 
     if doc_key in PATTERN_MAPPING:
-        result['numberpattern'] = PATTERN_MAPPING[doc_key]
+        result['numberpattern'] = PATTERN_MAPPING[doc_key]['id']
     else:
         logger.warning('No number pattern for Aleph subscription (Z16): %s.' % data[0])
 
     if doc_key in FREQUENCY_MAPPING:
-        result['periodicity'] = FREQUENCY_MAPPING[doc_key]
+        frequency_list = FREQUENCY_MAPPING[doc_key]
+        if len(frequency_list) == 1:
+            result['periodicity'] = frequency_list[0][0]
+        else:
+            [issue_frequency] = [frequency[0:2] for frequency in frequency_list if frequency[2] == 'issue']
+            result['periodicity'] = issue_frequency[0]
     else:
         logger.warning('No periodicity information for Aleph subscription (Z16): %s.' % data[0])
 
@@ -110,6 +117,11 @@ def parse_z16(parsed_results, data):
                        % (data[5], data[0]))
     else:
         result['aqbooksellerid'] = bookseller[0]
+
+    result['subscriptionid'] = SUBSCRIPTION_COUNTER
+    SUBSCRIPTION_COUNTER += 1
+
+    parsed_results[data[0]] = result
 
     return parsed_results
 
@@ -145,6 +157,7 @@ def fetch_data(credentials):
     return subscriptions
 
 
+
 def start(credentials, id_mapping_file):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
 
@@ -152,6 +165,7 @@ def start(credentials, id_mapping_file):
         SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(id_mapping_file)
 
     subscriptions = fetch_data(credentials)
+    # write_data(subscriptions)
 
 
 if __name__ == '__main__':
