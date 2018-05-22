@@ -82,6 +82,8 @@ def parse_z16(parsed_results, data):
     result['startdate'] = date_helper.process_aleph_date(data[3])  # TODO: Check if this is a valid interpretation
     result['firstacquidate'] = date_helper.process_aleph_date(data[3])  # ^---
 
+    result['itemtype'] = 'CR'
+
     if data[4] == '20991231':
         end_date = None
     else:
