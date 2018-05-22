@@ -88,6 +88,7 @@ def parse_z16(parsed_results, data):
     result['itemtype'] = 'CR'
     result['internalnotes'] = data[24]
     result['status'] = 1  # status == 1 means "expected"
+    result['countissuesperunit'] = 1
 
     if data[4] == '20991231':
         end_date = None
