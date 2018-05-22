@@ -41,10 +41,12 @@ def process_data(data):
         budget_code = ORDER_TO_BUDGET_MAPPING[data['z68'][0]]
         koha_budget_id = mariadb.get_budget_by_code(budget_code)[0]
 
+    bookseller = mariadb.get_aqbookseller_by_aleph_vendor_key(data['z68'][25].strip())
+
     invoice_number = str(data['z77'][0][20:]).strip()
     result = {
         'invoicenumber': invoice_number,
-        'booksellerid': mariadb.get_aqbookseller_by_aleph_vendor_key(data['z77'][0][:20].strip())[0],
+        'booksellerid': bookseller[0],
         'shipmentdate': dates_helper.process_aleph_date(data['z77'][15]),
         'billingdate': dates_helper.process_aleph_date(data['z77'][13]),
         'closedate': dates_helper.process_aleph_date(data['z77'][18]),
