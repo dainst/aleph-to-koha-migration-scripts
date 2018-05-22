@@ -304,11 +304,13 @@ def handle_three_variables_pattern(parsed_data, data):
 
     values = tuple(result.values())
     result['id'] = PATTERN_COUNTER
+
     if values not in parsed_data:
         parsed_data[values] = result
         PATTERN_COUNTER += 1
-
-    ALEPH_TO_KOHA_MAPPING[data[0]] = result
+        ALEPH_TO_KOHA_MAPPING[data[0]] = result
+    else:
+        ALEPH_TO_KOHA_MAPPING[data[0]] = parsed_data[values]
 
     if values in PATTERN_RELEVANCE_COUNTER:
         PATTERN_RELEVANCE_COUNTER[values] += 1
@@ -464,8 +466,9 @@ def handle_two_variables_pattern(parsed_data, data):
     if values not in parsed_data:
         parsed_data[values] = result
         PATTERN_COUNTER += 1
-
-    ALEPH_TO_KOHA_MAPPING[data[0]] = result
+        ALEPH_TO_KOHA_MAPPING[data[0]] = result
+    else:
+        ALEPH_TO_KOHA_MAPPING[data[0]] = parsed_data[values]
 
     if values in PATTERN_RELEVANCE_COUNTER:
         PATTERN_RELEVANCE_COUNTER[values] += 1
@@ -529,8 +532,9 @@ def handle_single_variable_pattern(parsed_data, data):
     if values not in parsed_data:
         parsed_data[values] = result
         PATTERN_COUNTER += 1
-
-    ALEPH_TO_KOHA_MAPPING[data[0]] = result
+        ALEPH_TO_KOHA_MAPPING[data[0]] = result
+    else:
+        ALEPH_TO_KOHA_MAPPING[data[0]] = parsed_data[values]
 
     if values in PATTERN_RELEVANCE_COUNTER:
         PATTERN_RELEVANCE_COUNTER[values] += 1
