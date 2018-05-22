@@ -48,7 +48,6 @@ PATTERN_MAPPING = None
   `irregularity` text COLLATE utf8_unicode_ci,
   `skip_serialseq` tinyint(1) NOT NULL DEFAULT '0',
   `letter` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `numberpattern` int(11) DEFAULT NULL,
   `locale` varchar(80) COLLATE utf8_unicode_ci DEFAULT NULL,
   `distributedto` text COLLATE utf8_unicode_ci,
   `internalnotes` longtext COLLATE utf8_unicode_ci,
@@ -78,10 +77,14 @@ def parse_z16(parsed_results, data):
     doc_key = data[0][0:9]
 
     if doc_key in PATTERN_MAPPING:
-        result['numberpattern'] = PATTERN_MAPPING[data[0][0:9]]
+        result['numberpattern'] = PATTERN_MAPPING[doc_key]
+    else:
+        logger.warning('No number pattern for Aleph subscription (Z16): %s.' % data[0])
 
     if doc_key in FREQUENCY_MAPPING:
-        result['periodicity'] = FREQUENCY_MAPPING[data[0][0:9]]
+        result['periodicity'] = FREQUENCY_MAPPING[doc_key]
+    else:
+        logger.warning('No periodicity information for Aleph subscription (Z16): %s.' % data[0])
 
     bookseller = mariadb.get_aqbookseller_by_aleph_vendor_key(data[5])
     if bookseller is None:
