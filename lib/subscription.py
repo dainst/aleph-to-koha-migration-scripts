@@ -27,7 +27,6 @@ SYS_NUMBER_TO_BIB_ID_MAPPING = None
 Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
 
 '''
-  `startdate` date DEFAULT NULL,
   `cost` int(11) DEFAULT '0',
   `aqbudgetid` int(11) DEFAULT '0',
   `weeklength` int(11) DEFAULT '0',
@@ -42,7 +41,6 @@ Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
   `innerloop2` int(11) DEFAULT '0',
   `lastvalue3` int(11) DEFAULT NULL,
   `innerloop3` int(11) DEFAULT '0',
-  `firstacquidate` date DEFAULT NULL,
   `manualhistory` tinyint(1) NOT NULL DEFAULT '0',
   `irregularity` text COLLATE utf8_unicode_ci,
   `skip_serialseq` tinyint(1) NOT NULL DEFAULT '0',
@@ -51,7 +49,6 @@ Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
   `distributedto` text COLLATE utf8_unicode_ci,
   `internalnotes` longtext COLLATE utf8_unicode_ci,
   `callnumber` text COLLATE utf8_unicode_ci,
-  `location` varchar(80) COLLATE utf8_unicode_ci DEFAULT '',
   `lastbranch` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
   `serialsadditems` tinyint(1) NOT NULL DEFAULT '0',
   `staffdisplaycount` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
@@ -82,7 +79,8 @@ def parse_z16(parsed_results, data):
 
     result['biblionumber'] = koha_bib_id
     result['branchcode'] = library_keys.map_aleph_key(data[2].strip())
-    result['startdate'] = date_helper.process_aleph_date(data[3])
+    result['startdate'] = date_helper.process_aleph_date(data[3])  # TODO: Check if this is a valid interpretation
+    result['firstacquidate'] = date_helper.process_aleph_date(data[3])  # ^---
 
     if data[4] == '20991231':
         end_date = None
