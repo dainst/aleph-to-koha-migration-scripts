@@ -72,7 +72,7 @@ def parse_z16(parsed_results, data):
         koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
     except KeyError:
         logger.warning('Koha bibliographic ID missing for subscription (Z16): %s.' % data[0])
-        koha_bib_id = None
+        return parsed_results
 
     result['biblionumber'] = koha_bib_id
     result['branchcode'] = library_keys.map_aleph_key(data[2].strip())
