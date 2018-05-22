@@ -18,8 +18,8 @@ logger.setLevel(logging.DEBUG)
 script_dir = os.path.dirname(__file__)
 
 MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/' \
-                                       '043000_subscription_numberpatterns_data_mapping.sql'
-IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_numberpatterns_data_import.sql'
+                                       '043000_subscription_data_mapping.sql'
+IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/subscription_data_import.sql'
 
 SUBSCRIPTION_COUNTER = 1
 FREQUENCY_MAPPING = None
@@ -158,6 +158,76 @@ def fetch_data(credentials):
     return subscriptions
 
 
+def generate_insert_statements(data_dict, database_columns):
+    import_table_statement = 'INSERT INTO subscription ('
+    keys_len = len(database_columns)
+
+    for idx, key in enumerate(database_columns):
+
+        if idx == keys_len - 1:
+            import_table_statement += key
+        else:
+            import_table_statement += key + ','
+
+    import_table_statement += ')\nVALUES'
+
+    counter = 0
+
+    for aleph_key in data_dict:
+        subscription = data_dict[aleph_key]
+        if counter != 0:
+            import_table_statement += ','
+
+        import_table_statement += '\n('
+
+        for idx, key in enumerate(database_columns):
+            if idx == keys_len - 1:
+                if key in subscription and subscription[key] is not None:
+                    import_table_statement += '"' + str(subscription[key]) + '"'
+                else:
+                    import_table_statement += 'NULL'
+            else:
+                if key in subscription and subscription[key] is not None:
+                    import_table_statement += '"' + str(subscription[key]) + '",'
+                else:
+                    import_table_statement += 'NULL,'
+
+        import_table_statement += ')'
+        counter = counter + 1
+
+    import_table_statement += ';\n'
+
+    return import_table_statement
+
+
+def write_data(result_dict):
+
+    database_columns = ['biblionumber', 'subscriptionid', 'librarian', 'startdate', 'aqbooksellerid', 'cost',
+                        'weeklength', 'monthlength', 'numberlength', 'periodicity', 'countissuesperunit',  'status',
+                        'lastvalue1', 'innerloop1', 'lastvalue2', 'innerloop2', 'lastvalue3', 'innerloop3',
+                        'firstacquidate', 'manualhistory', 'irregularity', 'skip_serialseq', 'letter', 'numberpattern',
+                        'locale', 'distributedto', 'internalnotes', 'callnumber', 'location', 'branchcode',
+                        'lastbranch', 'serialsadditems', 'staffdisplaycount', 'opacdisplaycount', 'graceperiod',
+                        'enddate', 'closed', 'reneweddate', 'itemtype', 'previousitemtype']
+
+    with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
+
+        mapping_file.write('USE ' + mariadb.get_db_name() + ";\n\n")
+        mariadb.establish_connection()
+
+        cursor = mariadb.get_cursor()
+
+        import_table_statement = \
+            generate_insert_statements(result_dict, database_columns)
+
+        import_file.write(import_table_statement)
+        mapping_file.write(import_table_statement)
+        cursor.execute(import_table_statement)
+
+        mariadb.commit()
+        cursor.close()
+
+
 def start(credentials, id_mapping_file):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
 
@@ -165,7 +235,7 @@ def start(credentials, id_mapping_file):
         SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(id_mapping_file)
 
     subscriptions = fetch_data(credentials)
-    # write_data(subscriptions)
+    write_data(subscriptions)
 
 
 if __name__ == '__main__':
