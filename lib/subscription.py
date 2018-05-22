@@ -73,8 +73,6 @@ def parse_z16(parsed_results, data):
 
     result = dict()
 
-    logger.debug('%s <> %s' % (data[2], data[-2][0:50]))
-
     result['branchcode'] = library_keys.map_aleph_key(data[2].strip())
 
     doc_key = data[0][0:9]
@@ -84,6 +82,13 @@ def parse_z16(parsed_results, data):
 
     if doc_key in FREQUENCY_MAPPING:
         result['periodicity'] = FREQUENCY_MAPPING[data[0][0:9]]
+
+    bookseller = mariadb.get_aqbookseller_by_aleph_vendor_key(data[5])
+    if bookseller is None:
+        logger.warning('No bookseller found for Aleph vendor code "%s". Aleph subscription (Z16): %s.'
+                       % (data[5], data[0]))
+    else:
+        result['aqbooksellerid'] = bookseller[0]
 
     return parsed_results
 
