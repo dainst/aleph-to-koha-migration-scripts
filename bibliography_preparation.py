@@ -367,7 +367,6 @@ def map_aleph_vendor_code(aleph_z70_vendor_code):
         # logger.info("aleph_code: %s", aleph_code)
         # logger.info("koha_id: %s", koha_id)
         if aleph_z70_vendor_code == aleph_code:
-
             return koha_id
     else:
 
@@ -817,7 +816,7 @@ def prepare_holding_data(record):
             note_circulation_subfield_code = 'C'
             subfield_952_C = field_952[note_circulation_subfield_code]
             map_aleph_string_field(holding_field_code, note_circulation_subfield_code,
-                                 'Z30_NOTE_CIRCULATION', subfield_952_C)
+                                   'Z30_NOTE_CIRCULATION', subfield_952_C)
 
             # '952$D' Beschreibung
             description_subfield_code = 'D'
@@ -829,7 +828,7 @@ def prepare_holding_data(record):
             subfield_952_E = field_952[expected_arrival_date_subfield_code]
             if subfield_952_E is not None:
                 expected_arrival_date = map_aleph_date_field(holding_field_code, expected_arrival_date_subfield_code,
-                                                          'Z30_EXPECTED_ARRIVAL_DATE', subfield_952_E)
+                                                             'Z30_EXPECTED_ARRIVAL_DATE', subfield_952_E)
                 if expected_arrival_date is None:
                     logger.info("Field No. %s: Skipping subfield '%s' = %s",
                                 holding_field_counter, expected_arrival_date_subfield_code, subfield_952_E)
@@ -879,7 +878,6 @@ def prepare_holding_data(record):
                     field_952.delete_subfield(item_statistic_subfield_code)
                 else:
                     field_952[item_statistic_subfield_code] = item_statistic
-
 
             # '952$U' Änderungsdatum
             update_date_subfield_code = 'U'
@@ -956,178 +954,6 @@ def process_bibliographic_data(input_path, output_path, mapping):
                 writer.write(record)
 
 
-field_952_A_no = 0
-special_order_number_counter = 0
-
-
-def inspect_order_numbers(record):
-    global field_952_A_no
-    global special_order_number_counter
-
-    field_952_list = record.get_fields('952')
-    for field_952 in field_952_list:
-        field_952_A = field_952['A']
-
-        if field_952_A is not None:
-            field_952_A_no += 1
-
-            if field_952_A == 'R/2005-397':
-                special_order_number_counter +=1
-
-            field_001_list = record.get_fields('001')
-            for field_001 in field_001_list:
-                logger.debug('%s: 952$A = %s', field_001, field_952_A)
-
-
-field_300_e_and_3_comb_no = 0
-field_300_e_no = 0
-field_300_3_no = 0
-field_852_3_no = 0
-field_952_3_no = 0
-
-
-def inspect_materials_specified_data(record):
-    global field_300_e_no
-    global field_300_3_no
-    global field_300_e_and_3_comb_no
-    global field_852_3_no
-    global field_952_3_no
-
-    field_952_list = record.get_fields('952')
-    for field_952 in field_952_list:
-        if field_952['y'] == 'MEDK':
-            field_300_list = record.get_fields('300')
-            for field_300 in field_300_list:
-                if 'e' in field_300 or '3' in field_300:
-                    field_001_list = record.get_fields('001')
-                    if 'e' in field_300 and '3' in field_300:
-                        field_300_e_and_3_comb_no += 1
-                        for field_001 in field_001_list:
-                            logger.debug('%s: 300$e = %s, 300$3 = %s', field_001, field_300['e'], field_300['3'])
-                    elif 'e' in field_300:
-                        field_300_e_no += 1
-                        for field_001 in field_001_list:
-                            logger.debug('%s: 300$e = %s', field_001, field_300['e'])
-                    else:
-                        field_300_3_no += 1
-                        for field_001 in field_001_list:
-                            logger.debug('%s: 300$3 = %s', field_001, field_300['3'])
-
-            field_852_list = record.get_fields('852')
-            for field_852 in field_852_list:
-                if '3' in field_852:
-                    field_852_3_no += 1
-                    field_001_list = record.get_fields('001')
-                    for field_001 in field_001_list:
-                        logger.debug('%s: 852$3 = %s', field_001, field_852['3'])
-
-            if '3' in field_952:
-                field_952_3_no += 1
-                field_001_list = record.get_fields('001')
-                for field_001 in field_001_list:
-                    logger.debug('%s: 952$3 = %s', field_001, field_952['3'])
-
-
-field_052_2_no = 0
-field_055_2_no = 0
-field_082_a_no = 0
-field_084_2_no = 0
-field_086_2_no = 0
-field_852_2_no = 0
-
-
-def inspect_classification_data(record):
-    global field_052_2_no
-    global field_055_2_no
-    global field_082_a_no
-    global field_084_2_no
-    global field_086_2_no
-    global field_852_2_no
-
-    field_052_list = record.get_fields('052')
-    for field_052 in field_052_list:
-        if '2' in field_052:
-            field_052_2_no += 1
-            field_001_list = record.get_fields('001')
-            for field_001 in field_001_list:
-                logger.debug('%s: 052$2 = %s', field_001, field_052['2'])
-
-    field_055_list = record.get_fields('055')
-    for field_055 in field_055_list:
-        if '2' in field_055:
-            field_055_2_no += 1
-            field_001_list = record.get_fields('001')
-            for field_001 in field_001_list:
-                logger.debug('%s: 055$2 = %s', field_001, field_055['2'])
-
-    field_082_list = record.get_fields('082')
-    for field_082 in field_082_list:
-        if 'a' in field_082:
-            field_082_a_no += 1
-            field_001_list = record.get_fields('001')
-            for field_001 in field_001_list:
-                logger.debug('%s: 082$a = %s', field_001, field_082['a'])
-
-    field_084_list = record.get_fields('084')
-    for field_084 in field_084_list:
-        if '2' in field_084:
-            field_084_2_no += 1
-            field_001_list = record.get_fields('001')
-            for field_001 in field_001_list:
-                logger.debug('%s: 084$2 = %s', field_001, field_084['2'])
-
-    field_086_list = record.get_fields('086')
-    for field_086 in field_086_list:
-        if '2' in field_086:
-            field_086_2_no += 1
-            field_001_list = record.get_fields('001')
-            for field_001 in field_001_list:
-                logger.debug('%s: 086$2 = %s', field_001, field_086['2'])
-
-    field_852_list = record.get_fields('852')
-    for field_852 in field_852_list:
-        if '2' in field_852:
-            field_852_2_no += 1
-            field_001_list = record.get_fields('001')
-            for field_001 in field_001_list:
-                logger.debug('%s: 852$2 = %s', field_001, field_852['2'])
-
-
-subfield_code_counter = 0
-
-
-def inspect_subfield(record, field_code, subfield_code):
-    global subfield_code_counter
-
-    field_list = record.get_fields(field_code)
-    for field in field_list:
-        if subfield_code in field:
-            subfield_code_counter += 1
-            field_001_list = record.get_fields('001')
-            for field_001 in field_001_list:
-                logger.debug('%s: %s$%s = %s', field_001, field_code, subfield_code, field[subfield_code])
-
-
-def check_bibliographic_data(input_path):
-    logger.info('check bibliographic data sturcture ...')
-    global file_record_no
-    global file_error_no
-
-    with open(input_path, 'rb') as input_file:
-        reader = MARCReader(input_file, force_utf8=True)
-
-        for record in reader:
-            file_record_no += 1
-            record.as_dict()
-
-            # inspect_subfield(record, '952', 'J')
-            # inspect_classification_data(record)
-            # inspect_materials_specified_data(record)
-            # inspect_order_numbers(record)
-
-    logger.info('Bibliographic data structure check done!')
-
-
 def create_authority_heading_to_authority_id_mapping(file_path):
     logger.info('Creating authority-heading-to-authority-id mapping based on exported authority data...')
 
@@ -1175,7 +1001,6 @@ if __name__ == '__main__':
             file_error_no = 0
             without_extension = os.path.splitext(filename)[0]
             logger.info("Processing file '%s' ...", filename)
-            check_bibliographic_data(input_directory + '/' + filename)
             process_bibliographic_data(
                 input_directory + '/' + filename,
                 output_directory + without_extension + '-preprocessed.mrc',
@@ -1186,39 +1011,7 @@ if __name__ == '__main__':
             logger.info("Number of records in marc file: %s", file_record_no)
             logger.info("Number of record errors in marc file: %s", file_error_no)
 
-            """logger.info("Current occurrences of inspected subfield code: %s", subfield_code_counter)
-            logger.info("Current number of 052$2 subfields: %s", field_052_2_no)
-            logger.info("Current number of 055$2 subfields: %s", field_055_2_no)
-            logger.info("Current number of 082$a subfields: %s", field_082_a_no)
-            logger.info("Current number of 084$2 subfields: %s", field_084_2_no)
-            logger.info("Current number of 086$2 subfields: %s", field_086_2_no)
-            logger.info("Current number of 852$2 subfields: %s", field_852_2_no)
-
-            logger.info("Current number of 300$e and 300$3 subfield combinations: %s", field_300_e_and_3_comb_no)
-            logger.info("Current number of 300$e subfields: %s", field_300_e_no)
-            logger.info("Current number of 300$3 subfields: %s", field_300_3_no)
-            logger.info("Current number of 852$3 subfields: %s", field_852_3_no)
-            logger.info("Current number of 952$3 subfields: %s", field_952_3_no)
-            logger.info("Current number of 952$A subfields: %s", field_952_A_no)
-            logger.info("Current number of 'R/2005-397 order number' subfields: %s", special_order_number_counter)"""
-
             logger.info("File '%s' processed.\n", filename)
-
-    """logger.info("Total occurrences of inspected subfield code: %s", subfield_code_counter)
-    logger.info("Total number of 052$2 subfields: %s", field_052_2_no)
-    logger.info("Total number of 055$2 subfields: %s", field_055_2_no)
-    logger.info("Total number of 082$a subfields: %s", field_082_a_no)
-    logger.info("Total number of 084$2 subfields: %s", field_084_2_no)
-    logger.info("Total number of 086$2 subfields: %s", field_086_2_no)
-    logger.info("Total number of 852$2 subfields: %s", field_852_2_no)
-
-    logger.info("Total number of 300$e and 300$3 subfield combinations: %s", field_300_e_and_3_comb_no)
-    logger.info("Total number of 300$e subfields: %s", field_300_e_no)
-    logger.info("Total number of 300$3 subfields: %s", field_300_3_no)
-    logger.info("Total number of 852$3 subfields: %s", field_852_3_no)
-    logger.info("Total number of 952$3 subfields: %s", field_952_3_no)
-    logger.info("Total number of 952$A subfields: %s", field_952_A_no)
-    logger.info("Total number of 'R/2005-397 order number' subfields: %s", special_order_number_counter)"""
 
     logger.info("Holding field number maximum: %s (%s)", holding_field_max[1], holding_field_max[0])
     logger.info("Total number of record errors: %s", total_error_no)
