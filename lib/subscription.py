@@ -126,7 +126,7 @@ def parse_z16(parsed_results, data):
     if data[0] in parsed_results:
         result['subscriptionid'] = parsed_results[data[0]]['subscriptionid']
         existing_data = parsed_results[data[0]]
-        if tuple(existing_data.values()) == tuple(result.values()):
+        if existing_data == result:
             return parsed_results
 
         if 'aqbudgetid' not in existing_data and 'aqbudgetid' in result:
@@ -140,7 +140,7 @@ def parse_z16(parsed_results, data):
             existing_data['aqbudgetid'] = recent_budget_id
             result['aqbudgetid'] = recent_budget_id
 
-        if tuple(existing_data.values()) == tuple(result.values()):
+        if existing_data == result:
             parsed_results[data[0]] = existing_data
             return parsed_results
 
@@ -185,12 +185,20 @@ def fetch_data(credentials):
     cursor.close()
 
     subscription_to_order_mapping = dict()
+    order_to_subscription_mapping = dict()
     data_cursor = oracle.get_subscription_to_order_mapping()
     for query_result in data_cursor:
-        subscription_to_order_mapping[query_result[0]] = query_result[1]
+        if query_result[0] in subscription_to_order_mapping:
+            subscription_to_order_mapping[query_result[0]].append(query_result[1])
+        else:
+            subscription_to_order_mapping[query_result[0]] = [query_result[1]]
+        order_to_subscription_mapping[query_result[1]] = query_result[0]
 
     with open(script_dir + '/../pickles/subscription_to_order_mapping.pickle', 'wb') as mapping_file:
         pickle.dump(subscription_to_order_mapping, mapping_file)
+
+    with open(script_dir + '/../pickles/order_to_subscription_mapping.pickle', 'wb') as mapping_file:
+        pickle.dump(order_to_subscription_mapping, mapping_file)
 
     return subscriptions
 
