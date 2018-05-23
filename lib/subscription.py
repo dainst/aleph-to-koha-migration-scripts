@@ -89,7 +89,7 @@ def parse_z16(parsed_results, data):
     result['skip_serialseq'] = 0
     result['graceperiod'] = 0
     result['closed'] = 0
-    logger.debug(data[4])
+
     if data[4] == 20991231:
         end_date = None
     else:
@@ -122,6 +122,31 @@ def parse_z16(parsed_results, data):
                        % (data[5], data[0]))
     else:
         result['aqbooksellerid'] = bookseller[0]
+
+    if data[0] in parsed_results:
+        result['subscriptionid'] = parsed_results[data[0]]['subscriptionid']
+        existing_data = parsed_results[data[0]]
+        if tuple(existing_data.values()) == tuple(result.values()):
+            return parsed_results
+
+        if 'aqbudgetid' not in existing_data and 'aqbudgetid' in result:
+            existing_data['aqbudgetid'] = result['aqbudgetid']
+        elif 'aqbudgetid' not in result and 'aqbudgetid' in existing_data:
+            result['aqbudgetid'] = existing_data['aqbudgetid']
+        elif 'aqbudgetid' in result and 'aqbudgetid' in existing_data \
+                and existing_data['aqbudgetid'] != result['aqbudgetid']:
+            recent_budget_id = mariadb.get_recent_budget(existing_data['aqbudgetid'], result['aqbudgetid'])[0]
+
+            existing_data['aqbudgetid'] = recent_budget_id
+            result['aqbudgetid'] = recent_budget_id
+
+        if tuple(existing_data.values()) == tuple(result.values()):
+            parsed_results[data[0]] = existing_data
+            return parsed_results
+
+        logger.error('Unhandled case of different results for same Z16 dataset: ')
+        logger.error(parsed_results[data[0]])
+        logger.error(result)
 
     result['subscriptionid'] = SUBSCRIPTION_COUNTER
     SUBSCRIPTION_COUNTER += 1

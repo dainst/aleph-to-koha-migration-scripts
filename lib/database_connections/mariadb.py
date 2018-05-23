@@ -178,6 +178,26 @@ def get_budget_by_code(budget_code):
     return result[0]
 
 
+def get_recent_budget(first_id, second_id):
+    global connection
+    cursor = connection.cursor()
+    cursor.execute('SELECT `aqbudgets`.*, `aqbudgetperiods`.`budget_period_enddate` FROM `aqbudgets`, `aqbudgetperiods` ' +
+                   'WHERE `aqbudgets`.`budget_id`="%s" and `aqbudgets`.`budget_period_id` = `aqbudgetperiods`.`budget_period_id`;' % first_id)
+    first_budget = cursor.fetchone()
+    cursor.close()
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT `aqbudgets`.*, `aqbudgetperiods`.`budget_period_enddate` FROM `aqbudgets`, `aqbudgetperiods` ' +
+                   'WHERE `aqbudgets`.`budget_id`="%s" and `aqbudgets`.`budget_period_id` = `aqbudgetperiods`.`budget_period_id`;' % second_id)
+    second_budget = cursor.fetchone()
+    cursor.close()
+
+    if first_budget[-1] > second_budget[-1]:
+        return first_budget[:-1]
+    else:
+        return second_budget[:-1]
+
+
 def get_invoice_by_aleph_rec_key(aleph_rec_key):
     global connection
 
