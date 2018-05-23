@@ -83,25 +83,25 @@ def map_not_for_loan(aleph_item_status, aleph_item_process_status):
     not_for_loan = '1'
 
     if aleph_item_process_status is not None or \
-            aleph_item_process_status != 'Missing' or aleph_item_process_status != 'Misshelved' or \
-            aleph_item_process_status != 'MI' or aleph_item_process_status != 'MS':
+            aleph_item_process_status != 'MI' or aleph_item_process_status != 'MS' or \
+            aleph_item_process_status != 'Missing' or aleph_item_process_status != 'Misshelved':
 
-        if aleph_item_process_status == 'On order' or aleph_item_process_status == 'OR':
+        if aleph_item_process_status == 'OR' or aleph_item_process_status == 'On order':
             not_for_loan = '-1'
-        elif aleph_item_process_status == 'In Process' or aleph_item_process_status == 'GG':
-            not_for_loan == '-2'
-        elif aleph_item_process_status == 'Undeliverable' or aleph_item_process_status == 'NL':
-            not_for_loan == '-3'
-        elif aleph_item_process_status == 'Binding' or aleph_item_process_status == 'BD':
-            not_for_loan == '-4'
-        elif aleph_item_process_status == 'Cancelled' or aleph_item_process_status == 'CA':
-            not_for_loan == '-5'
-        elif aleph_item_process_status == 'Order initiat.' or aleph_item_process_status == 'OI':
-            not_for_loan == '-1'
-        elif aleph_item_process_status == 'Not Arrived' or aleph_item_process_status == 'NA':
-            not_for_loan == '-6'
-        elif aleph_item_process_status == 'Not published' or aleph_item_process_status == 'NP':
-            not_for_loan == '-7'
+        elif aleph_item_process_status == 'GG' or aleph_item_process_status == 'In Process':
+            not_for_loan = '-2'
+        elif aleph_item_process_status == 'NL' or aleph_item_process_status == 'Undeliverable':
+            not_for_loan = '-3'
+        elif aleph_item_process_status == 'BD' or aleph_item_process_status == 'Binding':
+            not_for_loan = '-4'
+        elif aleph_item_process_status == 'CA' or aleph_item_process_status == 'Cancelled':
+            not_for_loan = '-5'
+        elif aleph_item_process_status == 'OI' or aleph_item_process_status == 'Order initiat.':
+            not_for_loan = '-1'
+        elif aleph_item_process_status == 'NA' or aleph_item_process_status == 'Not Arrived':
+            not_for_loan = '-6'
+        elif aleph_item_process_status == 'NP' or aleph_item_process_status == 'Not published':
+            not_for_loan = '-7'
     elif aleph_item_status == '04':
         not_for_loan = '2'
 
@@ -187,7 +187,9 @@ def map_lost_status(subfield_952_1):
 
     if subfield_952_1 == 'MI' or subfield_952_1 == 'MS' or \
             subfield_952_1 == 'Missing' or subfield_952_1 == 'Misshelved':
+
         lost_status = '1'
+
     logger.debug("Field No. %s: 952$1 = '%s', valid 'Lost status' found.", holding_field_counter, lost_status)
 
     return lost_status
@@ -788,8 +790,8 @@ def prepare_holding_data(record):
 
             # '952$7' Not for loan
             subfield_952_7 = field_952['7']
+            koha_not_for_loan = map_not_for_loan(subfield_952_7, subfield_952_1)
             if subfield_952_7 is not None:
-                koha_not_for_loan = map_not_for_loan(subfield_952_7, subfield_952_1)
                 field_952['7'] = koha_not_for_loan
             else:
                 field_952.add_subfield('7', koha_not_for_loan)
