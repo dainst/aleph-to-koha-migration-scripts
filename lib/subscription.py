@@ -96,7 +96,10 @@ def parse_z16(parsed_results, data):
         end_date = date_helper.process_aleph_date(data[4])
     result['enddate'] = end_date
 
-    result['location'] = marc_mapping.map_shelving_location(data[13], koha_bib_id)
+    if data[13] is not None:
+        result['location'] = marc_mapping.map_shelving_location(data[13].strip(), result['branchcode'])
+    else:
+        result['location'] = marc_mapping.map_shelving_location(None, result['branchcode'])
 
     if doc_key in PATTERN_MAPPING:
         result['numberpattern'] = PATTERN_MAPPING[doc_key]['id']
