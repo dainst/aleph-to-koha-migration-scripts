@@ -250,7 +250,7 @@ def start(credentials):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 1:
+    if len(sys.argv) != 2:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         sys.exit()
