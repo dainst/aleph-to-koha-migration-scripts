@@ -15,8 +15,8 @@ logger.setLevel(logging.DEBUG)
 file_logger = logging.getLogger(__name__ + '_file')
 file_logger.setLevel(logging.INFO)
 
-log_file_handler = logging.FileHandler('fehlerhafte_heft_zu_band_angaben.log')
-log_file_handler.setLevel(logging.DEBUG)
+log_file_handler = logging.FileHandler('subscription_numberpatterns.log')
+log_file_handler.setLevel(logging.WARN)
 file_logger.addHandler(log_file_handler)
 
 script_dir = os.path.dirname(__file__)
@@ -77,8 +77,8 @@ def calculate_year_variables(data):
             elif issue_type == 'M' and volume_type == 'Y' and issue_count * issues_per_volume != volume_count * 12:
 
                 file_logger.warning('Fehlerhafte Angaben zu Erscheinungszyklus von %s:' % data[0])
-                file_logger.warning('Heft erscheint %i alle %s, Band erscheint %i alle %s.'
-                                  % (issue_count, issue_type, volume_count, volume_type))
+                file_logger.warning('Heft erscheint %i alle %s, Band erscheint %i alle %s.' %
+                                    (issue_count, issue_type, volume_count, volume_type))
                 file_logger.warning('Zusätzliche Angabe "Hefte pro Band": %i\n' % issues_per_volume)
                 return None
 
