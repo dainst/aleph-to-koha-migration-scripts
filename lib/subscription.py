@@ -1,7 +1,6 @@
 import logging
 import sys
 import os
-import re
 import pickle
 
 import lib.database_connections.oracle as oracle
@@ -26,6 +25,7 @@ FREQUENCY_MAPPING = None
 PATTERN_MAPPING = None
 SYS_NUMBER_TO_BIB_ID_MAPPING_PATH = script_dir + '/../pickles/SYS_NUMBER_TO_BIB_ID_MAPPING.pickle'
 SYS_NUMBER_TO_BIB_ID_MAPPING = None
+ORDER_TO_SUBSCRIPTION_MAPPING = dict()
 Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
 Z08_DATA = dict()
 
@@ -57,6 +57,7 @@ def parse_z16(parsed_results, data):
     global PATTERN_MAPPING
     global Z00_TO_BIBLIOGRAPHIC_ID_MAPPING
     global SYS_NUMBER_TO_BIB_ID_MAPPING
+    global ORDER_TO_SUBSCRIPTION_MAPPING
 
     result = dict()
     doc_key = data[0][0:9]
@@ -127,6 +128,7 @@ def parse_z16(parsed_results, data):
         result['subscriptionid'] = parsed_results[data[0]]['subscriptionid']
         existing_data = parsed_results[data[0]]
         if existing_data == result:
+            ORDER_TO_SUBSCRIPTION_MAPPING[data[-1]] = existing_data
             return parsed_results
 
         if 'aqbudgetid' not in existing_data and 'aqbudgetid' in result:
@@ -142,6 +144,7 @@ def parse_z16(parsed_results, data):
 
         if existing_data == result:
             parsed_results[data[0]] = existing_data
+            ORDER_TO_SUBSCRIPTION_MAPPING[data[-1]] = existing_data
             return parsed_results
 
         logger.error('Unhandled case of different results for same Z16 dataset: ')
@@ -149,6 +152,9 @@ def parse_z16(parsed_results, data):
         logger.error(result)
 
     result['subscriptionid'] = SUBSCRIPTION_COUNTER
+
+    ORDER_TO_SUBSCRIPTION_MAPPING[data[-1]] = result
+
     SUBSCRIPTION_COUNTER += 1
 
     parsed_results[data[0]] = result
@@ -160,6 +166,7 @@ def fetch_data(credentials):
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
     global Z00_TO_BIBLIOGRAPHIC_ID_MAPPING
+    global ORDER_TO_SUBSCRIPTION_MAPPING
 
     with open(script_dir + '/../pickles/subscription_frequencies_mapping.pickle', 'rb') as mapping_file:
         FREQUENCY_MAPPING = pickle.load(mapping_file)
@@ -184,21 +191,8 @@ def fetch_data(credentials):
         subscriptions = parse_z16(subscriptions, row)
     cursor.close()
 
-    subscription_to_order_mapping = dict()
-    order_to_subscription_mapping = dict()
-    data_cursor = oracle.get_subscription_to_order_mapping()
-    for query_result in data_cursor:
-        if query_result[0] in subscription_to_order_mapping:
-            subscription_to_order_mapping[query_result[0]].append(query_result[1])
-        else:
-            subscription_to_order_mapping[query_result[0]] = [query_result[1]]
-        order_to_subscription_mapping[query_result[1]] = query_result[0]
-
-    with open(script_dir + '/../pickles/subscription_to_order_mapping.pickle', 'wb') as mapping_file:
-        pickle.dump(subscription_to_order_mapping, mapping_file)
-
     with open(script_dir + '/../pickles/order_to_subscription_mapping.pickle', 'wb') as mapping_file:
-        pickle.dump(order_to_subscription_mapping, mapping_file)
+        pickle.dump(ORDER_TO_SUBSCRIPTION_MAPPING, mapping_file)
 
     return subscriptions
 
