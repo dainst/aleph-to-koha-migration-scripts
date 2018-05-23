@@ -89,8 +89,8 @@ def parse_z16(parsed_results, data):
     result['skip_serialseq'] = 0
     result['graceperiod'] = 0
     result['closed'] = 0
-
-    if data[4] == '20991231':
+    logger.debug(data[4])
+    if data[4] == 20991231:
         end_date = None
     else:
         end_date = date_helper.process_aleph_date(data[4])
