@@ -24,6 +24,7 @@ IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqorders_data_import.sq
 
 MISSING_BUDGET = []
 SYS_NUMBER_TO_BIB_ID_MAPPING = None
+ORDER_TO_SUBSCRIPTION_MAPPING = None
 ORDER_COUNT = 0
 NO_BIBLIOGRAPHIC_ID = []
 BIBLIOGRAPHIC_ID_FOUND = []
@@ -180,6 +181,13 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
         'discount': float(data[36][:-2] + '.' + data[36][-2:])
     }
 
+    if data[1] == 'S':
+        try:
+            subscription = ORDER_TO_SUBSCRIPTION_MAPPING[aleph_rec_key]
+            result['subscriptionid'] = subscription['id']
+        except KeyError:
+            logger.warning('No subscription associated with %s despite being a serial order.' % (aleph_rec_key,))
+
     if aleph_rec_key in previous_results:
         previous_results[aleph_rec_key].append(result)
     else:
@@ -206,7 +214,6 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
     # `sort2_authcat` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
     # `claims_count` int(11) DEFAULT 0,
     # `claimed_date` date DEFAULT NULL,
-    # `subscriptionid` int(11) DEFAULT NULL, # TODO
     # `parent_ordernumber` int(11) DEFAULT NULL,
     # `line_item_id` varchar(35) COLLATE utf8_unicode_ci DEFAULT NULL,
     # `suppliers_reference_number` varchar(35) COLLATE utf8_unicode_ci DEFAULT NULL,
@@ -362,11 +369,15 @@ def write_data(data):
         cursor.close()
 
 
-def start(oracle_credentials, id_pickle_path):
+def start(oracle_credentials):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
+    global ORDER_TO_SUBSCRIPTION_MAPPING
 
-    with open(id_pickle_path, 'rb') as id_mapping_file:
-        SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(id_mapping_file)
+    with open(script_dir + '/../pickles/SYS_NUMBER_TO_BIB_ID_MAPPING.pickle', 'rb') as mapping_file:
+        SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(mapping_file)
+
+    with open(script_dir + '/../pickles/order_to_subscription_mapping.pickle', 'rb') as mapping_file:
+        ORDER_TO_SUBSCRIPTION_MAPPING = pickle.load(mapping_file)
 
     results = fetch_data(oracle_credentials)
     write_data(results)
@@ -374,13 +385,12 @@ def start(oracle_credentials, id_pickle_path):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 2:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
-        logger.info('2) Pickle with bibliographic id mapping.')
         sys.exit()
 
-    start(sys.argv[1], sys.argv[2])
+    start(sys.argv[1])
 
     logger.info('%i orders of %i without an associated bibliographic ID.' % (len(NO_BIBLIOGRAPHIC_ID), ORDER_COUNT))
 
