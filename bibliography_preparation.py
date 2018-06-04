@@ -838,7 +838,10 @@ def prepare_holding_data(record):
                 else:
                     field_952[expected_arrival_date_subfield_code] = expected_arrival_date
 
-            # TODO '952$H' Jahreszählung bei Zetischriftenheften
+            # '952$H' Jahreszählung bei Zeitschriftenheften
+            chronological_subfield_code = 'H'
+            subfield_952_H = field_952[chronological_subfield_code]
+            map_aleph_string_field(holding_field_code, chronological_subfield_code, 'Z30_CHRONOLOGICAL_I', subfield_952_H)
 
             # '952$J' Exemplarstatus
             item_status_subfield_code = 'J'
