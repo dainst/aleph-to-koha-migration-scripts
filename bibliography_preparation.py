@@ -581,10 +581,11 @@ def prepare_holding_data(record):
                 else:
                     field_952['g'] = koha_purchase_prise
 
-            # TODO '952$h' Serial enumeration
-            subfield_952_h = field_952['h']
-            if subfield_952_h is not None:
-                pass
+            # '952$h' Serial enumeration
+            serial_enumeration_subfield_code = 'h'
+            subfield_952_h = field_952[serial_enumeration_subfield_code]
+            map_aleph_string_field(holding_field_code, serial_enumeration_subfield_code, 'Z30_ENUMERATION', subfield_952_h)
+
 
             # '952$i' Inventory number
             subfield_952_i = field_952['i']
