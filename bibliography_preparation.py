@@ -42,6 +42,8 @@ def process_bibliographic_data(input_path, output_path, mapping):
     global file_record_count
     global file_error_count
 
+    record_error_count = 0
+
     with open(input_path, 'rb') as input_file:
         with open(output_path, 'wb') as output_file:
             reader = MARCReader(input_file, force_utf8=True)
@@ -50,8 +52,7 @@ def process_bibliographic_data(input_path, output_path, mapping):
             for record in reader:
                 record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
                 record_error_count = holdings.prepare_marc(record)
-                # TODO: instead of deleting 999, move to different fields/subfields
-                record.remove_fields('999')
+                thesaurus.prepare_marc(record)
                 writer.write(record)
                 file_record_count += 1
                 file_error_count += record_error_count
