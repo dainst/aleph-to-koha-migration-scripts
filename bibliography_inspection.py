@@ -16,9 +16,9 @@ console_handler.setFormatter(formatter)
 # logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 
-file_record_no = 0
+file_record_count = 0
 total_record_no = 0
-file_error_no = 0
+file_error_count = 0
 total_error_no = 0
 
 field_952_A_no = 0
@@ -175,14 +175,14 @@ def inspect_subfield(record, field_code, subfield_code):
 
 def check_bibliographic_data(input_path):
     logger.info('check bibliographic data sturcture ...')
-    global file_record_no
-    global file_error_no
+    global file_record_count
+    global file_error_count
 
     with open(input_path, 'rb') as input_file:
         reader = MARCReader(input_file, force_utf8=True)
 
         for record in reader:
-            file_record_no += 1
+            file_record_count += 1
             record.as_dict()
 
             inspect_subfield(record, '952', 'J')
@@ -204,15 +204,15 @@ if __name__ == '__main__':
 
     for filename in os.listdir(input_directory):
         if filename.endswith('.mrc'):
-            file_record_no = 0
-            file_error_no = 0
+            file_record_count = 0
+            file_error_count = 0
             without_extension = os.path.splitext(filename)[0]
             logger.info("Processing file '%s' ...", filename)
             check_bibliographic_data(input_directory + '/' + filename)
-            total_record_no += file_record_no
-            total_error_no += file_error_no
-            logger.info("Number of records in marc file: %s", file_record_no)
-            logger.info("Number of record errors in marc file: %s", file_error_no)
+            total_record_no += file_record_count
+            total_error_no += file_error_count
+            logger.info("Number of records in marc file: %s", file_record_count)
+            logger.info("Number of record errors in marc file: %s", file_error_count)
 
             logger.info("Current occurrences of inspected subfield code: %s", subfield_code_counter)
             logger.info("Current number of 052$2 subfields: %s", field_052_2_no)
