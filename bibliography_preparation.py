@@ -42,14 +42,13 @@ def process_bibliographic_data(input_path, output_path, mapping):
     global file_record_count
     global file_error_count
 
-    record_error_count = 0
-
     with open(input_path, 'rb') as input_file:
         with open(output_path, 'wb') as output_file:
             reader = MARCReader(input_file, force_utf8=True)
             writer = MARCWriter(output_file)
 
             for record in reader:
+                record_error_count = 0
                 record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
                 record_error_count = holdings.prepare_marc(record)
                 thesaurus.prepare_marc(record)
@@ -118,6 +117,6 @@ if __name__ == '__main__':
             logger.info("File '%s' processed.\n", filename)
 
     logger.info(
-        "Holding field number maximum: %s (%s)", holdings.holding_field_max[1], holdings.holding_field_max[0])
+        "Holding field number maximum: %s (in: '%s')", holdings.holding_field_max[1], holdings.holding_field_max[0])
     logger.info("Total number of record errors: %s", total_error_count)
     logger.info("Total number of records: %s", total_record_count)
