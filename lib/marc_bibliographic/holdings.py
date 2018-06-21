@@ -1,11 +1,13 @@
 import logging
 
 import lib.database_connections.mariadb as mariadb
+import lib.database_connections.oracle as oracle
 import lib.mappings.library_keys as library_keys
 import lib.mappings.marc_mappings as marc_mappings
 import lib.oracle_helper.dates as dates_helper
 
 HOLDING_FIELD_CODE = '952'
+ALEPH_ITEM_PRICE_LIST = list()
 ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = list()
 
 logger = logging.getLogger(__name__)
@@ -325,15 +327,27 @@ def format_purchase_price(aleph_purchase_price):
         return purchase_price
 
 
-def map_purchase_price(subfield_952_g):
-    purchase_price = format_purchase_price(subfield_952_g)
+def get_calculated_purchase_price(barcode):
+    global ALEPH_ITEM_PRICE_LIST
+    purchase_price = None
+
+    for (z30_barcode, unit_total_price) in ALEPH_ITEM_PRICE_LIST:
+        if barcode == z30_barcode:
+            purchase_price = unit_total_price
+
+    return purchase_price
+
+
+def map_purchase_price(subfield_952_g, subfield_952_p):
+    if subfield_952_g is None:
+        purchase_price = get_calculated_purchase_price(subfield_952_p)
+    else:
+        purchase_price = format_purchase_price(subfield_952_g)
 
     if purchase_price is None:
-        pass
         logger.debug("Field No. %s: 952$g = '%s', no valid 'Purchase price' found!",
                      thesaurus_field_counter, subfield_952_g)
     else:
-        pass
         logger.debug("Field No. %s: 952$g = '%s', valid 'Purchase price' found.",
                      thesaurus_field_counter, purchase_price)
 
@@ -349,7 +363,6 @@ def map_aleph_vendor_code(aleph_z70_vendor_code):
         if aleph_z70_vendor_code == aleph_code:
             return koha_id
     else:
-
         return None
 
 
@@ -455,6 +468,15 @@ def check_required_subfields(field_952):
     return is_success
 
 
+def get_aleph_item_price_list():
+    oracle.open_connection()
+    result = oracle.get_item_price_list()
+    logger.debug('Item price list:\n%s', result)
+    oracle.close_connection()
+
+    return result
+
+
 def get_aleph_vendor_code_koha_bookseller_name_mapping():
     mariadb.open_mariadb_connection()
     result = mariadb.get_aleph_vendor_code_koha_aqbookseller_mapping()
@@ -465,10 +487,17 @@ def get_aleph_vendor_code_koha_bookseller_name_mapping():
 
 
 def init():
+    global ALEPH_ITEM_PRICE_LIST
     global ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING
 
-    if len(ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING) == 0:
+    if not ALEPH_ITEM_PRICE_LIST:
+        ALEPH_ITEM_PRICE_LIST = get_aleph_item_price_list()
+
+    if not ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING:
         ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = get_aleph_vendor_code_koha_bookseller_name_mapping()
+
+    if len(ALEPH_ITEM_PRICE_LIST) < 1:
+        exit("Calculated aleph item price list ist empty!")
 
     if len(ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING) < 1:
         exit("'AQBOOKSELLERS' table is empty!")
@@ -569,13 +598,18 @@ def prepare_marc(record):
 
             # '952$g' Purchase price
             subfield_952_g = field_952['g']
-            if subfield_952_g is not None:
-                koha_purchase_prise = map_purchase_price(subfield_952_g)
-                if koha_purchase_prise is None:
-                    logger.info("Field No. %s: Skipping subfield 'g' = %s", holding_field_counter, subfield_952_g)
-                    field_952.delete_subfield('g')
-                else:
+            subfield_952_p = field_952['p']
+            koha_purchase_prise = map_purchase_price(subfield_952_g, subfield_952_p)
+            if koha_purchase_prise is None:
+                logger.info("Field No. %s: Skipping subfield 'g' = %s", holding_field_counter, subfield_952_g)
+                field_952.delete_subfield('g')
+            else:
+                if subfield_952_g is not None:
                     field_952['g'] = koha_purchase_prise
+                else:
+                    field_952.add_subfield('g', koha_purchase_prise)
+                    logger.error(
+                        "Field No. %s: Added subfield 'g' = %s (barcode: %s)", holding_field_counter, koha_purchase_prise, subfield_952_p)
 
             # '952$h' Serial enumeration
             serial_enumeration_subfield_code = 'h'
@@ -634,9 +668,9 @@ def prepare_marc(record):
                     field_952['o'] = koha_call_number
 
             # '952$p' Barcode (required for circulation)
-            subfield_952_p = field_952['p']
             if subfield_952_p is None:
                 logger.warning("Field No. %s: No required subfield 'p' found!", holding_field_counter)
+                record_error_no += 1
             else:
                 koha_barcode = map_barcode(subfield_952_p)
                 if koha_barcode is None:

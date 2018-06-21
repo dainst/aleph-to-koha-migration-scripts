@@ -5,6 +5,14 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+config = {
+    'user': 'dai50',
+    'password': 'DAI50',
+    'dsn': '195.37.175.36/aleph23',
+    'encoding': 'UTF-8',
+    'nencoding': 'UTF-8'
+}
+
 connection = None
 
 CLOSED = 'CLS'
@@ -18,10 +26,33 @@ def establish_connection(credentials):
     connection = cx_Oracle.connect(credentials, encoding='UTF-8', nencoding='UTF-8')
 
 
+def open_connection():
+    global connection
+
+    if connection is None:
+        try:
+            logger.debug("Trying to connect to OracleDB ...")
+            connection = cx_Oracle.connect(**config)
+            logger.debug("Connection to OracleDB established: %s", connection)
+            return connection
+        except cx_Oracle.Error as err:
+            logger.error(err)
+            raise Exception
+        except cx_Oracle.Warning as warn:
+            logger.warning(warn)
+            raise Exception
+    else:
+        logger.debug('Connection to OracleDB already established!\n')
+
+
 def close_connection():
     global connection
 
-    connection.close()
+    if connection is not None:
+        connection.close()
+        logger.debug("Connection to OracleDB closed.\n")
+    else:
+        logger.debug("Connection to OracleDB was already closed!\n")
 
 
 def get_cursor():
@@ -47,7 +78,74 @@ def get_z30_by_order_number(aleph_order_number):
 def get_z30_with_order_number():
     global connection
     cur = connection.cursor()
+
     return cur.execute('SELECT * FROM Z30 WHERE Z30_ORDER_NUMBER IS NOT NULL')
+
+
+def get_item_price_list():
+    global connection
+    statement = """
+        SELECT
+            TRIM(Z30_BARCODE) AS BARCODE_Z30,
+            TRIM(
+                TO_CHAR(
+                    ROUND(
+                        (
+                            (
+                                TO_NUMBER(
+                                    (
+                                        SELECT Z82_RATIO
+                                        FROM Z82
+                                        WHERE
+                                            Z82_DATE <= Z68_ORDER_STATUS_DATE_X AND
+                                            Z82_CURRENCY_NAME = Z68_E_CURRENCY
+                                        ORDER BY Z82_DATE DESC FETCH FIRST 1 ROW ONLY
+                                    )
+                                ) / 1000000
+                            ) * (TO_NUMBER(Z75_I_TOTAL_AMOUNT) / 100)
+                        ) / Z68_NO_UNITS,
+                        2
+                    ),
+                    '999.99'
+                )
+            ) AS UNIT_TOTAL_PRICE
+        FROM
+            Z30,
+            Z75,
+            Z68,
+            Z77
+        WHERE
+            (
+            Z30_PRICE IS NULL OR
+            REGEXP_LIKE(Z30_PRICE, '^(\D).*$') OR
+            REGEXP_LIKE(RTRIM(Z30_PRICE), '^(.)(\D)$') OR
+            REGEXP_LIKE(Z30_PRICE, '^(.*),(.*)$')
+            ) AND
+            Z30_REC_KEY_3 = Z75_REC_KEY_2 AND
+            SUBSTR(Z75_REC_KEY_2, 1, 35) = Z77_REC_KEY AND
+            Z68_REC_KEY = Z75_REC_KEY
+        ORDER BY
+            Z30_BARCODE"""
+    result = None
+
+    try:
+        logger.debug("Fetching item price list")
+        cursor = connection.cursor()
+        cursor.execute(statement)
+        result = cursor.fetchall()
+        cursor.close()
+        logger.debug('Item price list fetched.')
+        # logger.debug('Item price list:\n%s', result)
+    except cx_Oracle.DatabaseError as ora_err:
+        error, = ora_err.args
+        logger.error("Oracle-Error-Code:", error.code)
+        logger.error("Oracle-Error-Message:", error.message)
+    except cx_Oracle.Error as err:
+        logger.error(err)
+    except cx_Oracle.Warning as warn:
+        logger.warning(warn)
+
+    return result
 
 
 def get_z70():
