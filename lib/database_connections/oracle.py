@@ -87,28 +87,15 @@ def get_item_price_list():
     statement = """
         SELECT
             TRIM(Z30_BARCODE) AS BARCODE_Z30,
-            TRIM(
-                TO_CHAR(
-                    ROUND(
-                        (
-                            (
-                                TO_NUMBER(
-                                    (
-                                        SELECT Z82_RATIO
-                                        FROM Z82
-                                        WHERE
-                                            Z82_DATE <= Z68_ORDER_STATUS_DATE_X AND
-                                            Z82_CURRENCY_NAME = Z68_E_CURRENCY
-                                        ORDER BY Z82_DATE DESC FETCH FIRST 1 ROW ONLY
-                                    )
-                                ) / 1000000
-                            ) * (TO_NUMBER(Z75_I_TOTAL_AMOUNT) / 100)
-                        ) / Z68_NO_UNITS,
-                        2
-                    ),
-                    '99999999.99'
-                )
-            ) AS UNIT_TOTAL_PRICE
+            TO_CHAR((
+                SELECT Z82_RATIO / 1000000 * Z75_I_TOTAL_AMOUNT / 100 / Z68_NO_UNITS
+                FROM Z82
+                WHERE
+                    Z82_DATE <= Z68_ORDER_STATUS_DATE_X AND
+                    Z82_CURRENCY_NAME = Z68_E_CURRENCY
+                ORDER BY Z82_DATE DESC
+                FETCH FIRST 1 ROW ONLY),
+                'FM99999990.00') AS UNIT_TOTAL_PRICE
         FROM
             Z30,
             Z75,
