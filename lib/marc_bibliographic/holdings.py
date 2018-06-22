@@ -11,7 +11,7 @@ ALEPH_ITEM_PRICE_LIST = list()
 ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = list()
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 thesaurus_field_counter = 0
@@ -608,8 +608,8 @@ def prepare_marc(record):
                     field_952['g'] = koha_purchase_prise
                 else:
                     field_952.add_subfield('g', koha_purchase_prise)
-                    logger.error(
-                        "Field No. %s: Added subfield 'g' = %s (barcode: %s)", holding_field_counter, koha_purchase_prise, subfield_952_p)
+                    logger.info("Field No. %s: Added subfield 'g' = '%s' (barcode: %s)",
+                                holding_field_counter, koha_purchase_prise, subfield_952_p)
 
             # '952$h' Serial enumeration
             serial_enumeration_subfield_code = 'h'

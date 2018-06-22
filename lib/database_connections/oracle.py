@@ -106,7 +106,7 @@ def get_item_price_list():
                         ) / Z68_NO_UNITS,
                         2
                     ),
-                    '999.99'
+                    '99999999.99'
                 )
             ) AS UNIT_TOTAL_PRICE
         FROM
@@ -129,13 +129,12 @@ def get_item_price_list():
     result = None
 
     try:
-        logger.debug("Fetching item price list")
+        logger.debug("Fetching item price list ...")
         cursor = connection.cursor()
         cursor.execute(statement)
         result = cursor.fetchall()
         cursor.close()
         logger.debug('Item price list fetched.')
-        # logger.debug('Item price list:\n%s', result)
     except cx_Oracle.DatabaseError as ora_err:
         error, = ora_err.args
         logger.error("Oracle-Error-Code:", error.code)
