@@ -4,21 +4,23 @@ import logging
 import os
 import sys
 
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# console_handler = logging.StreamHandler()
+# console_handler.setLevel(logging.INFO)
+# console_handler.setFormatter(formatter)
+# logger.addHandler(console_handler)
 # file_handler = logging.FileHandler('./bibliography_inspection.log')
 # file_handler.setLevel(logging.INFO)
 # file_handler.setFormatter(formatter)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_handler.setFormatter(formatter)
 # logger.addHandler(file_handler)
-logger.addHandler(console_handler)
 
 file_record_count = 0
-total_record_no = 0
+file_record_holdings_count = 0
 file_error_count = 0
+total_record_no = 0
+total_file_record_holdings_no = 0
 total_error_no = 0
 
 field_952_A_no = 0
@@ -177,6 +179,7 @@ def check_bibliographic_data(input_path):
     logger.info('check bibliographic data sturcture ...')
     global file_record_count
     global file_error_count
+    global file_record_holdings_count
 
     with open(input_path, 'rb') as input_file:
         reader = MARCReader(input_file, force_utf8=True)
@@ -185,16 +188,16 @@ def check_bibliographic_data(input_path):
             file_record_count += 1
             record.as_dict()
 
-            inspect_subfield(record, '952', 'J')
+            file_record_holdings_count += len(record.get_fields('952'))
+            """inspect_subfield(record, '952', 'J')
             inspect_classification_data(record)
             inspect_materials_specified_data(record)
-            inspect_order_numbers(record)
+            inspect_order_numbers(record)"""
 
     logger.info('Bibliographic data structure check done!')
 
 
 if __name__ == '__main__':
-
     if len(sys.argv) != 2:
         logger.info("Please provide as argument:")
         logger.info("1) Path to bibliograhic data (directory) exports from Aleph.")
@@ -209,12 +212,14 @@ if __name__ == '__main__':
             without_extension = os.path.splitext(filename)[0]
             logger.info("Processing file '%s' ...", filename)
             check_bibliographic_data(input_directory + '/' + filename)
+            total_file_record_holdings_no += file_record_holdings_count
             total_record_no += file_record_count
             total_error_no += file_error_count
             logger.info("Number of records in marc file: %s", file_record_count)
+            logger.info("Number of holdings in marc file: %s", file_record_holdings_count)
             logger.info("Number of record errors in marc file: %s", file_error_count)
 
-            logger.info("Current occurrences of inspected subfield code: %s", subfield_code_counter)
+            """logger.info("Current occurrences of inspected subfield code: %s", subfield_code_counter)
             logger.info("Current number of 052$2 subfields: %s", field_052_2_no)
             logger.info("Current number of 055$2 subfields: %s", field_055_2_no)
             logger.info("Current number of 082$a subfields: %s", field_082_a_no)
@@ -228,11 +233,11 @@ if __name__ == '__main__':
             logger.info("Current number of 852$3 subfields: %s", field_852_3_no)
             logger.info("Current number of 952$3 subfields: %s", field_952_3_no)
             logger.info("Current number of 952$A subfields: %s", field_952_A_no)
-            logger.info("Current number of 'R/2005-397 order number' subfields: %s", special_order_number_counter)
+            logger.info("Current number of 'R/2005-397 order number' subfields: %s", special_order_number_counter)"""
 
             logger.info("File '%s' processed.\n", filename)
 
-    logger.info("Total occurrences of inspected subfield code: %s", subfield_code_counter)
+    """logger.info("Total occurrences of inspected subfield code: %s", subfield_code_counter)
     logger.info("Total number of 052$2 subfields: %s", field_052_2_no)
     logger.info("Total number of 055$2 subfields: %s", field_055_2_no)
     logger.info("Total number of 082$a subfields: %s", field_082_a_no)
@@ -246,7 +251,10 @@ if __name__ == '__main__':
     logger.info("Total number of 852$3 subfields: %s", field_852_3_no)
     logger.info("Total number of 952$3 subfields: %s", field_952_3_no)
     logger.info("Total number of 952$A subfields: %s", field_952_A_no)
-    logger.info("Total number of 'R/2005-397 order number' subfields: %s", special_order_number_counter)
+    logger.info("Total number of 'R/2005-397 order number' subfields: %s", special_order_number_counter)"""
 
-    logger.info("Total number of record errors: %s", total_error_no)
+    logger.info("--------------------------------------------------")
     logger.info("Total number of records: %s", total_record_no)
+    logger.info("Total number of record holdings: %s", total_file_record_holdings_no)
+    logger.info("Total number of record errors: %s", total_error_no)
+    logger.info("--------------------------------------------------")
