@@ -9,6 +9,7 @@ import lib.oracle_helper.dates as dates_helper
 HOLDING_FIELD_CODE = '952'
 ALEPH_ITEM_PRICE_LIST = list()
 ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = list()
+BARCODE_TO_ZENON_ID_MAPPING = dict()
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
@@ -485,10 +486,21 @@ def get_aleph_vendor_code_koha_bookseller_name_mapping():
 
     return result
 
+def get_barcode_to_zenon_id_mapping():
+    result = {}
+
+    oracle.open_connection()
+    data_cursor = oracle.get_barcode_to_zenon_id_mapping()
+    for query_result in data_cursor:
+        result[query_result[0]] = query_result[1]
+
+    return result
+
 
 def init():
     global ALEPH_ITEM_PRICE_LIST
     global ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING
+    global BARCODE_TO_ZENON_ID_MAPPING
 
     if not ALEPH_ITEM_PRICE_LIST:
         ALEPH_ITEM_PRICE_LIST = get_aleph_item_price_list()
@@ -496,11 +508,17 @@ def init():
     if not ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING:
         ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = get_aleph_vendor_code_koha_bookseller_name_mapping()
 
+    if not BARCODE_TO_ZENON_ID_MAPPING:
+        BARCODE_TO_ZENON_ID_MAPPING = get_barcode_to_zenon_id_mapping()
+
     if len(ALEPH_ITEM_PRICE_LIST) < 1:
         exit("Calculated aleph item price list ist empty!")
 
     if len(ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING) < 1:
         exit("'AQBOOKSELLERS' table is empty!")
+
+    if len(BARCODE_TO_ZENON_ID_MAPPING) < 1:
+        exit("'BARCODE_TO_ZENON_ID_MAPPING' is empty!")
 
 
 def prepare_marc(record):
@@ -531,6 +549,29 @@ def prepare_marc(record):
         logger.debug("Field No. %s: %s", holding_field_counter, field_952)
 
         if check_required_subfields(field_952):
+
+            subfield_952_p = field_952['p']
+            # '952$p' Barcode (required for circulation)
+            if subfield_952_p is None:
+                logger.warning("Field No. %s: No required subfield 'p' found!", holding_field_counter)
+                record_error_no += 1
+            else:
+                koha_barcode = map_barcode(subfield_952_p)
+                if koha_barcode is None:
+                    logger.warning("Field No. %s: Skipping subfield 'p' in marc field %s",
+                                   holding_field_counter, field_952)
+                    field_952.delete_subfield('p')
+                    is_record_format_error = True
+                    record_error_no += 1
+                else:
+                    if koha_barcode in BARCODE_TO_ZENON_ID_MAPPING:
+                        barcode_zenon_id = BARCODE_TO_ZENON_ID_MAPPING[koha_barcode]
+                        record_zenon_id = record.get_fields('001')
+                        if barcode_zenon_id == record_zenon_id:
+                            field_952['p'] = koha_barcode
+                        else:
+                            record.remove_field(field_952)
+                            continue
 
             # '952$a' Owning Library (required by Koha)
             koha_owning_library = map_owning_library(field_952['a'])
@@ -598,7 +639,6 @@ def prepare_marc(record):
 
             # '952$g' Purchase price
             subfield_952_g = field_952['g']
-            subfield_952_p = field_952['p']
             koha_purchase_prise = map_purchase_price(subfield_952_g, subfield_952_p)
             if koha_purchase_prise is None:
                 logger.info("Field No. %s: Skipping subfield 'g' = %s", holding_field_counter, subfield_952_g)
@@ -666,21 +706,6 @@ def prepare_marc(record):
                     field_952.delete_subfield('o')
                 else:
                     field_952['o'] = koha_call_number
-
-            # '952$p' Barcode (required for circulation)
-            if subfield_952_p is None:
-                logger.warning("Field No. %s: No required subfield 'p' found!", holding_field_counter)
-                record_error_no += 1
-            else:
-                koha_barcode = map_barcode(subfield_952_p)
-                if koha_barcode is None:
-                    logger.warning("Field No. %s: Skipping subfield 'p' in marc field %s",
-                                   holding_field_counter, field_952)
-                    field_952.delete_subfield('p')
-                    is_record_format_error = True
-                    record_error_no += 1
-                else:
-                    field_952['p'] = koha_barcode
 
             # '952$q' Due date -> currently not applicable for Aleph
             subfield_952_q = field_952['q']

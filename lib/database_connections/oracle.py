@@ -270,3 +270,12 @@ def get_subscription_to_order_mapping():
     cur = connection.cursor()
     return cur.execute('SELECT Z16.Z16_REC_KEY, Z68.Z68_REC_KEY FROM Z16, Z68 ' +
                        'WHERE Z16.Z16_ORDER_NUMBER = Z68.Z68_ORDER_NUMBER')
+
+
+def get_barcode_to_zenon_id_mapping():
+    global connection
+    cur = connection.cursor()
+    return cur.execute('SELECT Z30.Z30_BARCODE, Z103.Z103_LKR_DOC_NUMBER FROM DAI01.Z103, DAI50.Z30 ' +
+                       'WHERE ' +
+                       'Z103.Z103_LKR_TYPE = :1 ' +
+                       'AND SUBSTR(Z103.Z103_REC_KEY, 6, 9) = SUBSTR(Z30.Z30_REC_KEY, 0, 9);', ('ADM',))
