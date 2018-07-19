@@ -12,12 +12,11 @@ ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = list()
 BARCODE_TO_ZENON_ID_MAPPING = dict()
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.WARNING)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 thesaurus_field_counter = 0
 holding_field_max = [None, 0]
-
 
 def map_aleph_item_statistic(aleph_item_statistic, aleph_item_order_number):
     item_statistic = None
@@ -486,13 +485,18 @@ def get_aleph_vendor_code_koha_bookseller_name_mapping():
 
     return result
 
+
 def get_barcode_to_zenon_id_mapping():
     result = {}
 
     oracle.open_connection()
     data_cursor = oracle.get_barcode_to_zenon_id_mapping()
     for query_result in data_cursor:
-        result[query_result[0]] = query_result[1]
+
+        blank_number = '0'*9
+        value = str(query_result[1])
+
+        result[query_result[0].strip()] = f'{blank_number[:-len(value)]}{value}'
 
     return result
 
@@ -524,6 +528,10 @@ def init():
 def prepare_marc(record):
     global thesaurus_field_counter
     global holding_field_max
+
+    items_kept_based_on_barcode = 0
+    items_deleted_based_on_barcode = 0
+
     record_error_no = 0
     is_record_format_error = False
     is_record_format_warning = False
@@ -566,10 +574,12 @@ def prepare_marc(record):
                 else:
                     if koha_barcode in BARCODE_TO_ZENON_ID_MAPPING:
                         barcode_zenon_id = BARCODE_TO_ZENON_ID_MAPPING[koha_barcode]
-                        record_zenon_id = record.get_fields('001')
+                        record_zenon_id = record['001'].data
                         if barcode_zenon_id == record_zenon_id:
+                            items_kept_based_on_barcode += 1
                             field_952['p'] = koha_barcode
                         else:
+                            items_deleted_based_on_barcode += 1
                             record.remove_field(field_952)
                             continue
 
