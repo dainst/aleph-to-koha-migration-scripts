@@ -54,6 +54,8 @@ def close_connection():
     else:
         logger.debug("Connection to OracleDB was already closed!\n")
 
+    connection = None
+
 
 def get_cursor():
     global connection
@@ -277,5 +279,5 @@ def get_barcode_to_zenon_id_mapping():
     cur = connection.cursor()
     return cur.execute('SELECT Z30.Z30_BARCODE, Z103.Z103_LKR_DOC_NUMBER FROM DAI01.Z103, DAI50.Z30 ' +
                        'WHERE ' +
-                       'Z103.Z103_LKR_TYPE = :1 ' +
-                       'AND SUBSTR(Z103.Z103_REC_KEY, 6, 9) = SUBSTR(Z30.Z30_REC_KEY, 0, 9);', ('ADM',))
+                       'Z103.Z103_LKR_TYPE=:1 ' +
+                       'AND SUBSTR(Z103.Z103_REC_KEY, 6, 9) = SUBSTR(Z30.Z30_REC_KEY, 0, 9)', ('ADM',))
