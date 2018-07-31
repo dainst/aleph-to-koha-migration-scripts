@@ -3,7 +3,7 @@ import cx_Oracle
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 config = {
     'user': 'dai50',
@@ -281,3 +281,13 @@ def get_barcode_to_zenon_id_mapping():
                        'WHERE ' +
                        'Z103.Z103_LKR_TYPE=:1 ' +
                        'AND SUBSTR(Z103.Z103_REC_KEY, 6, 9) = SUBSTR(Z30.Z30_REC_KEY, 0, 9)', ('ADM',))
+
+
+def get_barcodes_by_z68_rec_key(order_number):
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT Z30.Z30_BARCODE, Z30.Z30_CALL_NO FROM Z30, Z68 ' +
+                       'WHERE ' +
+                       'Z68.Z68_REC_KEY=:1 '
+                       'AND TRIM(Z68.Z68_ORDER_NUMBER) = Z30.Z30_ORDER_NUMBER ', (order_number,))

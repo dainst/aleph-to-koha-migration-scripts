@@ -3,7 +3,7 @@ import MySQLdb
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 config = {
     'host': '127.0.0.1',
@@ -208,5 +208,27 @@ def get_invoice_by_aleph_rec_key(aleph_rec_key):
 
     if len(result) == 0:
         return None
+
+    return result
+
+
+def get_koha_and_aleph_order_id_pairs():
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT `ordernumber`, `ALEPH_Z68_REC_KEY` FROM `aqorders`;')
+
+    result = cursor.fetchall()
+
+    return result
+
+
+def get_item_barcode_and_itemnumber_pairs():
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT `barcode`, `itemnumber` FROM `items`;')
+
+    result = cursor.fetchall()
 
     return result
