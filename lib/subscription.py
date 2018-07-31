@@ -26,7 +26,7 @@ PATTERN_MAPPING = None
 SYS_NUMBER_TO_BIB_ID_MAPPING_PATH = script_dir + '/../pickles/SYS_NUMBER_TO_BIB_ID_MAPPING.pickle'
 SYS_NUMBER_TO_BIB_ID_MAPPING = None
 ORDER_TO_SUBSCRIPTION_MAPPING = dict()
-Z00_TO_BIBLIOGRAPHIC_ID_MAPPING = dict()
+ADM_TO_ZENON_ID_MAPPING = dict()
 Z08_DATA = dict()
 
 '''
@@ -55,7 +55,7 @@ def parse_z16(parsed_results, data):
     global SUBSCRIPTION_COUNTER
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
-    global Z00_TO_BIBLIOGRAPHIC_ID_MAPPING
+    global ADM_TO_ZENON_ID_MAPPING
     global SYS_NUMBER_TO_BIB_ID_MAPPING
     global ORDER_TO_SUBSCRIPTION_MAPPING
 
@@ -70,7 +70,7 @@ def parse_z16(parsed_results, data):
         result['aqbudgetid'] = budget[0]
 
     try:
-        sys_number = Z00_TO_BIBLIOGRAPHIC_ID_MAPPING[doc_key]
+        sys_number = ADM_TO_ZENON_ID_MAPPING[doc_key]
         koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
     except KeyError:
         logger.warning('Koha bibliographic ID missing for subscription (Z16): %s.' % data[0])
@@ -165,7 +165,7 @@ def parse_z16(parsed_results, data):
 def fetch_data(credentials):
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
-    global Z00_TO_BIBLIOGRAPHIC_ID_MAPPING
+    global ADM_TO_ZENON_ID_MAPPING
     global ORDER_TO_SUBSCRIPTION_MAPPING
 
     with open(script_dir + '/../pickles/subscription_frequencies_mapping.pickle', 'rb') as mapping_file:
@@ -177,11 +177,9 @@ def fetch_data(credentials):
     mariadb.establish_connection()
 
     logger.info('Fetching title IDs...')
-    data_cursor = oracle.get_z00_data()
+    data_cursor = oracle.get_order_to_zenon_id_pairs()
     for query_result in data_cursor:
-        bibliographic_id = z00_helper.get_bibliographic_id_for_adm_number(query_result)
-        if bibliographic_id is not None:
-            Z00_TO_BIBLIOGRAPHIC_ID_MAPPING[query_result[0]] = bibliographic_id
+        ADM_TO_ZENON_ID_MAPPING[query_result[0]] = query_result[1]
     data_cursor.close()
     logger.info('Done.')
 
