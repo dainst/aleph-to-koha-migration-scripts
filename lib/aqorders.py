@@ -139,7 +139,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
         return previous_results
 
     try:
-        sys_number = order_to_title_id[aleph_rec_key[0:9]]
+        sys_number = order_to_title_id[aleph_rec_key]
         koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
         BIBLIOGRAPHIC_ID_FOUND.append(
             {
@@ -246,12 +246,10 @@ def fetch_data(credentials):
 
     logger.info('Fetching title IDs...')
     order_to_title_id = dict()
-    data_cursor = oracle.get_z00_data()
+    data_cursor = oracle.get_order_to_zenon_id_pairs()
     for query_result in data_cursor:
-        bibliographic_id = z00.get_bibliographic_id_for_adm_number(query_result)
-        if bibliographic_id is not None:
-            order_to_title_id[query_result[0]] = bibliographic_id
-    data_cursor.close()
+        order_to_title_id[query_result[0]] = query_result[1]
+
     logger.info('Done.')
 
     logger.info('Processing z68 (orders) data...')

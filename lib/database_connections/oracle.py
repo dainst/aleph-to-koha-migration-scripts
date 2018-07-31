@@ -244,13 +244,6 @@ def get_orders_to_invoices_mapping():
                        'AND Z601.Z601_TYPE=:1', ('INV',))
 
 
-def get_z00_data():
-    global connection
-
-    cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z00')
-
-
 def get_z08_data():
     global connection
     cur = connection.cursor()
@@ -277,10 +270,19 @@ def get_subscription_to_order_mapping():
 def get_barcode_to_zenon_id_mapping():
     global connection
     cur = connection.cursor()
-    return cur.execute('SELECT Z30.Z30_BARCODE, Z103.Z103_LKR_DOC_NUMBER FROM DAI01.Z103, DAI50.Z30 ' +
+    return cur.execute('SELECT Z30.Z30_BARCODE, SUBSTR(Z103_REC_KEY_1,  6, 9) FROM DAI01.Z103, DAI50.Z30 ' +
                        'WHERE ' +
                        'Z103.Z103_LKR_TYPE=:1 ' +
                        'AND SUBSTR(Z103.Z103_REC_KEY, 6, 9) = SUBSTR(Z30.Z30_REC_KEY, 0, 9)', ('ADM',))
+
+
+def get_order_to_zenon_id_pairs():
+    global connection
+    cur = connection.cursor()
+    return cur.execute('SELECT Z68.Z68_REC_KEY, SUBSTR(Z103_REC_KEY_1,  6, 9) FROM DAI01.Z103, DAI50.Z68 ' +
+                       'WHERE ' +
+                       'Z103.Z103_LKR_TYPE=:1 ' +
+                       'AND SUBSTR(Z103.Z103_REC_KEY, 6, 9) = SUBSTR(Z68.Z68_REC_KEY, 0, 9)', ('ADM',))
 
 
 def get_barcodes_by_z68_rec_key(order_number):
