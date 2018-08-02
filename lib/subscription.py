@@ -8,7 +8,6 @@ import lib.mappings.library_keys as library_keys
 import lib.mappings.marc_mappings as marc_mapping
 import lib.oracle_helper.dates as date_helper
 import lib.database_connections.mariadb as mariadb
-import lib.oracle_helper.z00 as z00_helper
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)

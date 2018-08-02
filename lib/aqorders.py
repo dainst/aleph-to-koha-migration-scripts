@@ -8,8 +8,6 @@ import lib.database_connections.mariadb as mariadb
 import lib.oracle_helper.dates as dates_helper
 import lib.mappings.currency as currency
 import lib.mappings.order_status as order_status_helper
-import lib.oracle_helper.z00 as z00
-
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
