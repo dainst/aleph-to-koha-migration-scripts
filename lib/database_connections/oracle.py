@@ -285,6 +285,15 @@ def get_order_to_zenon_id_pairs():
                        'AND SUBSTR(Z103.Z103_REC_KEY, 6, 9) = SUBSTR(Z68.Z68_REC_KEY, 0, 9)', ('ADM',))
 
 
+def get_subscription_to_zenon_id_pairs():
+    global connection
+    cur = connection.cursor()
+    return cur.execute('SELECT Z16.Z16_REC_KEY, SUBSTR(Z103_REC_KEY_1,  6, 9) FROM DAI01.Z103, DAI50.Z16 ' +
+                       'WHERE ' +
+                       'Z103.Z103_LKR_TYPE=:1 ' +
+                       'AND SUBSTR(Z103.Z103_REC_KEY, 6, 9) = SUBSTR(Z16.Z16_REC_KEY, 0, 9)', ('ADM',))
+
+
 def get_barcodes_by_z68_rec_key(order_number):
     global connection
 

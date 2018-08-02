@@ -25,7 +25,7 @@ PATTERN_MAPPING = None
 SYS_NUMBER_TO_BIB_ID_MAPPING_PATH = script_dir + '/../pickles/SYS_NUMBER_TO_BIB_ID_MAPPING.pickle'
 SYS_NUMBER_TO_BIB_ID_MAPPING = None
 ORDER_TO_SUBSCRIPTION_MAPPING = dict()
-ADM_TO_ZENON_ID_MAPPING = dict()
+SUBSCRIPTION_TO_ZENON_ID_MAPPING = dict()
 Z08_DATA = dict()
 
 '''
@@ -54,25 +54,26 @@ def parse_z16(parsed_results, data):
     global SUBSCRIPTION_COUNTER
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
-    global ADM_TO_ZENON_ID_MAPPING
+    global SUBSCRIPTION_TO_ZENON_ID_MAPPING
     global SYS_NUMBER_TO_BIB_ID_MAPPING
     global ORDER_TO_SUBSCRIPTION_MAPPING
 
     result = dict()
-    doc_key = data[0][0:9]
+    doc_key = data[0]
 
     budget = mariadb.get_budget_by_code(data[-2][0:50])
 
     if budget is None:
-        logger.warning('No found for Aleph code "%s". Subscription (Z16): %s' % (data[-2][0:50], data[0]))
+        logger.warning('No budget found for Aleph code "%s". Subscription (Z16): %s' % (data[-2][0:50], data[0]))
     else:
         result['aqbudgetid'] = budget[0]
 
     try:
-        sys_number = ADM_TO_ZENON_ID_MAPPING[doc_key]
+        sys_number = SUBSCRIPTION_TO_ZENON_ID_MAPPING[doc_key]
         koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
-    except KeyError:
-        logger.warning('Koha bibliographic ID missing for subscription (Z16): %s.' % data[0])
+    except KeyError as e:
+        logger.error(e)
+        logger.error('Koha bibliographic ID missing for subscription (Z16): %s.' % data[0])
         return parsed_results
 
     result['biblionumber'] = koha_bib_id
@@ -101,13 +102,13 @@ def parse_z16(parsed_results, data):
     else:
         result['location'] = marc_mapping.map_shelving_location(None, result['branchcode'])
 
-    if doc_key in PATTERN_MAPPING:
-        result['numberpattern'] = PATTERN_MAPPING[doc_key]['id']
+    if doc_key[0:9] in PATTERN_MAPPING:
+        result['numberpattern'] = PATTERN_MAPPING[doc_key[0:9]]['id']
     else:
         logger.warning('No number pattern for Aleph subscription (Z16): %s.' % data[0])
 
-    if doc_key in FREQUENCY_MAPPING:
-        frequency_list = FREQUENCY_MAPPING[doc_key]
+    if doc_key[0:9] in FREQUENCY_MAPPING:
+        frequency_list = FREQUENCY_MAPPING[doc_key[0:9]]
         if len(frequency_list) == 1:
             result['periodicity'] = frequency_list[0][0]
         else:
@@ -164,7 +165,7 @@ def parse_z16(parsed_results, data):
 def fetch_data(credentials):
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
-    global ADM_TO_ZENON_ID_MAPPING
+    global SUBSCRIPTION_TO_ZENON_ID_MAPPING
     global ORDER_TO_SUBSCRIPTION_MAPPING
 
     with open(script_dir + '/../pickles/subscription_frequencies_mapping.pickle', 'rb') as mapping_file:
@@ -176,9 +177,9 @@ def fetch_data(credentials):
     mariadb.establish_connection()
 
     logger.info('Fetching title IDs...')
-    data_cursor = oracle.get_order_to_zenon_id_pairs()
+    data_cursor = oracle.get_subscription_to_zenon_id_pairs()
     for query_result in data_cursor:
-        ADM_TO_ZENON_ID_MAPPING[query_result[0]] = query_result[1]
+        SUBSCRIPTION_TO_ZENON_ID_MAPPING[query_result[0]] = query_result[1]
     data_cursor.close()
     logger.info('Done.')
 
