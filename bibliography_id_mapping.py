@@ -10,19 +10,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-ADM_ITEM_MAPPING = dict()
-BARCODE_TO_ORDER_MAPPING = dict()
 SYS_NUMBER_TO_BIB_ID_MAPPING = dict()
 
 
 def create_mapping(input_path):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
-    global BARCODE_TO_ORDER_MAPPING
-
-    item_count = 0
-    missing_barcode_count = 0
-    missing_order_number_count = 0
-
 
     with open(input_path, 'rb') as input_file:
         reader = MARCReader(input_file, force_utf8=True)
@@ -35,68 +27,24 @@ def create_mapping(input_path):
 
             SYS_NUMBER_TO_BIB_ID_MAPPING[record['001'].data] = record['999']['c']
 
-            field_952_list = record.get_fields('952')
-            for field in field_952_list:
-                if 'W' in field and 'V' in field:
-                    z30_rec_key = field['W']+field['V']
-                    koha_bib_id = record['999']['c']
 
-                    if z30_rec_key in ADM_ITEM_MAPPING:
-                        logger.error('%s already present in mapping! This should not happen.' % z30_rec_key)
-                        logger.error('Existing mapping Zenon-ID: %s, Koha-ID: %s'
-                                     % (ADM_ITEM_MAPPING[z30_rec_key]['zenon_id'], ADM_ITEM_MAPPING[z30_rec_key]['koha_id']))
-                        logger.error('Current mapping Zenon-ID: %s, Koha-ID: %s'
-                                     % (record['001'].data, koha_bib_id))
-                        continue
-
-                    ADM_ITEM_MAPPING[z30_rec_key] = {
-                        'zenon_id': record['001'].data,
-                        'koha_id': koha_bib_id
-                    }
-
-                if 'p' not in field:
-                    missing_barcode_count += 1
-                elif 'A' not in field:
-                    missing_order_number_count += 1
-                else:
-                    barcode = field['p']
-                    BARCODE_TO_ORDER_MAPPING[barcode] = field['A']
-
-                item_count += 1
-
-    logger.info('%i items processed. %i missing barcodes and %i missing order numbers.' % (item_count,
-                                                                                           missing_barcode_count,
-                                                                                           missing_order_number_count)
-                )
-
-
-def write_mapping(output_path):
-    global ADM_ITEM_MAPPING
+def write_mapping():
     global SYS_NUMBER_TO_BIB_ID_MAPPING
 
-    logger.info('Pickling mapping data at %s.' % output_path)
-    if not os.path.dirname(output_path).endswith('/'):
-        output_path += '/'
+    output_path = './pickles/'
 
     if not os.path.exists(os.path.dirname(output_path)) and os.path.dirname(output_path) != '':
         os.makedirs(os.path.dirname(output_path))
 
-    with open(output_path + 'ADM_ITEM_MAPPING.pickle', 'wb') as output_file:
-        pickle.dump(ADM_ITEM_MAPPING, output_file)
-
     with open(output_path + 'SYS_NUMBER_TO_BIB_ID_MAPPING.pickle', 'wb') as output_file:
         pickle.dump(SYS_NUMBER_TO_BIB_ID_MAPPING, output_file)
-
-    with open(output_path + 'BARCODE_TO_ORDER_MAPPING.pickle', 'wb') as output_file:
-        pickle.dump(BARCODE_TO_ORDER_MAPPING, output_file)
 
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 2:
         logger.info('Please provide as argument:')
         logger.info('1) Path to bibliograhic data (directory) exports from Koha.')
-        logger.info('2) File path for the result (Python pickle).')
         sys.exit()
 
     input_directory = sys.argv[1]
@@ -109,4 +57,4 @@ if __name__ == '__main__':
         if filename.endswith('.mrc'):
             create_mapping(input_directory + filename)
 
-    write_mapping(sys.argv[2])
+    write_mapping()
