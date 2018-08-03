@@ -3,6 +3,7 @@ import os
 import logging
 import lib.database_connections.mariadb as mariadb
 import lib.database_connections.oracle as oracledb
+from shutil import copyfile
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -10,6 +11,7 @@ logger.setLevel(logging.INFO)
 
 script_dir = os.path.dirname(__file__)
 
+MAPPING_ITEM_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/041000_items_data_mapping.sql'
 MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/117000_aqorders_items_data_mapping.sql'
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqorders_items_data_import.sql'
 
@@ -26,6 +28,12 @@ def process_data(credentials, item_data_path):
 
     mariadb.establish_connection()
     oracledb.establish_connection(credentials)
+
+    # Copy item.sql file to intermediate value directory
+    with open(item_data_path, 'r') as original:
+        data = original.read()
+    with open(MAPPING_ITEM_SQL_OUTPUT_PATH, 'w') as modified:
+        modified.write(f'USE {mariadb.get_db_name()}; \n' + data)
 
     import_item_data(item_data_path)
 
