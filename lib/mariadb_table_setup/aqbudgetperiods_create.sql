@@ -12,4 +12,4 @@ CREATE TABLE `aqbudgetperiods` (
   `sort2_authcat` varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
   `ALEPH_Z76_BUDGET_NUMBER` varchar(25) NOT NULL,
   PRIMARY KEY (`budget_period_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

@@ -22,4 +22,4 @@ CREATE TABLE `aqbudgets` (
   KEY `budget_branchcode` (`budget_branchcode`),
   KEY `budget_period_id` (`budget_period_id`),
   KEY `budget_owner_id` (`budget_owner_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

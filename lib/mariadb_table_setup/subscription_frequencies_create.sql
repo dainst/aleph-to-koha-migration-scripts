@@ -8,4 +8,4 @@ CREATE TABLE `subscription_frequencies` (
   `unitsperissue` int(11) NOT NULL DEFAULT '1',
   `issuesperunit` int(11) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
