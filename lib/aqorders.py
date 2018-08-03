@@ -231,7 +231,7 @@ def fetch_data(credentials):
     basket_data = dict()
     basket_data_cursor = mariadb.get_aqbaskets()
     for query_result in basket_data_cursor:
-        basket_data[query_result[-1]] = query_result
+        basket_data[query_result[-2]] = query_result
     logger.info('Done.')
 
     logger.info('Fetching budget data...')
