@@ -172,7 +172,11 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
         'unitprice': currency.parse_value(data[31]),
         'unitprice_tax_included': currency.parse_value(data[31]),
         'listprice': currency.parse_value(data[34]),
+        'rrp': currency.parse_value(data[34]),
+        'rrp_tax_excluded': currency.parse_value(data[34]),
+        'rrp_tax_included': currency.parse_value(data[34]),
         'ecost': currency.parse_value(data[37]),
+        'ecost_tax_excluded': currency.parse_value(data[37]),
         'ecost_tax_included': currency.parse_value(data[37]),
         'uncertainprice': 1,
         'invoiceid': koha_invoice,
@@ -266,8 +270,6 @@ def fetch_data(credentials):
             results = process_z68_data(results, basket_data, None, order_to_budget_mapping, order_to_title_id, query_result)
     data_cursor.close()
     logger.info('Done.')
-
-    oracle.close_connection()
 
     return results
 
