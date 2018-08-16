@@ -1,12 +1,113 @@
-from pymarc import Field
-
 import logging
+import re
 
-THESAURUS_FIELD_CODE = '999'
+from pymarc import Field
+from typing import List
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+THESAURUS_FIELD_CODE = '999'
+NOTATION_651_INCLUDE_LIST: List[str] = [
+    'xAntWirtschOrt',
+    'xArchitBauKirch.+',
+    'xArchitKgLandsch',
+    'xEpigrGrEWG.+',
+    'xEpigrLatEWG.+',
+    'xFrMAGeb.+',
+    'xGefFund.+',
+    'xGefTonAmphFundl.+',
+    'xGefTonGebr.+',
+    'xGefTonTSArret',
+    'xGefTonTSDonau',
+    'xGefTonTSGall',
+    'xGefTonTSGall.+',
+    'xGefTonTSIt',
+    'xGefTonTSSp',
+    'xGeschBevölkOrt',
+    'xJuraRömVerwPSeinz',
+    'xKgLandsch',
+    'xMalWandHaus.+',
+    'xMosTess.+',
+    'xMusSlgAukt',
+    'xMusSlgAukt.+',
+    'xMusSlgAusst.+',
+    'xMusSlgMusLand.+',
+    'xMusSlgMusOrt.+',
+    'xNumFund.+',
+    'xNumGrMünzst',
+    'xNumRömMünzst',
+    'xNumRömProv',
+    'xOrGeschIran',
+    'xOrGeschMes',
+    'xOrGeschSyr',
+    'xOrReligIran',
+    'xOrReligMes',
+    'xOrReligSyr',
+    'xPlastKgLandsch',
+    'xReligChrOrt',
+    'xReligOrt',
+    'xReligOrtEinz.+',
+    'xRkAlp',
+    'xRkAnat',
+    'xRkArab'
+    'xRkArm',
+    'xRkBakt',
+    'xRkEdess',
+    'xRkFr',
+    'xRkGand',
+    'xRkIber',
+    'xRkKauk',
+    'xRkKommag',
+    'xRkKyp',
+    'xRkM-As',
+    'xRkMak',
+    'xRkN-Afr',
+    'xRkNub',
+    'xRkPalm'
+    'xRkSchwarzm',
+    'xRkSO-Eur',
+    'xRkSyr',
+    'xTopKart.+',
+    # 'xTopLand',
+    'xTopLand.+',
+    'xTopRAIAth',
+    'xTopRAIAth.+',
+    'xTopRAIIstan',
+    'xTopRAIIstan.+',
+    'xTopRAIRom',
+    'xTopRAIRom.+',
+    'xTopSchlachtf',
+    'xTopSiedl.+',
+    'xTopWeg.+',
+    'xVg.+'
+    'zEuropSüdeuItali.+',
+    'zTopog.+',
+    '3\.00\.01',
+    '3\.00\.01\.01',
+    '3\.00\.01\.01.+',
+    '3\.00\.01\.02',
+    '3\.00\.01\.02.+',
+    '4\.02',
+    '4\.02\..+'
+]
+NOTATION_651_EXCLUDE_LIST: List[str] = [
+    'xEpigrGrEWGAllg',
+    'xEpigrGrEWGMehr',
+    'xEpigrLatEWGAllg',
+    'xEpigrLatEWGMehr',
+    'xFrMAGebMehr',
+    'xGefTonAmphFundlMehr',
+    'xGefTonGebrMehr',
+    'xGefTonTSGallMehr',
+    'xMalWandHausMehr',
+    'xMosTessMehr',
+    'xTopKartUmf',
+    'xTopWegAllg',
+    'xVgImport',
+    'xVgUmf'
+]
 
 
 def map_thesaurus_on_marc_650(marc_thesaurus_field):
@@ -15,6 +116,7 @@ def map_thesaurus_on_marc_650(marc_thesaurus_field):
     thesaurus_subfield_m = marc_thesaurus_field['m']
     thesaurus_subfield_r = marc_thesaurus_field['r']
     thesaurus_subfield_1 = marc_thesaurus_field['1']
+    is_651_notation_match = False
     field_650 = None
 
     if \
@@ -24,26 +126,22 @@ def map_thesaurus_on_marc_650(marc_thesaurus_field):
                 thesaurus_subfield_e is None or
                 thesaurus_subfield_m is None or
                 thesaurus_subfield_r is None
-            ) and (
-                thesaurus_subfield_1.startswith("xEpigrGrEWGAllg") or
-                thesaurus_subfield_1.startswith("xEpigrGrEWGMehr") or
-                thesaurus_subfield_1.startswith("xEpigrLatEWGAllg") or
-                thesaurus_subfield_1.startswith("xEpigrLatEWGMehr") or
-                thesaurus_subfield_1.startswith("xFrMAGebMehr") or
-                thesaurus_subfield_1.startswith("xGefTonAmphFundlMehr") or
-                thesaurus_subfield_1.startswith("xGefTonGebrMehr") or
-                thesaurus_subfield_1.startswith("xGefTonTSGallMehr") or
-                thesaurus_subfield_1.startswith("xMalWandHausMehr") or
-                thesaurus_subfield_1.startswith("xMosTessMehr") or
-                thesaurus_subfield_1.startswith("xTopKartUmf") or
-                thesaurus_subfield_1.startswith("xTopWegAllg") or
-                thesaurus_subfield_1.startswith("xVgImport") or
-                thesaurus_subfield_1.startswith("xVgUmf")
             ):
+        for incl_651_reg_exp in NOTATION_651_INCLUDE_LIST:
+            incl_651_match = re.match(incl_651_reg_exp, thesaurus_subfield_1)
+            if incl_651_match is not None:
+                is_651_notation_match = True
+                for excl_651_reg_exp in NOTATION_651_EXCLUDE_LIST:
+                    excl_651_match = re.match(excl_651_reg_exp, thesaurus_subfield_1)
+                    if excl_651_match is not None:
+                        is_651_notation_match = False
+                        break
+                break
 
-        field_650 = Field(tag='650', indicators=['\\', '\\'])
-        field_650.add_subfield('a', thesaurus_subfield_a)
-        field_650.add_subfield('2', thesaurus_subfield_1)
+        if not is_651_notation_match:
+            field_650 = Field(tag='650', indicators=['\\', '\\'])
+            field_650.add_subfield('a', thesaurus_subfield_a)
+            field_650.add_subfield('2', thesaurus_subfield_1)
 
     return field_650
 
@@ -54,6 +152,7 @@ def map_thesaurus_on_marc_651(marc_thesaurus_field):
     thesaurus_subfield_m = marc_thesaurus_field['m']
     thesaurus_subfield_r = marc_thesaurus_field['r']
     thesaurus_subfield_1 = marc_thesaurus_field['1']
+    is_651_notation_match = False
     field_651 = None
 
     if \
@@ -62,48 +161,46 @@ def map_thesaurus_on_marc_651(marc_thesaurus_field):
                 thesaurus_subfield_e is not None or
                 thesaurus_subfield_m is not None or
                 thesaurus_subfield_r is not None or
-                (
-                    thesaurus_subfield_1 is not None and not
-                    (
-                        thesaurus_subfield_1.startswith("xEpigrGrEWGAllg") or
-                        thesaurus_subfield_1.startswith("xEpigrGrEWGMehr") or
-                        thesaurus_subfield_1.startswith("xEpigrLatEWGAllg") or
-                        thesaurus_subfield_1.startswith("xEpigrLatEWGMehr") or
-                        thesaurus_subfield_1.startswith("xFrMAGebMehr") or
-                        thesaurus_subfield_1.startswith("xGefTonAmphFundlMehr") or
-                        thesaurus_subfield_1.startswith("xGefTonGebrMehr") or
-                        thesaurus_subfield_1.startswith("xGefTonTSGallMehr") or
-                        thesaurus_subfield_1.startswith("xMalWandHausMehr") or
-                        thesaurus_subfield_1.startswith("xMosTessMehr") or
-                        thesaurus_subfield_1.startswith("xTopKartUmf") or
-                        thesaurus_subfield_1.startswith("xTopWegAllg") or
-                        thesaurus_subfield_1.startswith("xVgImport") or
-                        thesaurus_subfield_1.startswith("xVgUmf")
-                    )
-                )
+                thesaurus_subfield_1 is not None
             ):
 
-        field_651 = Field(tag='651', indicators=['\\', '\\'])
-
-        if thesaurus_subfield_e is not None:
-            field_651.add_subfield('a', thesaurus_subfield_e)
-
-        if thesaurus_subfield_m is not None:
-            field_651.add_subfield('a', thesaurus_subfield_m)
-
-        if thesaurus_subfield_r is not None:
-            field_651.add_subfield('a', thesaurus_subfield_r)
-
-        if thesaurus_subfield_a is not None:
-            if thesaurus_subfield_e is not None or \
-                    thesaurus_subfield_m is not None or \
-                    thesaurus_subfield_r is not None:
-                field_651.add_subfield('g', thesaurus_subfield_a)
-            else:
-                field_651.add_subfield('a', thesaurus_subfield_a)
-
         if thesaurus_subfield_1 is not None:
-            field_651.add_subfield('2', thesaurus_subfield_1)
+            logger.info("999$1 = " + thesaurus_subfield_1)
+            for incl_651_reg_exp in NOTATION_651_INCLUDE_LIST:
+                incl_651_match = re.match(incl_651_reg_exp, thesaurus_subfield_1)
+                if incl_651_match is not None:
+                    logger.info("incl_651_match = " + str(incl_651_match))
+                    is_651_notation_match = True
+                    for excl_651_reg_exp in NOTATION_651_EXCLUDE_LIST:
+                        excl_651_match = re.match(excl_651_reg_exp, thesaurus_subfield_1)
+                        if excl_651_match is not None:
+                            logger.info("excl_651_match = " + str(excl_651_match))
+                            is_651_notation_match = False
+                            break
+                    break
+
+        if thesaurus_subfield_1 is None or is_651_notation_match:
+            field_651 = Field(tag='651', indicators=['\\', '\\'])
+
+            if thesaurus_subfield_e is not None:
+                field_651.add_subfield('a', thesaurus_subfield_e)
+
+            if thesaurus_subfield_m is not None:
+                field_651.add_subfield('a', thesaurus_subfield_m)
+
+            if thesaurus_subfield_r is not None:
+                field_651.add_subfield('a', thesaurus_subfield_r)
+
+            if thesaurus_subfield_a is not None:
+                if thesaurus_subfield_e is not None or \
+                        thesaurus_subfield_m is not None or \
+                        thesaurus_subfield_r is not None:
+                    field_651.add_subfield('g', thesaurus_subfield_a)
+                else:
+                    field_651.add_subfield('a', thesaurus_subfield_a)
+
+            if is_651_notation_match:
+                field_651.add_subfield('2', thesaurus_subfield_1)
 
     return field_651
 

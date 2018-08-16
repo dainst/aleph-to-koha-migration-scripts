@@ -18,6 +18,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 thesaurus_field_counter = 0
 holding_field_max = [None, 0]
 
+
 def map_aleph_item_statistic(aleph_item_statistic, aleph_item_order_number):
     item_statistic = None
 
