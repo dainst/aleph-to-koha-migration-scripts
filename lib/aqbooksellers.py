@@ -42,10 +42,11 @@ def escape_double_quotes(string):
 
 # A new name is combined from aus 'name in aleph'-'aleph vendortype'-'(serials|monograph)'
 def construct_name(query_result, postfix):
+    (library_key, seperator, rest) = query_result[0].partition('/')
     if query_result[33] is None:
-        return escape_double_quotes(query_result[7] + postfix)
+        return escape_double_quotes(f'{library_key}/{query_result[7]}{postfix}')
     else:
-        return escape_double_quotes('[' + query_result[33] + ']' + query_result[7] + postfix)
+        return escape_double_quotes(f'{library_key}[{query_result[33]}]{query_result[7]}{postfix}')
 
 
 # Aleph saves discount as '9(3)V99', meaning a string of 5 chars, where the first 3 represent the integer values and
