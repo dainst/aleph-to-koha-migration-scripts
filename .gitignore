@@ -2,6 +2,10 @@
 *.iml
 .idea/
 
+# Python venv
+
+venv/
+
 # Input data directories
 bibliographic_data_aleph/**/*.mrc
 bibliographic_data_koha/**/*.mrc
