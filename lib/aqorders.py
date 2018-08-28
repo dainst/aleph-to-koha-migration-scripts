@@ -106,7 +106,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
     date_received = None
     quantity_received = 0
     if order_status == 'complete':
-        date_received = dates_helper.process_aleph_date(data[8])
+        date_received = dates_helper.process_aleph_date(data[10])
         quantity_received = quantity
         logger.debug('Complete order: %s' % data[2].strip())
         # TODO: How to evaluate from aleph data?
