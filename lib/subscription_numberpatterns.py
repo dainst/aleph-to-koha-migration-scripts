@@ -12,14 +12,14 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+script_dir = os.path.dirname(__file__)
+
 file_logger = logging.getLogger(__name__ + '_file')
 file_logger.setLevel(logging.INFO)
 
-log_file_handler = logging.FileHandler('subscription_numberpatterns.log')
+log_file_handler = logging.FileHandler(script_dir + '/../log/subscription_numberpatterns.log')
 log_file_handler.setLevel(logging.WARN)
 file_logger.addHandler(log_file_handler)
-
-script_dir = os.path.dirname(__file__)
 
 MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/' \
                                        '030000_subscription_numberpatterns_data_mapping.sql'

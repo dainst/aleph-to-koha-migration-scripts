@@ -392,10 +392,10 @@ if __name__ == '__main__':
 
     logger.info('%i orders of %i without an associated bibliographic ID.' % (len(NO_BIBLIOGRAPHIC_ID), ORDER_COUNT))
 
-    with open('missing_bibliographic_id.tsv', 'w') as error_log:
+    with open(script_dir + '../log/missing_bibliographic_id.tsv', 'w') as error_log:
         for item in NO_BIBLIOGRAPHIC_ID:
             error_log.write('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
 
-    with open('successful_mapping.tsv', 'w') as log:
+    with open(script_dir + '../log/successful_mapping.tsv', 'w') as log:
         for item in BIBLIOGRAPHIC_ID_FOUND:
             log.write('%s\t%s\t%s\n' % (item['aleph_rec_key'], item['order_number'], item['zenon_id']))
