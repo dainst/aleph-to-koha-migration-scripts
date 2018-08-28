@@ -3,8 +3,9 @@
 .idea/
 
 # Input data directories
-bibliographic_data_aleph/*.mrc
-bibliographic_data_koha/*.mrc
+bibliographic_data_aleph/**/*.mrc
+bibliographic_data_koha/**/*.mrc
+
 
 # (Intermediate) result data
 lib/ready_for_import/*.sql
