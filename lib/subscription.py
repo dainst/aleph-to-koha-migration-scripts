@@ -183,7 +183,7 @@ def fetch_data(credentials):
     data_cursor.close()
     logger.info('Done.')
 
-    cursor = oracle.get_subscription_data()
+    cursor = oracle.get_active_subscription_data()
     subscriptions = dict()
     for row in cursor:
         subscriptions = parse_z16(subscriptions, row)

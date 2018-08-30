@@ -250,13 +250,14 @@ def get_z08_data():
     return cur.execute('SELECT * FROM Z08')
 
 
-def get_subscription_data():
+def get_active_subscription_data():
     global connection
     cur = connection.cursor()
     return cur.execute('SELECT Z16.*, Z601.Z601_REC_KEY, Z68.Z68_REC_KEY FROM Z16, Z601, Z68 ' +
                        'WHERE ' +
                        'Z16.Z16_ORDER_NUMBER = Z68.Z68_ORDER_NUMBER ' +
                        'AND Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 ' +
+                       'AND (Z68.Z68_SUBSCRIPTION_DATE_TO = 0 OR Z68.Z68_SUBSCRIPTION_DATE_TO > 20170000) '
                        'AND Z601.Z601_TYPE=:1', ('ENC',))
 
 
