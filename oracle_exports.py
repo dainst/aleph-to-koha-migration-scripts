@@ -2,6 +2,7 @@ import logging
 import sys
 from lib import aqbooksellers, aqcontacts, aqbasketgroups, aqbasket, aqbudgets_and_aqbudgetperiods, aqinvoices
 from lib import subscription_frequencies, subscription_numberpatterns, subscription, aqorders, aqorders_items
+from lib import serial
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -25,5 +26,6 @@ if __name__ == '__main__':
     subscription_numberpatterns.start(sys.argv[1])
     subscription.start(sys.argv[1])
     aqorders.start(sys.argv[1])
-    aqorders_items.start(sys.argv[1], sys.argv[2])
+    aqorders_items.start(sys.argv[1], sys.argv[2])  # will copy the given SQL file into intermediate value directory
+    serial.start(sys.argv[1])
 

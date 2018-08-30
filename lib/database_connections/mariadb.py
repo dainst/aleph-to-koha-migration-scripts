@@ -232,3 +232,14 @@ def get_item_barcode_and_itemnumber_pairs():
     result = cursor.fetchall()
 
     return result
+
+
+def get_subscription_id_and_biblionumber_pairs():
+    global connection
+
+    cursor = connection.cursor()
+    query = 'SELECT biblionumber, subscriptionid ' \
+            'FROM subscription'
+    cursor.execute(query)
+    result = cursor.fetchall()
+    return result
