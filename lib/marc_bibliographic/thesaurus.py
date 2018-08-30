@@ -5,7 +5,7 @@ from pymarc import Field, Record
 from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 THESAURUS_FIELD_CODE: str = '999'
