@@ -77,7 +77,7 @@ def fetch_data(credentials):
 
     logger.debug(' %i of %i orders are missing a budget.' % (len(MISSING_BUDGET), counter))
 
-    with open(script_dir + '../log/missing_budget_aqinvoices.log', 'w') as log_file:
+    with open(script_dir + '/../log/missing_budget_aqinvoices.log', 'w') as log_file:
         for order in MISSING_BUDGET:
             log_file.write('%s\n' % order)
 
