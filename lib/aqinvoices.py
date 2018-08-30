@@ -75,10 +75,11 @@ def fetch_data(credentials):
         counter += 1
     data_cursor.close()
 
-    logger.debug(' %i of %i orders are missing a budget.' % (len(MISSING_BUDGET), counter))
+    logger.info(f' {len(MISSING_BUDGET)} of {counter} orders are missing a budget.')
 
     with open(script_dir + '/../log/missing_budget_aqinvoices.log', 'w') as log_file:
         for order in MISSING_BUDGET:
+            logger.info(order)
             log_file.write('%s\n' % order)
 
     oracle.close_connection()

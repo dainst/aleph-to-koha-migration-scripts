@@ -67,13 +67,16 @@ def parse_z16(parsed_results, data):
         logger.warning('No budget found for Aleph code "%s". Subscription (Z16): %s' % (data[-2][0:50], data[0]))
     else:
         result['aqbudgetid'] = budget[0]
-
     try:
         sys_number = SUBSCRIPTION_TO_ZENON_ID_MAPPING[doc_key]
-        koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
-    except KeyError as e:
-        logger.error(e)
-        logger.error('Koha bibliographic ID missing for subscription (Z16): %s.' % data[0])
+        try:
+            koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
+        except KeyError:
+            logger.error(f'Koha bibliographic ID missing system number {sys_number}, linked to'
+                         f' subscription (Z16): {data[0]}.')
+            return parsed_results
+    except KeyError:
+        logger.error(f'Unable map subscription {doc_key} to system number.')
         return parsed_results
 
     result['biblionumber'] = koha_bib_id
@@ -183,7 +186,7 @@ def fetch_data(credentials):
     data_cursor.close()
     logger.info('Done.')
 
-    cursor = oracle.get_active_subscription_data()
+    cursor = oracle.get_subscription_data()
     subscriptions = dict()
     for row in cursor:
         subscriptions = parse_z16(subscriptions, row)

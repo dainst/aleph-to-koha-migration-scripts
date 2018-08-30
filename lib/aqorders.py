@@ -188,7 +188,8 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
             subscription = ORDER_TO_SUBSCRIPTION_MAPPING[aleph_rec_key]
             result['subscriptionid'] = subscription['id']
         except KeyError:
-            logger.warning('No subscription associated with %s despite being a serial order.' % (aleph_rec_key,))
+            logger.warning(f'No subscription associated with {aleph_rec_key} despite being a serial order (Aleph '
+                           f'ORDER_TYPE = "S").')
 
     if aleph_rec_key in previous_results:
         previous_results[aleph_rec_key].append(result)
