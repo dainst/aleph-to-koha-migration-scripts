@@ -9,6 +9,7 @@ venv/
 # Input data directories
 bibliographic_data_aleph/**/*.mrc
 bibliographic_data_koha/**/*.mrc
+authority_data_koha/**/*.mrc
 
 
 # (Intermediate) result data
