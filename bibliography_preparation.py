@@ -3,6 +3,7 @@ from pymarc import MARCReader, MARCWriter
 import logging
 import os
 import sys
+import pickle
 
 import lib.mappings.marc_mappings as marc_mappings
 import lib.marc_bibliographic.holdings as holdings
@@ -26,6 +27,8 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 # logger.addHandler(file_handler)
 # logger.addHandler(console_handler)
 
+estimated_sys_number_to_bibliographic_number_mapping = dict()
+
 
 def link_bibliographic_headings_to_koha_authority_ids(bibliographic_record, heading_to_authority_id_mapping):
     for field in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
@@ -41,6 +44,7 @@ def link_bibliographic_headings_to_koha_authority_ids(bibliographic_record, head
 def process_bibliographic_data(input_path, output_path, mapping):
     global file_record_count
     global file_error_count
+    global estimated_sys_number_to_bibliographic_number_mapping
 
     with open(input_path, 'rb') as input_file:
         with open(output_path, 'wb') as output_file:
@@ -52,8 +56,14 @@ def process_bibliographic_data(input_path, output_path, mapping):
                 record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
                 record_error_count += holdings.prepare_marc(record)
                 record_error_count += thesaurus.prepare_marc(record)
-                writer.write(record)
-                file_record_count += 1
+
+                if record['001'] is not None:
+                    estimated_sys_number_to_bibliographic_number_mapping[record['001'].data] = file_record_count + 1
+                    writer.write(record)
+                    file_record_count += 1
+                else:
+                    logger.error('No system number 001 for record:')
+                    logger.error(record)
                 file_error_count += record_error_count
 
 
@@ -97,7 +107,10 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.dirname(output_directory)) and os.path.dirname(output_directory) != '':
         os.makedirs(os.path.dirname(output_directory))
 
-    for filename in os.listdir(input_directory):
+    sorted_files = os.listdir(input_directory)
+    sorted_files = sorted(sorted_files)
+
+    for filename in sorted_files:
         if filename.endswith('.mrc'):
 
             file_record_count = 0
@@ -120,3 +133,6 @@ if __name__ == '__main__':
         "Holding field number maximum: %s (in: '%s')", holdings.holding_field_max[1], holdings.holding_field_max[0])
     logger.info("Total number of record errors: %s", total_error_count)
     logger.info("Total number of records: %s", total_record_count)
+
+    with open('./pickles/estimated_sys_number_to_bibliographic_number_mapping.pickle', 'wb') as mapping_file:
+        pickle.dump(estimated_sys_number_to_bibliographic_number_mapping, mapping_file)
