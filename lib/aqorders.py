@@ -186,7 +186,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
     if data[1] == 'S':
         try:
             subscription = ORDER_TO_SUBSCRIPTION_MAPPING[aleph_rec_key]
-            result['subscriptionid'] = subscription['id']
+            result['subscriptionid'] = subscription['subscriptionid']
         except KeyError:
             logger.warning(f'No subscription associated with {aleph_rec_key} despite being a serial order (Aleph '
                            f'ORDER_TYPE = "S").')
@@ -368,12 +368,11 @@ def write_data(data):
         cursor.close()
 
 
-def start(oracle_credentials):
+def start(oracle_credentials, estimated_sys_number_to_bibliographic_number_mapping):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
     global ORDER_TO_SUBSCRIPTION_MAPPING
 
-    with open(script_dir + '/../pickles/SYS_NUMBER_TO_BIB_ID_MAPPING.pickle', 'rb') as mapping_file:
-        SYS_NUMBER_TO_BIB_ID_MAPPING = pickle.load(mapping_file)
+    SYS_NUMBER_TO_BIB_ID_MAPPING = estimated_sys_number_to_bibliographic_number_mapping
 
     with open(script_dir + '/../pickles/order_to_subscription_mapping.pickle', 'rb') as mapping_file:
         ORDER_TO_SUBSCRIPTION_MAPPING = pickle.load(mapping_file)
