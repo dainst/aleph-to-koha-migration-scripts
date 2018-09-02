@@ -11,7 +11,7 @@ logger.setLevel(logging.INFO)
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         logger.error('Please provide as argument:')
         logger.error('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         logger.error('2) Estimated system number to Koha bibliography number mapping.')
@@ -28,5 +28,11 @@ if __name__ == '__main__':
     aqinvoices.start(sys.argv[1])
     subscription_frequencies.start(sys.argv[1])
     subscription_numberpatterns.start(sys.argv[1])
+
+    # TODO: Automatically trigger bibliographic preparation here
+
+    with open('./pickles/estimated_sys_number_to_bibliographic_number_mapping.pickle', 'rb') as id_mapping_file:
+        estimated_sys_number_to_bibliographic_number_mapping = pickle.load(id_mapping_file)
+
     subscription.start(sys.argv[1], estimated_sys_number_to_bibliographic_number_mapping)
-    aqorders.start(sys.argv[1])
+    aqorders.start(sys.argv[1], estimated_sys_number_to_bibliographic_number_mapping)
