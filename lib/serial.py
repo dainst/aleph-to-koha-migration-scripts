@@ -143,14 +143,16 @@ def start(credentials):
     write_data(serial_results,
                'serial',
                serial_table_columns,
-               script_dir + '/mariadb_intermediate_values/019000_serial_data_mapping.sql',
-               script_dir + '/ready_for_import/serial_data_import.sql')
+               script_dir + '/ready_for_import/serial_data_import.sql',
+               script_dir + '/mariadb_intermediate_values/019000_serial_data_mapping.sql'
+               )
 
     write_data(serial_item_results,
                'serialitems',
                serial_items_table_columns,
-               script_dir + '/mariadb_intermediate_values/146000_serialitems_data_mapping.sql',
-               script_dir + '/ready_for_import/serialitems_data_import.sql')
+               script_dir + '/ready_for_import/serialitems_data_import.sql',
+               script_dir + '/mariadb_intermediate_values/146000_serialitems_data_mapping.sql'
+               )
 
 
 if __name__ == '__main__':
