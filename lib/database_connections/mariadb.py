@@ -171,8 +171,8 @@ def get_budget_by_code(budget_code):
     result = cursor.fetchall()
 
     if len(result) != 1:
-        logger.error('Invalid number of budgets with code %s:' % budget_code)
-        logger.error(result)
+        logger.debug('Invalid number of budgets with code %s:' % budget_code)
+        logger.debug(result)
         return None
 
     return result[0]
