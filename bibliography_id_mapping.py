@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) != 2:
         logger.info('Please provide as argument:')
-        logger.info('1) Path to bibliograhic data (directory) exports from Koha.')
+        logger.info('1) Path to bibliographic data (directory) exports from Koha.')
         sys.exit()
 
     input_directory = sys.argv[1]
