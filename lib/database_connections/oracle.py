@@ -185,6 +185,13 @@ def get_budgets_for_open_orders():
                        'AND Z601.Z601_TYPE=:4', (CLOSED, VENDOR_CANCELLED, LIBRARY_CANCELLED, 'ENC'))
 
 
+def get_still_valid_budgets():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z76 WHERE Z76_VALID_DATE_TO > 20180000')
+
+
 def get_orders_to_budgets_mapping():
     global connection
 
@@ -193,11 +200,12 @@ def get_orders_to_budgets_mapping():
                        'WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 AND Z601.Z601_TYPE=:1', ('ENC',))
 
 
-def get_still_valid_budgets():
+def get_budget_to_invoice_mapping():
     global connection
 
     cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z76 WHERE Z76_VALID_DATE_TO > 20180000')
+    return cur.execute('SELECT SUBSTRB(Z601.Z601_REC_KEY, 1, 50), Z601.Z601_REC_KEY_2, Z601.Z601_REC_KEY_3 FROM Z601 ' +
+                       'WHERE Z601.Z601_TYPE=:1', ('INV', ))
 
 
 def get_budget_by_budget_number(bundget_number):

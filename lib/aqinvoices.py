@@ -17,8 +17,9 @@ MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/046000_aqin
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqinvoices_data_import.sql'
 
 AQINVOICESDATA = dict()
-ORDER_TO_BUDGET_MAPPING = dict()
-MISSING_BUDGET = []
+INVOICE_TO_BUDGET_MAPPING = dict()
+MISSING_BUDGET_ALEPH = []
+MISSING_BUDGET_KOHA = []
 
 
 def split_join(query_result):
@@ -32,14 +33,21 @@ def split_join(query_result):
 
 def process_data(data):
     global AQINVOICESDATA
-    global ORDER_TO_BUDGET_MAPPING
+    global INVOICE_TO_BUDGET_MAPPING
+    global MISSING_BUDGET_ALEPH
+    global MISSING_BUDGET_KOHA
 
-    if data['z68'][0] not in ORDER_TO_BUDGET_MAPPING:
-        MISSING_BUDGET.append(data['z68'][0])
+    if (data['z75'][0], data['z75'][1]) not in INVOICE_TO_BUDGET_MAPPING:
+        MISSING_BUDGET_ALEPH.append((data['z75'][0], data['z75'][1]))
         koha_budget_id = None
     else:
-        budget_code = ORDER_TO_BUDGET_MAPPING[data['z68'][0]]
-        koha_budget_id = mariadb.get_budget_by_code(budget_code)[0]
+        budget_code = INVOICE_TO_BUDGET_MAPPING[(data['z75'][0], data['z75'][1])].strip()
+
+        if mariadb.get_budget_by_code(budget_code) is None:
+            koha_budget_id = None
+            MISSING_BUDGET_KOHA.append((data['z75'][0], data['z75'][1]))
+        else:
+            koha_budget_id = mariadb.get_budget_by_code(budget_code)[0]
 
     bookseller = mariadb.get_aqbookseller_by_aleph_vendor_key(data['z68'][25].strip())
 
@@ -58,14 +66,20 @@ def process_data(data):
 
 
 def fetch_data(credentials):
-    global ORDER_TO_BUDGET_MAPPING
+    global INVOICE_TO_BUDGET_MAPPING
 
     oracle.establish_connection(credentials)
     mariadb.establish_connection()
 
-    data_cursor = oracle.get_orders_to_budgets_mapping()
+    data_cursor = oracle.get_budget_to_invoice_mapping()
     for query_result in data_cursor:
-        ORDER_TO_BUDGET_MAPPING[query_result[0]] = query_result[1]
+        if (query_result[2], query_result[1]) in INVOICE_TO_BUDGET_MAPPING \
+                and query_result[0] != INVOICE_TO_BUDGET_MAPPING[(query_result[2], query_result[1])]:
+            logger.error(f'{(query_result[2], query_result[1])} already in budget mapping.')
+            logger.error(f'New value: {query_result[0]}, ' +
+                         f'old value: {INVOICE_TO_BUDGET_MAPPING[(query_result[2], query_result[1])]}.')
+
+        INVOICE_TO_BUDGET_MAPPING[(query_result[2], query_result[1])] = query_result[0]
 
     data_cursor = oracle.get_open_z68_with_invoices()
     counter = 0
@@ -75,12 +89,18 @@ def fetch_data(credentials):
         counter += 1
     data_cursor.close()
 
-    logger.info(f' {len(MISSING_BUDGET)} of {counter} orders are missing a budget.')
+    logger.info(f'{len(MISSING_BUDGET_ALEPH)} of {counter} orders are missing an aleph budget.')
 
-    with open(script_dir + '/../log/missing_budget_aqinvoices.log', 'w') as log_file:
-        for order in MISSING_BUDGET:
-            logger.info(order)
-            log_file.write('%s\n' % order)
+    with open(script_dir + '/../log/invoices_missing_aleph_budgets.log', 'w') as log_file:
+        for rec_key, rec_key_2 in MISSING_BUDGET_ALEPH:
+            logger.info(f'{rec_key}, {rec_key_2}')
+            log_file.write(f'{rec_key},{rec_key_2}\n')
+
+    logger.info(f'{len(MISSING_BUDGET_KOHA)} of {counter} orders are missing a koha budget.')
+    with open(script_dir + '/../log/invoices_missing_koha_budgets.log', 'w') as log_file:
+        for rec_key, rec_key_2 in MISSING_BUDGET_KOHA:
+            logger.info(f'{rec_key}, {rec_key_2}')
+            log_file.write(f'{rec_key},{rec_key_2}\n')
 
     oracle.close_connection()
 

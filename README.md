@@ -75,7 +75,34 @@ or
 `docker-compose down -v` (`-v` to also remove the database volumes, otherwise just the container is deleted) 
 
 
-### MARC exports
+## Resetting database (on Koha server)
+
+If you want to reset previously imported data in your Koha instance run the following script.
+
+```sql
+SET FOREIGN_KEY_CHECKS = 0;
+
+TRUNCATE TABLE koha_zenon.aqbasket;
+TRUNCATE TABLE koha_zenon.aqbasketgroups;
+TRUNCATE TABLE koha_zenon.aqbooksellers;
+TRUNCATE TABLE koha_zenon.aqbudgetperiods;
+TRUNCATE TABLE koha_zenon.aqbudgets;
+TRUNCATE TABLE koha_zenon.aqcontacts;
+TRUNCATE TABLE koha_zenon.aqinvoices;
+TRUNCATE TABLE koha_zenon.aqorders;
+TRUNCATE TABLE koha_zenon.aqorders_items;
+TRUNCATE TABLE koha_zenon.items;
+TRUNCATE TABLE koha_zenon.serial;
+TRUNCATE TABLE koha_zenon.serialitems;
+TRUNCATE TABLE koha_zenon.subscription;
+TRUNCATE TABLE koha_zenon.subscription_numberpatterns;
+TRUNCATE TABLE koha_zenon.subscription_frequencies;
+
+SET FOREIGN_KEY_CHECKS = 1;
+```
+
+
+## MARC exports
 
 (Work in progress)
 
