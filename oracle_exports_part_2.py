@@ -21,8 +21,8 @@ if __name__ == '__main__':
         sys_number_mapping = pickle.load(output_file)
 
     aqinvoices.start(sys.argv[1])
+    subscription.start(sys.argv[1], sys_number_mapping)
     # aqorders.start(sys.argv[1], sys_number_mapping)
-    # subscription.start(sys.argv[1], sys_number_mapping)
     # aqorders_items.start(sys.argv[1], sys.argv[3])  # will copy the given SQL file into intermediate value directory
     # serial.start(sys.argv[1])
 

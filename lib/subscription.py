@@ -24,9 +24,12 @@ FREQUENCY_MAPPING = None
 PATTERN_MAPPING = None
 SYS_NUMBER_TO_BIB_ID_MAPPING_PATH = script_dir + '/../pickles/SYS_NUMBER_TO_BIB_ID_MAPPING.pickle'
 SYS_NUMBER_TO_BIB_ID_MAPPING = None
-ORDER_TO_SUBSCRIPTION_MAPPING = dict()
+order_to_budget_mapping = dict()
 SUBSCRIPTION_TO_ZENON_ID_MAPPING = dict()
+ORDER_TO_SUBSCRIPTION_MAPPING = dict()
 Z08_DATA = dict()
+
+missing_budget = []
 
 '''
   `cost` int(11) DEFAULT '0',
@@ -56,19 +59,22 @@ def parse_z16(parsed_results, data):
     global PATTERN_MAPPING
     global SUBSCRIPTION_TO_ZENON_ID_MAPPING
     global SYS_NUMBER_TO_BIB_ID_MAPPING
+    global order_to_budget_mapping
     global ORDER_TO_SUBSCRIPTION_MAPPING
+    global missing_budget
 
     result = dict()
-    doc_key = data[0]
+    doc_key = data[0][0:-3]
 
-    budget = mariadb.get_budget_by_code(data[-2][0:50])
-
-    if budget is None:
-        logger.warning('No budget found for Aleph code "%s". Subscription (Z16): %s' % (data[-2][0:50], data[0]))
-    else:
-        result['aqbudgetid'] = budget[0]
+    budget = None
     try:
-        sys_number = SUBSCRIPTION_TO_ZENON_ID_MAPPING[doc_key]
+        budget = mariadb.get_budget_by_code(order_to_budget_mapping[data[-1]])
+        if budget is not None:
+            result['aqbudgetid'] = budget[0]
+    except KeyError as e:
+        missing_budget.append((doc_key, data[-1]))
+    try:
+        sys_number = SUBSCRIPTION_TO_ZENON_ID_MAPPING[data[0]]
         try:
             koha_bib_id = SYS_NUMBER_TO_BIB_ID_MAPPING[sys_number]
         except KeyError:
@@ -169,7 +175,7 @@ def fetch_data(credentials):
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
     global SUBSCRIPTION_TO_ZENON_ID_MAPPING
-    global ORDER_TO_SUBSCRIPTION_MAPPING
+    global order_to_budget_mapping
 
     with open(script_dir + '/../pickles/subscription_frequencies_mapping.pickle', 'rb') as mapping_file:
         FREQUENCY_MAPPING = pickle.load(mapping_file)
@@ -183,6 +189,13 @@ def fetch_data(credentials):
     data_cursor = oracle.get_subscription_to_zenon_id_pairs()
     for query_result in data_cursor:
         SUBSCRIPTION_TO_ZENON_ID_MAPPING[query_result[0]] = query_result[1]
+    data_cursor.close()
+    logger.info('Done.')
+
+    logger.info('Fetching budget data...')
+    data_cursor = oracle.get_orders_to_budgets_mapping()
+    for query_result in data_cursor:
+        order_to_budget_mapping[query_result[0]] = query_result[1].strip()
     data_cursor.close()
     logger.info('Done.')
 
@@ -277,12 +290,20 @@ def start(credentials, sys_number_to_bib_number_mapping):
     subscriptions = fetch_data(credentials)
     write_data(subscriptions)
 
+    logger.info(f'Missing budgets (Z16_DOC_NUMBER, Z68_REC_KEY) {len(missing_budget)} of {len(subscriptions.keys())}:')
+    for (z16_doc_number, z68_rec_key) in missing_budget:
+        logger.info(f'{z16_doc_number}, {z68_rec_key}')
+
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
+        logger.error('2) Path to mapping Zenon ID -> Koha bibliographic ID.')
         sys.exit()
 
-    start(sys.argv[1])
+    with open(sys.argv[2], 'rb') as output_file:
+        sys_number_mapping = pickle.load(output_file)
+
+    start(sys.argv[1], sys_number_mapping)
