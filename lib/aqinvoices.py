@@ -76,10 +76,18 @@ def fetch_data(credentials):
         if (query_result[2], query_result[1]) in INVOICE_TO_BUDGET_MAPPING \
                 and query_result[0] != INVOICE_TO_BUDGET_MAPPING[(query_result[2], query_result[1])]:
             logger.error(f'{(query_result[2], query_result[1])} already in budget mapping.')
-            logger.error(f'New value: {query_result[0]}, ' +
-                         f'old value: {INVOICE_TO_BUDGET_MAPPING[(query_result[2], query_result[1])]}.')
+            logger.error(f'New value: {query_result[0].strip()}, ' +
+                         f'old value: {INVOICE_TO_BUDGET_MAPPING[(query_result[2], query_result[1])].strip()}.')
 
         INVOICE_TO_BUDGET_MAPPING[(query_result[2], query_result[1])] = query_result[0]
+    data_cursor.close()
+
+    data_cursor = oracle.get_budget_to_invoice_mapping_variant()
+    for query_result in data_cursor:
+        if (query_result[2], query_result[1]) in INVOICE_TO_BUDGET_MAPPING:
+            continue
+        INVOICE_TO_BUDGET_MAPPING[(query_result[2], query_result[1])] = query_result[0]
+    data_cursor.close()
 
     data_cursor = oracle.get_open_z68_with_invoices()
     counter = 0

@@ -208,6 +208,14 @@ def get_budget_to_invoice_mapping():
                        'WHERE Z601.Z601_TYPE=:1', ('INV', ))
 
 
+def get_budget_to_invoice_mapping_variant():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT SUBSTRB(Z601.Z601_REC_KEY, 1, 50), Z601.Z601_REC_KEY_2, Z601.Z601_REC_KEY_3 FROM Z601 ' +
+                       'WHERE Z601.Z601_TYPE=:1', ('ENC', ))
+
+
 def get_budget_by_budget_number(bundget_number):
     global connection
 
