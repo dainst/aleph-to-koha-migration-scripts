@@ -196,8 +196,16 @@ def get_orders_to_budgets_mapping():
     global connection
 
     cur = connection.cursor()
-    return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, SUBSTRB(Z601.Z601_REC_KEY, 1, 50) FROM Z68, Z601 ' +
+    return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, Z601.Z601_REC_KEY FROM Z68, Z601 ' +
                        'WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 AND Z601.Z601_TYPE=:1', ('ENC',))
+
+
+def get_orders_to_budgets_mapping_variant():
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT DISTINCT Z68.Z68_REC_KEY, Z601.Z601_REC_KEY FROM Z68, Z601 ' +
+                       'WHERE Z68.Z68_REC_KEY = Z601.Z601_REC_KEY_3 AND Z601.Z601_TYPE=:1', ('INV',))
 
 
 def get_budget_to_invoice_mapping():
@@ -269,7 +277,7 @@ def get_z08_data():
 def get_subscription_data():
     global connection
     cur = connection.cursor()
-    return cur.execute('SELECT Z16.*, Z68.Z68_REC_KEY FROM Z16, Z68 ' +
+    return cur.execute('SELECT Z16.*, Z68.Z68_METHOD_OF_AQUISITION, Z68.Z68_REC_KEY FROM Z16, Z68 ' +
                        'WHERE Z16.Z16_ORDER_NUMBER = Z68.Z68_ORDER_NUMBER')
 
 
