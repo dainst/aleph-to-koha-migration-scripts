@@ -8,6 +8,7 @@ import lib.mappings.library_keys as library_keys
 import lib.mappings.marc_mappings as marc_mapping
 import lib.oracle_helper.dates as date_helper
 import lib.database_connections.mariadb as mariadb
+import lib.mappings.fallback_budgets as fallback_budgets
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -66,12 +67,14 @@ def parse_z16(parsed_results, data):
     result = dict()
     doc_key = data[0][0:-3]
 
-    budget = None
     try:
-        budget = mariadb.get_budget_by_code(order_to_budget_mapping[data[-1]])
+        budget = mariadb.get_budget_by_code(order_to_budget_mapping[data[-1]][0:50])
         if budget is not None:
             result['aqbudgetid'] = budget[0]
     except KeyError as e:
+        result['aqbudgetid'] = mariadb.get_budget_by_code(
+            fallback_budgets.get_budget_for_method_of_acquisition(data[-2].strip())
+        )[0]
         missing_budget.append((doc_key, data[-1]))
     try:
         sys_number = SUBSCRIPTION_TO_ZENON_ID_MAPPING[data[0]]
@@ -195,7 +198,18 @@ def fetch_data(credentials):
     logger.info('Fetching budget data...')
     data_cursor = oracle.get_orders_to_budgets_mapping()
     for query_result in data_cursor:
+        if query_result[0] in order_to_budget_mapping:
+            logger.warning('Order already mapped to budget: ')
+            logger.warning(f'{query_result[0]}: {order_to_budget_mapping[query_result[0]]}')
+            logger.warning('New value:')
+            logger.warning(f'{query_result[0]}: {query_result[1].strip()}')
         order_to_budget_mapping[query_result[0]] = query_result[1].strip()
+    data_cursor.close()
+
+    data_cursor = oracle.get_orders_to_budgets_mapping_variant()
+    for query_result in data_cursor:
+        if query_result[0] not in order_to_budget_mapping:
+            order_to_budget_mapping[query_result[0]] = query_result[1].strip()
     data_cursor.close()
     logger.info('Done.')
 
