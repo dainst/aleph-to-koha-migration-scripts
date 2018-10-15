@@ -91,7 +91,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
 
     order_status = order_status_helper.map_aleph_key(data[7])
 
-    internal_note = None
+    internal_note = ''
     if data[24] is not None:
         internal_note = data[24].replace('\"', '\'')
 
@@ -197,6 +197,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
             if aleph_rec_key not in MISSING_SUBSCRIPTION:
                 logger.debug(f'No subscription associated with {aleph_rec_key} despite being a serial order (Aleph '
                              f'ORDER_TYPE = "S").')
+                result['order_internalnote'] += f'-- Failed to map Aleph serial order {aleph_rec_key} to Koha subscription.'
                 MISSING_SUBSCRIPTION += [{'aleph_rec_key': aleph_rec_key, 'biblionumber': koha_bib_id}]
 
     if aleph_rec_key in previous_results:
