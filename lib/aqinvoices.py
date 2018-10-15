@@ -6,6 +6,7 @@ import lib.database_connections.oracle as oracle
 import lib.database_connections.mariadb as mariadb
 import lib.oracle_helper.dates as dates_helper
 import lib.mappings.currency as currency
+import lib.mappings.fallback_budgets as fallback_budgets
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -39,7 +40,9 @@ def process_data(data):
 
     if (data['z75'][0], data['z75'][1]) not in INVOICE_TO_BUDGET_MAPPING:
         MISSING_BUDGET_ALEPH.append((data['z75'][0], data['z75'][1]))
-        koha_budget_id = None
+        koha_budget_id = mariadb.get_budget_by_code(
+            fallback_budgets.get_budget_for_method_of_acquisition(data['z68'][14].strip())
+        )[0]
     else:
         budget_code = INVOICE_TO_BUDGET_MAPPING[(data['z75'][0], data['z75'][1])].strip()
 
