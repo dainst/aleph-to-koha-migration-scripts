@@ -5,8 +5,8 @@ import os
 import lib.database_connections.oracle as oracle
 import lib.database_connections.mariadb as mariadb
 import lib.mappings.library_keys as library_keys
+import lib.mappings.fallback_budgets as fallback_budgets
 import lib.oracle_helper.dates as dates_helper
-
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -102,6 +102,22 @@ def create_aqbudgetperiod(data):
     return result
 
 
+def generate_fallback_budgets():
+    global AQBUDGET_DATA
+
+    template = {
+        'budget_name': 'Fallback budget',
+        'budget_amount': None,
+        'budget_encumb': None,
+        'budget_expend': None,
+        'budget_notes': 'Fallback for Orders migrated from Aleph without a valid budget.'
+    }
+
+    for code in fallback_budgets.CODES:
+        current = { 'budget_code': code}
+        AQBUDGET_DATA[code] = {**current, **template}
+
+
 def create_aqbudget(data, aqbudgetperiod):
     global AQBUDGET_DATA
 
@@ -158,7 +174,8 @@ def parse_data(data):
 
 
 def fetch_data(credentials):
-    oracle.establish_connection(credentials)
+
+    generate_fallback_budgets()
 
     logger.info('Reading data from Oracle...')
     oracle.establish_connection(credentials)
