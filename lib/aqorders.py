@@ -11,7 +11,7 @@ import lib.mappings.order_status as order_status_helper
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 MISSING_BASKET = []
 
@@ -22,10 +22,12 @@ IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqorders_data_import.sq
 
 MISSING_BUDGET = []
 SYS_NUMBER_TO_BIB_ID_MAPPING = None
-ORDER_TO_SUBSCRIPTION_MAPPING = None
+order_to_subscription_mapping = None
 ORDER_COUNT = 0
 NO_BIBLIOGRAPHIC_ID = []
 BIBLIOGRAPHIC_ID_FOUND = []
+MISSING_SUBSCRIPTION = []
+FOUND_SUBSCRIPTION_COUNT = 0
 
 
 def construct_probable_budget_code(data):
@@ -76,6 +78,8 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
     global SYS_NUMBER_TO_BIB_ID_MAPPING
     global NO_BIBLIOGRAPHIC_ID
     global BIBLIOGRAPHIC_ID_FOUND
+    global MISSING_SUBSCRIPTION
+    global FOUND_SUBSCRIPTION_COUNT
 
     aleph_rec_key = data[0]
     basket_no = None
@@ -99,7 +103,8 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
     if data[27] is not None:
         vendor_note = data[27].replace('\"', '\'')
 
-    quantity = int(data[30])  # TODO: Hack, remove once data has been corrected
+    quantity = int(data[30])
+    # TODO: Hack, remove once data has been corrected
     if quantity > 8:
         quantity = 8
 
@@ -185,11 +190,14 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
 
     if data[1] == 'S':
         try:
-            subscription = ORDER_TO_SUBSCRIPTION_MAPPING[aleph_rec_key]
+            subscription = order_to_subscription_mapping[aleph_rec_key]
             result['subscriptionid'] = subscription['subscriptionid']
-        except KeyError:
-            logger.warning(f'No subscription associated with {aleph_rec_key} despite being a serial order (Aleph '
-                           f'ORDER_TYPE = "S").')
+            FOUND_SUBSCRIPTION_COUNT += 1
+        except KeyError as e:
+            if aleph_rec_key not in MISSING_SUBSCRIPTION:
+                logger.debug(f'No subscription associated with {aleph_rec_key} despite being a serial order (Aleph '
+                             f'ORDER_TYPE = "S").')
+                MISSING_SUBSCRIPTION += [{'aleph_rec_key': aleph_rec_key, 'biblionumber': koha_bib_id}]
 
     if aleph_rec_key in previous_results:
         previous_results[aleph_rec_key].append(result)
@@ -368,34 +376,42 @@ def write_data(data):
         cursor.close()
 
 
-def start(oracle_credentials, estimated_sys_number_to_bibliographic_number_mapping):
+def start(oracle_credentials, sys_number_to_bibliographic_number_mapping):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
-    global ORDER_TO_SUBSCRIPTION_MAPPING
+    global order_to_subscription_mapping
 
-    SYS_NUMBER_TO_BIB_ID_MAPPING = estimated_sys_number_to_bibliographic_number_mapping
+    SYS_NUMBER_TO_BIB_ID_MAPPING = sys_number_to_bibliographic_number_mapping
 
     with open(script_dir + '/../pickles/order_to_subscription_mapping.pickle', 'rb') as mapping_file:
-        ORDER_TO_SUBSCRIPTION_MAPPING = pickle.load(mapping_file)
+        order_to_subscription_mapping = pickle.load(mapping_file)
 
     results = fetch_data(oracle_credentials)
     write_data(results)
 
+    logger.info(f'{len(MISSING_SUBSCRIPTION)} serial orders of {FOUND_SUBSCRIPTION_COUNT + len(MISSING_SUBSCRIPTION)} missing subscription:')
+    for item in MISSING_SUBSCRIPTION:
+        logger.info(item)
+
+    with open(script_dir + '/../log/missing_bibliographic_id.tsv', 'w') as error_log:
+        logger.info('%i orders of %i without an associated bibliographic ID.' % (len(NO_BIBLIOGRAPHIC_ID), ORDER_COUNT))
+        for item in NO_BIBLIOGRAPHIC_ID:
+            logger.info('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
+            error_log.write('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
+
+    with open(script_dir + '/../log/successful_mapping.tsv', 'w') as log:
+        for item in BIBLIOGRAPHIC_ID_FOUND:
+            log.write('%s\t%s\t%s\n' % (item['aleph_rec_key'], item['order_number'], item['zenon_id']))
+
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
+        logger.info('2) Path to mapping Zenon ID -> Koha bibliographic ID.')
         sys.exit()
 
-    start(sys.argv[1])
+    with open(sys.argv[2], 'rb') as output_file:
+        sys_number_mapping = pickle.load(output_file)
 
-    logger.info('%i orders of %i without an associated bibliographic ID.' % (len(NO_BIBLIOGRAPHIC_ID), ORDER_COUNT))
-
-    with open(script_dir + '../log/missing_bibliographic_id.tsv', 'w') as error_log:
-        for item in NO_BIBLIOGRAPHIC_ID:
-            error_log.write('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
-
-    with open(script_dir + '../log/successful_mapping.tsv', 'w') as log:
-        for item in BIBLIOGRAPHIC_ID_FOUND:
-            log.write('%s\t%s\t%s\n' % (item['aleph_rec_key'], item['order_number'], item['zenon_id']))
+    start(sys.argv[1], sys_number_mapping)
