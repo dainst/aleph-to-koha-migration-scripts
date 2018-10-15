@@ -269,7 +269,7 @@ def generate_insert_statements(data_dict, database_columns):
 
 def write_data(result_dict):
 
-    database_columns = ['biblionumber', 'subscriptionid', 'librarian', 'startdate', 'aqbooksellerid', 'cost',
+    database_columns = ['biblionumber', 'subscriptionid', 'aqbudgetid', 'librarian', 'startdate', 'aqbooksellerid', 'cost',
                         'weeklength', 'monthlength', 'numberlength', 'periodicity', 'countissuesperunit',  'status',
                         'lastvalue1', 'innerloop1', 'lastvalue2', 'innerloop2', 'lastvalue3', 'innerloop3',
                         'firstacquidate', 'manualhistory', 'irregularity', 'skip_serialseq', 'letter', 'numberpattern',
@@ -304,9 +304,10 @@ def start(credentials, sys_number_to_bib_number_mapping):
     subscriptions = fetch_data(credentials)
     write_data(subscriptions)
 
-    logger.info(f'Missing budgets (Z16_DOC_NUMBER, Z68_REC_KEY) {len(missing_budget)} of {len(subscriptions.keys())}:')
+    logger.info(f'Missing budgets Z16_DOC_NUMBER ' 
+                f'{len(missing_budget)} of {len(subscriptions.keys())}, defaulted to fallback budgets:')
     for (z16_doc_number, z68_rec_key) in missing_budget:
-        logger.info(f'{z16_doc_number}, {z68_rec_key}')
+        logger.info(f'{z16_doc_number}')
 
 
 if __name__ == '__main__':
