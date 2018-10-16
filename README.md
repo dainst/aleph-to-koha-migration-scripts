@@ -91,7 +91,6 @@ TRUNCATE TABLE koha_zenon.aqcontacts;
 TRUNCATE TABLE koha_zenon.aqinvoices;
 TRUNCATE TABLE koha_zenon.aqorders;
 TRUNCATE TABLE koha_zenon.aqorders_items;
-TRUNCATE TABLE koha_zenon.items;
 TRUNCATE TABLE koha_zenon.serial;
 TRUNCATE TABLE koha_zenon.serialitems;
 TRUNCATE TABLE koha_zenon.subscription;
