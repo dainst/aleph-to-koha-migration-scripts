@@ -56,6 +56,7 @@ def process_data(credentials, item_data_path):
     for barcode, itemnumber in query_result:
 
         if barcode not in barcode_to_koha_order_mapping:
+            # This is expected to happen, because we only migrate open orders, so most items should be without orders.
             # logger.warning(f'Could not map barcode {barcode} to any order, item {itemnumber}.')
             continue
 
