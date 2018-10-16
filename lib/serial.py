@@ -72,7 +72,7 @@ def write_data(result_list, table, columns, import_sql_output_path, mapping_sql_
         cursor.close()
 
 
-def start(credentials):
+def start(credentials, order_to_subscription_mapping):
     logger.info('Connecting...')
     oracle.establish_connection(credentials)
     mariadb.establish_connection()
@@ -86,19 +86,17 @@ def start(credentials):
     subscription_to_item_mapping = dict()
 
     failed = []
-    with open('pickles/order_to_subscription_mapping.pickle', 'rb') as file:
-        contents = pickle.load(file)
-        for key in contents:
-            barcode_cursor = oracle.get_barcodes_by_z68_rec_key(key)
+    for key in order_to_subscription_mapping:
+        barcode_cursor = oracle.get_barcodes_by_z68_rec_key(key)
 
-            for barcode, call_number in barcode_cursor:
-                try:
-                    if contents[key]['subscriptionid'] in subscription_to_item_mapping:
-                        subscription_to_item_mapping[contents[key]['subscriptionid']] += [barcode_to_item_number_mapping[barcode.strip()]]
-                    else:
-                        subscription_to_item_mapping[contents[key]['subscriptionid']] = [barcode_to_item_number_mapping[barcode.strip()]]
-                except KeyError:
-                    failed += [barcode.strip()]
+        for barcode, call_number in barcode_cursor:
+            try:
+                if order_to_subscription_mapping[key]['subscriptionid'] in subscription_to_item_mapping:
+                    subscription_to_item_mapping[order_to_subscription_mapping[key]['subscriptionid']] += [barcode_to_item_number_mapping[barcode.strip()]]
+                else:
+                    subscription_to_item_mapping[order_to_subscription_mapping[key]['subscriptionid']] = [barcode_to_item_number_mapping[barcode.strip()]]
+            except KeyError:
+                failed += [barcode.strip()]
 
     logger.warning(f'Failed to map {len(failed)} barcodes to items: ')
     logger.warning(failed)
@@ -124,16 +122,12 @@ def start(credentials):
                     'serialid': counter
                 })
         except KeyError as e:
-            failed += [{'serialid': counter, 'biblionumber': biblionumber, 'subscriptionid': subscriptionid}]
+            failed += [{'biblionumber': biblionumber, 'subscriptionid': subscriptionid}]
 
         counter += 1
 
-    logger.warning(f'Failed to map {len(failed)} subscriptions to items: ')
+    logger.warning(f'Failed to map {len(failed)} of {counter} subscriptions to any items: ')
     logger.warning(failed)
-
-    #  TODO: Bei den Zeitschriften habe ich einen komischen Fehler, bei dem für ein Exemplar zwei Abos vorhanden sind, dem muss ich noch einmal auf den Grund gehen:
-    #  https://kohadev.dainst.org:8443/cgi-bin/koha/catalogue/detail.pl?biblionumber=149933 habe ich zwei Abos mit dem Exemplar mit dem Barcode 219074-190 verknüpft.
-    #  Beide Abos sind der Bibliothek Frankfurt zugeordnet, einmal ist das Anfangsdatum der 2012-08-30 und einmal 2015-08-28. Es kann gut sein dass es ein Fehler in meinem Script ist,
 
     serial_table_columns = serial_results[0].keys()
     serial_items_table_columns = serial_item_results[0].keys()
@@ -157,9 +151,11 @@ def start(credentials):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         logger.info('Please provide as argument:')
         logger.info('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
+        logger.error('2) Mapping Order -> Subscription ID.')
         sys.exit()
 
-    start(sys.argv[1])
+    with open(sys.argv[2], 'rb') as file:
+        start(sys.argv[1], pickle.load(file))
