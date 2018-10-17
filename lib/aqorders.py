@@ -79,6 +79,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
     global NO_BIBLIOGRAPHIC_ID
     global BIBLIOGRAPHIC_ID_FOUND
     global MISSING_SUBSCRIPTION
+    global MISSING_BASKET
     global FOUND_SUBSCRIPTION_COUNT
 
     aleph_rec_key = data[0]
@@ -87,7 +88,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
         basket_no = basket_data[aleph_rec_key][0]
 
     if basket_no is None:
-        MISSING_BASKET.append(data)
+        MISSING_BASKET.append(aleph_rec_key)
 
     order_status = order_status_helper.map_aleph_key(data[7])
 
@@ -117,7 +118,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
         # TODO: How to evaluate from aleph data?
 
     if aleph_rec_key in order_to_budget_data:
-        budget_code = order_to_budget_data[aleph_rec_key]
+        budget_code = order_to_budget_data[aleph_rec_key][0:50].strip()
     else:
         budget_code = construct_probable_budget_code(data)
 
@@ -380,6 +381,7 @@ def write_data(data):
 def start(oracle_credentials, sys_number_to_bibliographic_number_mapping):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
     global order_to_subscription_mapping
+    global MISSING_BASKET
 
     SYS_NUMBER_TO_BIB_ID_MAPPING = sys_number_to_bibliographic_number_mapping
 
@@ -398,6 +400,10 @@ def start(oracle_credentials, sys_number_to_bibliographic_number_mapping):
         for item in NO_BIBLIOGRAPHIC_ID:
             logger.info('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
             error_log.write('%s\t%s\n' % (item['aleph_rec_key'], item['order_number']))
+
+    logger.info(f'Missing baskets for order:')
+    for item in MISSING_BASKET:
+        logger.info(item)
 
     with open(script_dir + '/../log/successful_mapping.tsv', 'w') as log:
         for item in BIBLIOGRAPHIC_ID_FOUND:
