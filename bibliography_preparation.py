@@ -1,4 +1,4 @@
-from pymarc import MARCReader, MARCWriter
+from pymarc import MARCReader, MARCWriter, Field
 
 import logging
 import os
@@ -41,6 +41,23 @@ def link_bibliographic_headings_to_koha_authority_ids(bibliographic_record, head
     return bibliographic_record
 
 
+def prepare_record_linking(record):
+    if record['998'] is not None:
+
+        for old_field in record.get_fields('998'):
+            new_field = Field(tag='773', indicators=['\\', '\\'])
+
+            if old_field['b'] is not None:
+                new_field.add_subfield('w', old_field['b'])
+            if old_field['m'] is not None:
+                new_field.add_subfield('t', old_field['m'])
+
+            record.add_field(new_field)
+            record.remove_field(old_field)
+
+    return record
+
+
 def process_bibliographic_data(input_path, output_path, mapping):
     global file_record_count
     global file_error_count
@@ -54,6 +71,7 @@ def process_bibliographic_data(input_path, output_path, mapping):
             for record in reader:
                 record_error_count = 0
                 record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
+                record = prepare_record_linking(record)
                 record_error_count += holdings.prepare_marc(record)
                 record_error_count += thesaurus.prepare_marc(record)
 
