@@ -197,8 +197,9 @@ def map_thesaurus_on_marc_6xx(marc_thesaurus_field, mapping_field_nr: str) -> Fi
             notation_600_myth_match = re.match(notation_600_myth_reg_exp, thesaurus_subfield_1)
 
             if notation_600_myth_match is not None:
-                logger.debug("600_myth_match: %s (reg_exp='%s')",
-                             str(notation_600_myth_match), notation_600_myth_reg_exp)
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug("600_myth_match: %s (reg_exp='%s')",
+                                 str(notation_600_myth_match), notation_600_myth_reg_exp)
                 is_600_myth_notation_match = True
             break
 
@@ -240,7 +241,8 @@ def identify_mapping_field_nr(thesaurus_subfield_1: str) -> str:
         notation_600_match = re.match(notation_600_reg_exp, thesaurus_subfield_1)
 
         if notation_600_match is not None:
-            logger.debug("600_match: %s (reg_exp='%s')", str(notation_600_match), notation_600_reg_exp)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("600_match: %s (reg_exp='%s')", str(notation_600_match), notation_600_reg_exp)
             is_600_notation_match = True
             break
 
@@ -248,14 +250,16 @@ def identify_mapping_field_nr(thesaurus_subfield_1: str) -> str:
         incl_651_match = re.match(incl_651_reg_exp, thesaurus_subfield_1)
 
         if incl_651_match is not None:
-            logger.debug("651_incl_match: %s (reg_exp='%s')", str(incl_651_match), incl_651_reg_exp)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("651_incl_match: %s (reg_exp='%s')", str(incl_651_match), incl_651_reg_exp)
             is_651_notation_match = True
 
             for excl_651_reg_exp in NOTATION_651_EXCLUDE_TUPLE:
                 excl_651_match = re.match(excl_651_reg_exp, thesaurus_subfield_1)
 
                 if excl_651_match is not None:
-                    logger.debug("651_excl_match: %s (reg_exp='%s')", str(excl_651_match), excl_651_reg_exp)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("651_excl_match: %s (reg_exp='%s')", str(excl_651_match), excl_651_reg_exp)
                     is_651_notation_match = False
                     break
             break
@@ -288,7 +292,8 @@ def map_thesaurus(record: Record) -> int:
                 field_nr: str = identify_mapping_field_nr(thesaurus_subfield_1)
                 field_6xx: Field = map_thesaurus_on_marc_6xx(marc_thesaurus_field, field_nr)
                 record.add_field(field_6xx)
-                logger.debug("Field No. %s: %s", thesaurus_field_counter, field_6xx)
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug("Field No. %s: %s", thesaurus_field_counter, field_6xx)
             except ValueError:
                 logger.error("Field No. %s: No unique mapping for notation %s\n"
                              "(Thesaurus is mapped on field 600 and 651)",

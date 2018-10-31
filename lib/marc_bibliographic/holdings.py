@@ -40,23 +40,27 @@ def map_aleph_item_statistic(aleph_item_statistic, aleph_item_order_number):
     elif aleph_item_statistic == '06' or aleph_item_statistic == '08' or aleph_item_statistic == '07':
         item_statistic = 'Fortlaufende Werke'
     else:
-        logger.debug("Field No. %s: 952$T = '%s', no valid 'Z30_ITEM_STATISTIC' code found!",
-                     thesaurus_field_counter, aleph_item_statistic)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$T = '%s', no valid 'Z30_ITEM_STATISTIC' code found!",
+                         thesaurus_field_counter, aleph_item_statistic)
 
     if item_statistic is not None:
-        logger.debug("Field No. %s: 952$T = '%s', valid 'Z30_ITEM_STATISTIC' found.",
-                     thesaurus_field_counter, item_statistic)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$T = '%s', valid 'Z30_ITEM_STATISTIC' found.",
+                         thesaurus_field_counter, item_statistic)
 
     return item_statistic
 
 
 def map_aleph_string_field(marc_field_code, marc_subfield_code, aleph_item_field_name, aleph_item_field_value):
     if aleph_item_field_value is None:
-        logger.debug("Field No. %s: %s$%s = '%s', no valid '%s' found!", thesaurus_field_counter,
-                     marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: %s$%s = '%s', no valid '%s' found!", thesaurus_field_counter,
+                         marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
     else:
-        logger.debug("Field No. %s: %s$%s = '%s', valid '%s' code found.", thesaurus_field_counter,
-                     marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: %s$%s = '%s', valid '%s' code found.", thesaurus_field_counter,
+                         marc_field_code, marc_subfield_code, aleph_item_field_value, aleph_item_field_name)
 
 
 def map_not_for_loan(aleph_item_status, aleph_item_process_status):
@@ -85,7 +89,8 @@ def map_not_for_loan(aleph_item_status, aleph_item_process_status):
     elif aleph_item_status == '04':
         not_for_loan = '2'
 
-    logger.debug("Field No. %s: 952$7 = '%s', valid 'Not for loan' found.", thesaurus_field_counter, not_for_loan)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("Field No. %s: 952$7 = '%s', valid 'Not for loan' found.", thesaurus_field_counter, not_for_loan)
 
     return not_for_loan
 
@@ -95,7 +100,9 @@ def map_restrictions(subfield_952_c):
 
     if subfield_952_c == 'RARA' or subfield_952_c == 'RARAH':
         restricted = '1'
-    logger.debug("Field No. %s: 952$5 = '%s', valid 'Restrictions' found.", thesaurus_field_counter, restricted)
+
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("Field No. %s: 952$5 = '%s', valid 'Restrictions' found.", thesaurus_field_counter, restricted)
 
     return restricted
 
@@ -110,54 +117,64 @@ def copy_materials_specified(field_300_list):
                 subfield_300_3 = field_300['3']
                 if not 1 > len(subfield_300_e + ', ' + subfield_300_3) > 65535:
                     materials_specified = subfield_300_e + ', ' + subfield_300_3
-                    logger.debug("Field No. %s: 952$3 = '%s', valid 'Materials specified' copied from 300$e and 300$3.",
-                                 thesaurus_field_counter, materials_specified)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("Field No. %s: 952$3 = '%s', valid 'Materials specified' copied from 300$e and "
+                                     "300$3.", thesaurus_field_counter, materials_specified)
                 else:
-                    logger.debug("Field No. %s: 952$3 = '%s', "
-                                 "no valid 'Materials specified' available from 300$e combined with 300$3!",
-                                 thesaurus_field_counter, materials_specified)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("Field No. %s: 952$3 = '%s', "
+                                     "no valid 'Materials specified' available from 300$e combined with 300$3!",
+                                     thesaurus_field_counter, materials_specified)
             elif 'e' in field_300:
                 subfield_300_e = field_300['e']
                 if 1 > len(subfield_300_e) > 65535:
                     materials_specified = subfield_300_e
-                    logger.debug("Field No. %s: 952$3 = '%s', valid 'Materials specified' copied from 300$e.",
-                                 thesaurus_field_counter, materials_specified)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("Field No. %s: 952$3 = '%s', valid 'Materials specified' copied from 300$e.",
+                                     thesaurus_field_counter, materials_specified)
                 else:
-                    logger.debug("Field No. %s: 952$3 = '%s', no valid 'Materials specified' available from 300$e!",
-                                 thesaurus_field_counter, materials_specified)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("Field No. %s: 952$3 = '%s', no valid 'Materials specified' available from 300$e!",
+                                     thesaurus_field_counter, materials_specified)
             else:
                 subfield_300_3 = field_300['3']
                 if 1 > len(subfield_300_3) > 65535:
                     materials_specified = subfield_300_3
-                    logger.debug("Field No. %s: 952$3 = '%s', valid 'Materials specified' copied from 300$3.",
-                                 thesaurus_field_counter, materials_specified)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("Field No. %s: 952$3 = '%s', valid 'Materials specified' copied from 300$3.",
+                                     thesaurus_field_counter, materials_specified)
                 else:
-                    logger.debug("Field No. %s: 952$3 = '%s', no valid 'Materials specified' available from 300$3!",
-                                 thesaurus_field_counter, materials_specified)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("Field No. %s: 952$3 = '%s', no valid 'Materials specified' available from 300$3!",
+                                     thesaurus_field_counter, materials_specified)
         else:
-            logger.debug("Field No. %s: 952$3 = '%s', no valid 'Materials specified' in 300$e and 300$3 found!",
-                         thesaurus_field_counter, materials_specified)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Field No. %s: 952$3 = '%s', no valid 'Materials specified' in 300$e and 300$3 found!",
+                             thesaurus_field_counter, materials_specified)
 
     return materials_specified
 
 
 def map_materials_specified(subfield_952_3):
     if 1 > len(subfield_952_3) > 65535:
-        logger.debug("Field No. %s: 952$3 = '%s', no valid 'Materials specified' found!",
-                     thesaurus_field_counter, subfield_952_3)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$3 = '%s', no valid 'Materials specified' found!",
+                         thesaurus_field_counter, subfield_952_3)
 
         return None
     else:
-        logger.debug("Field No. %s: 952$3 = '%s', valid 'Materials specified' found.",
-                     thesaurus_field_counter, subfield_952_3)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$3 = '%s', valid 'Materials specified' found.",
+                         thesaurus_field_counter, subfield_952_3)
 
         return subfield_952_3
 
 
 def map_classification_source():
     classification_source = 'z'
-    logger.debug("Field No. %s: 952$2 = '%s', valid 'Classification source' found.",
-                 thesaurus_field_counter, classification_source)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("Field No. %s: 952$2 = '%s', valid 'Classification source' found.",
+                     thesaurus_field_counter, classification_source)
 
     return classification_source
 
@@ -170,20 +187,23 @@ def map_lost_status(subfield_952_1):
 
         lost_status = '1'
 
-    logger.debug("Field No. %s: 952$1 = '%s', valid 'Lost status' found.", thesaurus_field_counter, lost_status)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("Field No. %s: 952$1 = '%s', valid 'Lost status' found.", thesaurus_field_counter, lost_status)
 
     return lost_status
 
 
 def map_public_note(subfield_952_z):
     if 1 > len(subfield_952_z) > 16777215:
-        logger.debug("Field No. %s: 952$z = '%s', no valid 'Public note' found!",
-                     thesaurus_field_counter, subfield_952_z)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$z = '%s', no valid 'Public note' found!",
+                         thesaurus_field_counter, subfield_952_z)
 
         return None
     else:
-        logger.debug("Field No. %s: 952$z = '%s', valid 'Public note' found.",
-                     thesaurus_field_counter, subfield_952_z)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$z = '%s', valid 'Public note' found.",
+                         thesaurus_field_counter, subfield_952_z)
 
         return subfield_952_z
 
@@ -200,21 +220,24 @@ def map_item_type(subfield_952_y):
             logger.error("Field No. %s: 952$y = '%s', no valid 'Item type' code found!",
                          thesaurus_field_counter, subfield_952_y)
         else:
-            logger.debug("Field No. %s: 952$y = '%s', valid 'Item type' code found.",
-                         thesaurus_field_counter, item_type)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Field No. %s: 952$y = '%s', valid 'Item type' code found.",
+                             thesaurus_field_counter, item_type)
 
     return item_type
 
 
 def map_nonpublic_note(subfield_952_x):
     if 1 > len(subfield_952_x) > 16777215:
-        logger.debug("Field No. %s: 952$x = '%s', no valid 'Nonpublic note' found!",
-                     thesaurus_field_counter, subfield_952_x)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$x = '%s', no valid 'Nonpublic note' found!",
+                         thesaurus_field_counter, subfield_952_x)
 
         return None
     else:
-        logger.debug("Field No. %s: 952$x = '%s', valid 'Nonpublic note' found.",
-                     thesaurus_field_counter, subfield_952_x)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$x = '%s', valid 'Nonpublic note' found.",
+                         thesaurus_field_counter, subfield_952_x)
 
         return subfield_952_x
 
@@ -222,13 +245,15 @@ def map_nonpublic_note(subfield_952_x):
 def map_copy_number(subfield_952_t):
     if 1 > len(subfield_952_t) > 32:
         # logger.error("Aleph 'copy number' length exceeds Koha 'copy number' length!\n")
-        logger.debug("Field No. %s: 952$t = '%s', no valid 'Copy number' found!",
-                     thesaurus_field_counter, subfield_952_t)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$t = '%s', no valid 'Copy number' found!",
+                         thesaurus_field_counter, subfield_952_t)
 
         return None
     else:
-        logger.debug("Field No. %s: 952$t = '%s', valid 'Copy number' found.",
-                     thesaurus_field_counter, subfield_952_t)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$t = '%s', valid 'Copy number' found.",
+                         thesaurus_field_counter, subfield_952_t)
 
         return subfield_952_t
 
@@ -241,8 +266,9 @@ def map_barcode(subfield_952_p):
 
         return None
     else:
-        logger.debug("Field No. %s: 952$p = '%s', valid 'Barcode' found.",
-                     thesaurus_field_counter, subfield_952_p)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$p = '%s', valid 'Barcode' found.",
+                         thesaurus_field_counter, subfield_952_p)
 
         return subfield_952_p
 
@@ -250,13 +276,15 @@ def map_barcode(subfield_952_p):
 def map_call_number(subfield_952_o):
     if 1 > len(subfield_952_o) > 255:
         # logger.error("Length of 'call number' not in between 1 and 255!\n")
-        logger.debug("Field No. %s: 952$o = '%s', no valid 'Call number' found!",
-                     thesaurus_field_counter, subfield_952_o)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$o = '%s', no valid 'Call number' found!",
+                         thesaurus_field_counter, subfield_952_o)
 
         return None
     else:
-        logger.debug("Field No. %s: 952$o = '%s', valid 'Call number' found.",
-                     thesaurus_field_counter, subfield_952_o)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$o = '%s', valid 'Call number' found.",
+                         thesaurus_field_counter, subfield_952_o)
 
         return subfield_952_o
 
@@ -264,13 +292,15 @@ def map_call_number(subfield_952_o):
 def map_inventory_number(subfield_952_i):
     if 1 > len(subfield_952_i) > 32:
         # logger.error("Aleph 'inventory number' length exceeds Koha 'stock number' length!\n")
-        logger.debug("Field No. %s: 952$i = '%s', no valid 'Inventory number' found!",
-                     thesaurus_field_counter, subfield_952_i)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$i = '%s', no valid 'Inventory number' found!",
+                         thesaurus_field_counter, subfield_952_i)
 
         return None
     else:
-        logger.debug("Field No. %s: 952$i = '%s', valid 'Inventory number' found.",
-                     thesaurus_field_counter, subfield_952_i)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$i = '%s', valid 'Inventory number' found.",
+                         thesaurus_field_counter, subfield_952_i)
 
         return subfield_952_i
 
@@ -344,11 +374,13 @@ def map_purchase_price(subfield_952_g, subfield_952_p):
         purchase_price = format_purchase_price(subfield_952_g)
 
     if purchase_price is None:
-        logger.debug("Field No. %s: 952$g = '%s', no valid 'Purchase price' found!",
-                     thesaurus_field_counter, subfield_952_g)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$g = '%s', no valid 'Purchase price' found!",
+                         thesaurus_field_counter, subfield_952_g)
     else:
-        logger.debug("Field No. %s: 952$g = '%s', valid 'Purchase price' found.",
-                     thesaurus_field_counter, purchase_price)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$g = '%s', valid 'Purchase price' found.",
+                         thesaurus_field_counter, purchase_price)
 
     return purchase_price
 
@@ -366,12 +398,14 @@ def map_source_of_acquisition(subfield_952_e):
     source_of_acquisition = map_aleph_vendor_code(subfield_952_e)
 
     if source_of_acquisition is None:
-        logger.debug("Field No. %s: 952$e = '%s', no valid 'Source of aquisition' found!",
-                     thesaurus_field_counter, subfield_952_e)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$e = '%s', no valid 'Source of aquisition' found!",
+                         thesaurus_field_counter, subfield_952_e)
         pass
     else:
-        logger.debug("Field No. %s: 952$e = '%s', valid 'Source of aquisition' found.",
-                     thesaurus_field_counter, source_of_acquisition)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$e = '%s', valid 'Source of aquisition' found.",
+                         thesaurus_field_counter, source_of_acquisition)
         pass
 
     return source_of_acquisition
@@ -381,11 +415,13 @@ def map_aleph_date_field(marc_field_code, marc_subfield_code, field_name, field_
     date = dates_helper.process_aleph_date(field_value)
 
     if date is None:
-        logger.debug("Field No. %s: %s$%s = '%s', no valid '%s' found!",
-                     thesaurus_field_counter, marc_field_code, marc_subfield_code, field_value, field_name)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: %s$%s = '%s', no valid '%s' found!",
+                         thesaurus_field_counter, marc_field_code, marc_subfield_code, field_value, field_name)
     else:
-        logger.debug("Field No. %s: %s$%s = '%s', valid '%s' found.",
-                     thesaurus_field_counter, marc_field_code, marc_subfield_code, date, field_name)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: %s$%s = '%s', valid '%s' found.",
+                         thesaurus_field_counter, marc_field_code, marc_subfield_code, date, field_name)
 
     return date
 
@@ -394,11 +430,13 @@ def map_shelving_location_code(subfield_952_c, koha_library_code):
     shelving_location_code = marc_mappings.map_shelving_location(subfield_952_c, koha_library_code)
 
     if shelving_location_code is None:
-        logger.debug("Field No. %s: 952$c = '%s', no valid 'Shelving location' found!",
-                     thesaurus_field_counter, subfield_952_c)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$c = '%s', no valid 'Shelving location' found!",
+                         thesaurus_field_counter, subfield_952_c)
     else:
-        logger.debug("Field No. %s: 952$c = '%s', valid 'Shelving location' found.",
-                     thesaurus_field_counter, shelving_location_code)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: 952$c = '%s', valid 'Shelving location' found.",
+                         thesaurus_field_counter, shelving_location_code)
 
     return shelving_location_code
 
@@ -414,8 +452,9 @@ def map_holding_library(subfield_952_b):
             logger.error("Field No. %s: 952$b = '%s', no valid 'Holding library' code found!",
                          thesaurus_field_counter, subfield_952_b)
         else:
-            logger.debug("Field No. %s: 952$b = '%s', valid 'Holding library' code found.",
-                         thesaurus_field_counter, holding_library)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Field No. %s: 952$b = '%s', valid 'Holding library' code found.",
+                             thesaurus_field_counter, holding_library)
 
     return holding_library
 
@@ -431,8 +470,9 @@ def map_owning_library(subfield_952_a):
             logger.error("Field No. %s: 952$a = '%s' , no valid 'Owning library' code found!",
                          thesaurus_field_counter, subfield_952_a)
         else:
-            logger.debug("Field No. %s: 952$a = '%s', valid 'Owning library' code found.",
-                         thesaurus_field_counter, owning_library)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Field No. %s: 952$a = '%s', valid 'Owning library' code found.",
+                             thesaurus_field_counter, owning_library)
 
     return owning_library
 
@@ -441,21 +481,24 @@ def check_required_subfields(field_952):
     is_success = False
 
     if all(subfields in field_952 for subfields in ('a', 'b', 'y')):
-        logger.debug("Field No. %s: All required subfieds 'a', 'b', and 'y' found.", thesaurus_field_counter)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: All required subfieds 'a', 'b', and 'y' found.", thesaurus_field_counter)
         is_success = True
     elif 'y' in field_952 and ('a' or 'b' in field_952):
         if 'a' not in field_952:
             field_952.add_subfield('a', field_952['b'])
-            logger.debug(
-                "Field No. %s: Required subfield 'a' not found! Copy subfield 'b' into subfield 'a': 952$a = %s",
-                thesaurus_field_counter, field_952['a']
-            )
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    "Field No. %s: Required subfield 'a' not found! Copy subfield 'b' into subfield 'a': 952$a = %s",
+                    thesaurus_field_counter, field_952['a']
+                )
         if 'b' not in field_952:
             field_952.add_subfield('b', field_952['a'])
-            logger.debug(
-                "Field No. %s: Required subfield 'b' not found! Copy subfield 'a' into subfield 'b': 952$b = %s",
-                thesaurus_field_counter, field_952['b']
-            )
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    "Field No. %s: Required subfield 'b' not found! Copy subfield 'a' into subfield 'b': 952$b = %s",
+                    thesaurus_field_counter, field_952['b']
+                )
         is_success = True
     else:
         logger.error('Field No. %s: Neither required subfields 952$a and 952$b found nor required subfield 952$y!',
@@ -467,7 +510,8 @@ def check_required_subfields(field_952):
 def get_aleph_item_price_list():
     oracle.open_connection()
     result = oracle.get_item_price_list()
-    logger.debug('Item price list:\n%s', result)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug('Item price list:\n%s', result)
     oracle.close_connection()
 
     return result
@@ -494,6 +538,7 @@ def init():
     global BARCODE_TO_ZENON_ID_MAPPING
 
     if not ALEPH_ITEM_PRICE_LIST:
+        logger.info('initializing ALEPH_ITEM_PRICE_LIST')
         query_results = get_aleph_item_price_list()
         for barcode, price in query_results:
             if barcode in ALEPH_ITEM_PRICE_LIST:
@@ -505,6 +550,7 @@ def init():
     oracle.open_connection()
 
     if not ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING:
+        logger.info('initializing ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING')
         query_results = oracle.get_z70()
         for query_result in query_results:
             if query_result[0].strip() in ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING:
@@ -515,6 +561,7 @@ def init():
             ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING[query_result[0].strip()] = query_result[7].strip()
 
     if not BARCODE_TO_ZENON_ID_MAPPING:
+        logger.info('initializing BARCODE_TO_ZENON_ID_MAPPING')
         BARCODE_TO_ZENON_ID_MAPPING = get_barcode_to_zenon_id_mapping()
 
     if len(ALEPH_ITEM_PRICE_LIST) < 1:
@@ -556,7 +603,8 @@ def prepare_marc(record):
 
     holding_field_counter = 1
     for field_952 in marc_holding_fields:
-        logger.debug("Field No. %s: %s", holding_field_counter, field_952)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: %s", holding_field_counter, field_952)
 
         if check_required_subfields(field_952):
 
@@ -971,7 +1019,8 @@ def prepare_marc(record):
             is_record_format_error = True
             record_error_no += 1
 
-        logger.debug("Field No. %s: %s", holding_field_counter, field_952)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Field No. %s: %s", holding_field_counter, field_952)
         holding_field_counter += 1
 
     if is_record_format_error:
@@ -981,7 +1030,8 @@ def prepare_marc(record):
     elif is_record_format_info:
         logger.info('In Record:\n%s', record)
     elif is_record_format_debugging:
-        logger.debug('In Record:\n%s', record)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('In Record:\n%s', record)
 
     logger.info('%s record error(s) found.', record_error_no)
     logger.info("Marc Record '%s' process completed!\n", record.leader)
