@@ -1,14 +1,13 @@
 import logging
 
-import lib.database_connections.mariadb as mariadb
 import lib.database_connections.oracle as oracle
 import lib.mappings.library_keys as library_keys
 import lib.mappings.marc_mappings as marc_mappings
 import lib.oracle_helper.dates as dates_helper
 
 HOLDING_FIELD_CODE = '952'
-ALEPH_ITEM_PRICE_LIST = list()
-ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = list()
+ALEPH_ITEM_PRICE_LIST = dict()
+ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = dict()
 BARCODE_TO_ZENON_ID_MAPPING = dict()
 
 logger = logging.getLogger(__name__)
@@ -332,9 +331,8 @@ def get_calculated_purchase_price(barcode):
     global ALEPH_ITEM_PRICE_LIST
     purchase_price = None
 
-    for (z30_barcode, unit_total_price) in ALEPH_ITEM_PRICE_LIST:
-        if barcode == z30_barcode:
-            purchase_price = unit_total_price
+    if barcode in ALEPH_ITEM_PRICE_LIST:
+        return ALEPH_ITEM_PRICE_LIST[barcode]
 
     return purchase_price
 
@@ -358,11 +356,8 @@ def map_purchase_price(subfield_952_g, subfield_952_p):
 def map_aleph_vendor_code(aleph_z70_vendor_code):
     global ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING
 
-    for (aleph_code, koha_id) in ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING:
-        # logger.info("aleph_code: %s", aleph_code)
-        # logger.info("koha_id: %s", koha_id)
-        if aleph_z70_vendor_code == aleph_code:
-            return koha_id
+    if aleph_z70_vendor_code in ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING:
+        return ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING[aleph_z70_vendor_code]
     else:
         return None
 
@@ -371,13 +366,13 @@ def map_source_of_acquisition(subfield_952_e):
     source_of_acquisition = map_aleph_vendor_code(subfield_952_e)
 
     if source_of_acquisition is None:
-        pass
         logger.debug("Field No. %s: 952$e = '%s', no valid 'Source of aquisition' found!",
                      thesaurus_field_counter, subfield_952_e)
-    else:
         pass
+    else:
         logger.debug("Field No. %s: 952$e = '%s', valid 'Source of aquisition' found.",
                      thesaurus_field_counter, source_of_acquisition)
+        pass
 
     return source_of_acquisition
 
@@ -478,15 +473,6 @@ def get_aleph_item_price_list():
     return result
 
 
-def get_aleph_vendor_code_koha_bookseller_name_mapping():
-    mariadb.open_mariadb_connection()
-    result = mariadb.get_aleph_vendor_code_koha_aqbookseller_mapping()
-    logger.debug('get_aleph_vendor_code_koha_aqbookseller_mapping - Result:\n%s', result)
-    mariadb.close_mariadb_connection()
-
-    return result
-
-
 def get_barcode_to_zenon_id_mapping():
     result = {}
 
@@ -508,10 +494,25 @@ def init():
     global BARCODE_TO_ZENON_ID_MAPPING
 
     if not ALEPH_ITEM_PRICE_LIST:
-        ALEPH_ITEM_PRICE_LIST = get_aleph_item_price_list()
+        query_results = get_aleph_item_price_list()
+        for barcode, price in query_results:
+            if barcode in ALEPH_ITEM_PRICE_LIST:
+                logger.warning(f'Already mappend price for barcode {barcode}: {ALEPH_ITEM_PRICE_LIST[barcode]}, '
+                               f'new value: {price}.')
+
+            ALEPH_ITEM_PRICE_LIST[barcode] = price
+
+    oracle.open_connection()
 
     if not ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING:
-        ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = get_aleph_vendor_code_koha_bookseller_name_mapping()
+        query_results = oracle.get_z70()
+        for query_result in query_results:
+            if query_result[0].strip() in ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING:
+                logger.warning(f'Already mapped bookseller name for Aleph vendor code {query_result[0].strip()}: '
+                               f'{ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING[query_result[0].strip()]}, '
+                               f'new name: {query_result[7].strip()}.')
+
+            ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING[query_result[0].strip()] = query_result[7].strip()
 
     if not BARCODE_TO_ZENON_ID_MAPPING:
         BARCODE_TO_ZENON_ID_MAPPING = get_barcode_to_zenon_id_mapping()
