@@ -8,7 +8,7 @@ logger.setLevel(logging.INFO)
 config = {
     'user': 'dai50',
     'password': 'DAI50',
-    'dsn': '195.37.175.36/aleph23',
+    'dsn': 'alephtest.dainst.de/aleph23',
     'encoding': 'UTF-8',
     'nencoding': 'UTF-8'
 }
