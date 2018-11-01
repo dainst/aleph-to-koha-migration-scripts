@@ -182,7 +182,8 @@ def get_budgets_for_open_orders():
                        'AND Z68.Z68_ORDER_STATUS!=:1 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:2 ' +
                        'AND Z68.Z68_ORDER_STATUS!=:3 ' +
-                       'AND Z601.Z601_TYPE=:4', (CLOSED, VENDOR_CANCELLED, LIBRARY_CANCELLED, 'ENC'))
+                       'AND (Z601.Z601_TYPE=:4 OR Z601.Z601_TYPE=:5)',
+                       (CLOSED, VENDOR_CANCELLED, LIBRARY_CANCELLED, 'INV', 'ENC'))
 
 
 def get_still_valid_budgets():
