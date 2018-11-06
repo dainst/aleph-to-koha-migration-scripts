@@ -63,6 +63,8 @@ def process_bibliographic_data(input_path, output_path, mapping):
     global file_error_count
     global estimated_sys_number_to_bibliographic_number_mapping
 
+    kept_barcodes_count = 0
+    deleted_barcodes_count = 0
     with open(input_path, 'rb') as input_file:
         with open(output_path, 'wb') as output_file:
             reader = MARCReader(input_file, force_utf8=True)
@@ -72,7 +74,13 @@ def process_bibliographic_data(input_path, output_path, mapping):
                 record_error_count = 0
                 record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
                 record = prepare_record_linking(record)
-                record_error_count += holdings.prepare_marc(record)
+
+                error_count, kept_count, deleted_count = holdings.prepare_marc(record)
+
+                kept_barcodes_count += kept_count
+                deleted_barcodes_count += deleted_count
+
+                record_error_count += error_count
                 record_error_count += thesaurus.prepare_marc(record)
 
                 if record['001'] is not None:
@@ -83,6 +91,8 @@ def process_bibliographic_data(input_path, output_path, mapping):
                     logger.error('No system number 001 for record:')
                     logger.error(record)
                 file_error_count += record_error_count
+
+    logger.info(f'Kept {kept_barcodes_count} barcodes, removed {deleted_barcodes_count}.')
 
 
 def create_authority_heading_to_authority_id_mapping(file_path):

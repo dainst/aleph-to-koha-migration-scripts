@@ -1036,4 +1036,4 @@ def prepare_marc(record):
     logger.info('%s record error(s) found.', record_error_no)
     logger.info("Marc Record '%s' process completed!\n", record.leader)
 
-    return record_error_no
+    return record_error_no, items_kept_based_on_barcode, items_deleted_based_on_barcode
