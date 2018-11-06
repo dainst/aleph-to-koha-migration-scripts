@@ -8,6 +8,14 @@ logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
+
+'''
+1) Export items.sql after having imported bibliographic data into Koha using:
+mysqldump --user=<user> --host=localhost --password=<pw> --port=37835 --default-character-set=utf8 --single-transaction=TRUE --no-create-info=TRUE --skip-triggers "<database>" items > items.sql
+2) Run bibliography_id_mapping.py beforehand, in order to create the Zenon ID -> Koha bibliographic ID mapping."
+'''
+
 if __name__ == '__main__':
 
     if len(sys.argv) != 4:
