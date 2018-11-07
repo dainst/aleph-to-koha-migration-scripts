@@ -49,8 +49,8 @@ def prepare_record_linking(record):
 
             if old_field['b'] is not None:
                 new_field.add_subfield('w', old_field['b'])
-            if old_field['m'] is not None:
-                new_field.add_subfield('t', old_field['m'])
+            if old_field['n'] is not None:
+                new_field.add_subfield('t', old_field['n'])
 
             record.add_field(new_field)
             record.remove_field(old_field)
