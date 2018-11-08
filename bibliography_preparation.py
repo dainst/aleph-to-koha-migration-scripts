@@ -9,6 +9,8 @@ import lib.mappings.marc_mappings as marc_mappings
 import lib.marc_bibliographic.holdings as holdings
 import lib.marc_bibliographic.thesaurus as thesaurus
 
+from lib.marc_bibliographic.gazetteer import GazetteerThesaurusMapper
+
 # This script currently serves the following purposes:
 #   1) Mapping viable headings in the bibliographic data via String comparison (what Aleph also does internally)
 #      to the authority data exported from Koha. In case of a match, Koha's internal authority ID gets
@@ -28,15 +30,27 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 # logger.addHandler(console_handler)
 
 estimated_sys_number_to_bibliographic_number_mapping = dict()
+gazetteer_mapper = GazetteerThesaurusMapper()
 
 
-def link_bibliographic_headings_to_koha_authority_ids(bibliographic_record, heading_to_authority_id_mapping):
+def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
+                                                  heading_to_authority_id_mapping,
+                                                  gazetteer_id_to_authority_id_mapping):
     for field in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
         for bibliographic_record_field in bibliographic_record.get_fields(field[1]):
-            koha_id = heading_to_authority_id_mapping.get(bibliographic_record_field.as_marc('utf8'))
+            gazetteer_id = None
 
-            if koha_id is not None:
-                bibliographic_record_field.add_subfield('9', koha_id)
+            if bibliographic_record_field.tag == '651' \
+                    and bibliographic_record_field['2'] is not None\
+                    and bibliographic_record_field['2'] in gazetteer_mapper.mapping:
+                gazetteer_id = gazetteer_mapper.mapping[bibliographic_record_field['2']]
+
+            if gazetteer_id is not None and gazetteer_id in gazetteer_id_to_authority_id_mapping:
+                bibliographic_record_field.add_subfield('9', gazetteer_id_to_authority_id_mapping[gazetteer_id])
+            else:
+                koha_id = heading_to_authority_id_mapping.get(bibliographic_record_field['a'])
+                if koha_id is not None:
+                    bibliographic_record_field.add_subfield('9', koha_id)
 
     return bibliographic_record
 
@@ -58,7 +72,10 @@ def prepare_record_linking(record):
     return record
 
 
-def process_bibliographic_data(input_path, output_path, mapping):
+def process_bibliographic_data(input_path,
+                               output_path,
+                               authority_heading_to_authority_id_mapping,
+                               gazetteer_id_to_authority_id_mapping):
     global file_record_count
     global file_error_count
     global estimated_sys_number_to_bibliographic_number_mapping
@@ -72,7 +89,6 @@ def process_bibliographic_data(input_path, output_path, mapping):
 
             for record in reader:
                 record_error_count = 0
-                record = link_bibliographic_headings_to_koha_authority_ids(record, mapping)
                 record = prepare_record_linking(record)
 
                 error_count, kept_count, deleted_count = holdings.prepare_marc(record)
@@ -82,6 +98,10 @@ def process_bibliographic_data(input_path, output_path, mapping):
 
                 record_error_count += error_count
                 record_error_count += thesaurus.prepare_marc(record)
+
+                record = link_bibliographic_data_to_koha_authority_ids(record,
+                                                                       authority_heading_to_authority_id_mapping,
+                                                                       gazetteer_id_to_authority_id_mapping)
 
                 if record['001'] is not None:
                     estimated_sys_number_to_bibliographic_number_mapping[record['001'].data] = file_record_count + 1
@@ -95,22 +115,32 @@ def process_bibliographic_data(input_path, output_path, mapping):
     logger.info(f'Kept {kept_barcodes_count} barcodes, removed {deleted_barcodes_count}.')
 
 
-def create_authority_heading_to_authority_id_mapping(file_path):
+def create_authority_data_to_authority_id_mapping(file_path):
     logger.info('Creating authority-heading-to-authority-id mapping based on exported authority data...')
 
-    result = {}
+    heading_to_authority_id_mapping = {}
+    gazetteer_id_to_authority_id_mapping = {}
     with open(file_path, 'rb') as authority_file:
         reader = MARCReader(authority_file, force_utf8=True)
         for authority_record in reader:
             for field in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
                 auth_field = field[0]
                 if authority_record[auth_field] is not None:
-                    heading = authority_record[auth_field].as_marc('utf-8')
-                    result[heading] = authority_record['001'].data
+
+                    authority_heading = authority_record[auth_field]['a']
+                    authority_id = authority_record['001'].data
+                    heading_to_authority_id_mapping[authority_heading] = authority_id
+
+                    if auth_field == '151' \
+                            and authority_record['024'] is not None \
+                            and authority_record['024']['2'] == 'iDAI.gazetteer':
+
+                        gazetteer_id = authority_record['024']['a']
+                        gazetteer_id_to_authority_id_mapping[gazetteer_id] = authority_id
 
     logger.info('Done.\n')
 
-    return result
+    return heading_to_authority_id_mapping, gazetteer_id_to_authority_id_mapping
 
 
 if __name__ == '__main__':
@@ -125,7 +155,8 @@ if __name__ == '__main__':
         logger.info("3) Path to output directory for results.")
         sys.exit()
 
-    authority_heading_to_authority_id_mapping = create_authority_heading_to_authority_id_mapping(sys.argv[2])
+    authority_heading_to_authority_id_mapping, gazetteer_id_to_authority_id_mapping = \
+        create_authority_data_to_authority_id_mapping(sys.argv[2])
     input_directory = sys.argv[1]
     output_directory = sys.argv[3]
 
@@ -148,7 +179,8 @@ if __name__ == '__main__':
             process_bibliographic_data(
                 input_directory + '/' + filename,
                 output_directory + without_extension + '-preprocessed.mrc',
-                authority_heading_to_authority_id_mapping
+                authority_heading_to_authority_id_mapping,
+                gazetteer_id_to_authority_id_mapping
             )
             total_record_count += file_record_count
             total_error_count += file_error_count

@@ -1,3 +1,4 @@
 pymarc
 cx_Oracle
 mysqlclient
+requests
