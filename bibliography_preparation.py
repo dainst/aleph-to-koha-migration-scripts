@@ -103,6 +103,16 @@ def process_bibliographic_data(input_path,
                                                                        authority_heading_to_authority_id_mapping,
                                                                        gazetteer_id_to_authority_id_mapping)
 
+                if record['003'] is None:
+                    record.add_field(Field(tag='003', data="DE-2553"))
+                if record['040'] is None:
+                    record.add_field(Field(
+                        tag=40, indicators=(' ', ' '), subfields=[
+                            'a', 'DE-2553',
+                            'c', 'DE-2553'
+                        ])
+                    )
+
                 if record['001'] is not None:
                     estimated_sys_number_to_bibliographic_number_mapping[record['001'].data] = file_record_count + 1
                     writer.write(record)
