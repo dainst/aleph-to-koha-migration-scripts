@@ -72,6 +72,25 @@ def prepare_record_linking(record):
     return record
 
 
+def split_summary_language_keys(record):
+
+    field = record['041']
+
+    if field is not None and field['b'] is not None and field['a'] is not None:
+        main_language_key_length = len(field['a'])
+
+        if len(field['b']) % main_language_key_length == 0 and len(field['b']) != main_language_key_length:
+            split_b = [
+                field['b'][i:i+main_language_key_length] for i in range(0, len(field['b']), main_language_key_length)
+            ]
+
+            field.delete_subfield('b')
+            for split in split_b:
+                field.add_subfield('b', split)
+
+    return record
+
+
 def process_bibliographic_data(input_path,
                                output_path,
                                authority_heading_to_authority_id_mapping,
@@ -90,6 +109,7 @@ def process_bibliographic_data(input_path,
             for record in reader:
                 record_error_count = 0
                 record = prepare_record_linking(record)
+                record = split_summary_language_keys(record)
 
                 error_count, kept_count, deleted_count = holdings.prepare_marc(record)
 
