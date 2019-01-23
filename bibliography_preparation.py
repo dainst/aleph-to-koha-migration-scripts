@@ -59,15 +59,22 @@ def prepare_record_linking(record):
     if record['998'] is not None:
 
         for old_field in record.get_fields('998'):
-            new_field = Field(tag='773', indicators=['\\', '\\'])
 
-            if old_field['b'] is not None:
-                new_field.add_subfield('w', old_field['b'])
-            if old_field['n'] is not None:
-                new_field.add_subfield('t', old_field['n'])
+            if 'a' in old_field and type(old_field['a']) == str:
+                new_field = None
+                if old_field['a'].strip() == 'ANA' or old_field['a'] == 'UP':
+                    new_field = Field(tag='773', indicators=['\\', '\\'])
+                elif old_field['a'] == 'PAR':
+                    new_field = Field(tag='776', indicators=['\\', '\\'])
 
-            record.add_field(new_field)
-            record.remove_field(old_field)
+                if new_field is not None:
+                    if old_field['b'] is not None:
+                        new_field.add_subfield('w', old_field['b'])
+                    if old_field['n'] is not None:
+                        new_field.add_subfield('t', old_field['n'])
+
+                    record.add_field(new_field)
+                    record.remove_field(old_field)
 
     return record
 
