@@ -53,8 +53,8 @@ if __name__ == '__main__':
         input_directory += '/'
 
     for filename in os.listdir(input_directory):
-        logger.info('Reading file %s.' % filename)
         if filename.endswith('.mrc'):
+            logger.info('Reading file %s.' % filename)
             create_mapping(input_directory + filename)
 
     write_mapping()
