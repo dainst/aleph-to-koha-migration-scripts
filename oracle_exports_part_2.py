@@ -22,15 +22,17 @@ if __name__ == '__main__':
         logger.error('Please provide as argument:')
         logger.error('1) Connection info and credentials, pattern: "%USER%/%PASSWORD%@%IP%/%SID%".')
         logger.error('2) Mapping Zenon ID -> Koha bibliographic ID.')
-        logger.error('3) File containing item SQL data exported from Koha.')
+        logger.error('3) SQL File containing `items`-table  data exported from Koha.')
         sys.exit()
 
-    with open(sys.argv[2], 'rb') as file1, open('pickles/order_to_subscription_mapping.pickle', 'rb') as file2:
+    with open(sys.argv[2], 'rb') as file1:
         sys_number_mapping = pickle.load(file1)
-        order_to_subscription_mapping = pickle.load(file2)
 
         aqinvoices.start(sys.argv[1])
         subscription.start(sys.argv[1], sys_number_mapping)
         aqorders.start(sys.argv[1], sys_number_mapping)
         aqorders_items.start(sys.argv[1], sys.argv[3])  # will copy the given SQL file into intermediate value directory
+
+    with open('pickles/order_to_subscription_mapping.pickle', 'rb') as file2:
+        order_to_subscription_mapping = pickle.load(file2)
         serial.start(sys.argv[1], order_to_subscription_mapping)
