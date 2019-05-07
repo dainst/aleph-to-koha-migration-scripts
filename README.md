@@ -1,119 +1,62 @@
 # zenon-migration-scripts
-A Collection of scripts used for migrating ZENON from Aleph to Koha.
+A collection of scripts used for migrating Zenon from Aleph to Koha.
 
 ## Prerequisites
 
-[Docker](https://www.docker.com/community-edition) and [docker-compose](https://docs.docker.com/compose/) are used for 
-setting up (and resetting) the intermediate mapping database when exporting data from Aleph's Oracle database 
-(with [oracle_exports.py](oracle_exports.py) or its library scripts).
-
-
-All scripts are written and tested using Python 3. 
-
-You may need to install some additional libraries (for example using __pip3__):
-
-* [pymarc](https://github.com/edsu/pymarc): used to read and write [MARC format](https://www.loc.gov/marc/) data.
-* [cx_Oracle](https://oracle.github.io/python-cx_Oracle/): used to access Aleph's Oracle database. 
-  * __cx_Oracle__ itself requires Oracle's [Instant Client](http://www.oracle.com/technetwork/database/features/instant-client/index.html) to be 
-installed and its environment variables set. 
-  * Examples: Setting the __Instant Client__ environment variable (version 12.2):
-    * Fedora: `export LD_LIBRARY_PATH=/opt/oracle/instantclient_12_2:$LD_LIBRARY_PATH`
-    * Ubuntu: `export LD_LIBRARY_PATH=/usr/lib/oracle/12.2/client64/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}`
-* [mysqlclient](https://github.com/PyMySQL/mysqlclient-python): used to access Koha's mariadb.
+See [Setup](SETUP.md).
 
 ## General information
 
 __All scripts should be run from the main folder.__ 
 
-There are two strategies for migrating data from Aleph to Koha:
+There are two aspects of migrating data from Aleph to Koha:
 
 * Where possible, we try to use export functionality provided by Aleph. This is currently used for bibliographic and 
-authority data (exported as MARC21). Exported data is further processed by several Python scripts.
+authority data (exported as MARC21). Exported data is further processed by several Python scripts, more details 
+below.
 * For a lot of data Aleph does not provide a means to export it directly. For those cases we are forced to extract the
 data directly from Aleph's Oracle database. All data concerning acquisitions has to be exported this way.
 
-## Oracle exports
+## Migration steps
 
-The scripts for exporting Oracle data can be found in `aleph_oracle_exports`. Each Python script is named after the 
-Koha database table, which it is supposed to produce data for (`aqbooksellers.py`, `aqcontact.py`, ...). 
+The basic steps are as follows:
+1) Preprocess the **authority** data exported from Aleph, using [authority_preparation.py](authority_preparation.py).
+2) Import the preprocessed authority data into an empty Koha instance.
+3) Export the authority data from Koha.
+4) Preprocess the bibliographic data exported from Aleph (requires the authority data from step 3), using 
+[bibliography_preparation.py](bibliography_preparation.py).
+5) Import the preprocessed **bibliographic** data into the same Koha instance as in step 2. 
+6) Export the bibliographic data from Koha.
+7) Create a mapping between Zenon-IDs and Koha `biblio` numbers (requires export produced by step 6), using 
+[bibliography_id_mapping.py](bibliography_id_mapping.py).
+8) Export the table `items` from Koha as SQL:
+    ```
+    mysqldump --user=<user> --host=localhost --password=<pw> --port=37835 --default-character-set=utf8 --single-transaction=TRUE --no-create-info=TRUE --skip-triggers "<database>" items > items.sql 
+    ```
+9) Run [oracle_exports.py](oracle_exports.py) (requires Aleph Oracle DB credentials, the mapping produced by step 7 and
+the `items` export produced by step 8).
+10) The resulting Koha tables concerning **acquisitions** can be found at [lib/ready_for_import](lib/ready_for_import), 
+including a shell [script](lib/ready_for_import/import.sh) for importing them in the correct order.
 
-Between the tables exist dependencies: There is an implicit order, in which the tables have to be filled with values. 
-In order to be able to quickly reset the database some Docker functionality was added:
+## Project structure
 
-#### Docker
+Docker is used to quickly recreate an intermediate mapping database (MariaDB), that contains Koha tables relevant for 
+acquisitions and serial management. 
 
-For further details see: 
-[Docker docs](https://docs.docker.com/compose/reference/overview/#command-options-overview-and-help).
+The main script [oracle_exports.py](oracle_exports.py) runs a couple of different subscripts that each produce data for 
+one or several Koha tables. You can run those script separately, but be aware that certain scripts rely on previous 
+ones (you can not create baskets before creating booksellers, for example).
 
-#### build services:
+Use Docker to debug or develop scripts without being forced to re-run all preceding scripts. 
 
-`docker-compose build` 
+As an example, let's say you want to debug [aqbasket](lib/aqbasket.py). The preceding scripts are 
+[aqbudgets_and_aqbudgetperiods](lib/aqbudgets_and_aqbudgetperiods.py), [aqbooksellers](lib/aqbooksellers.py), 
+[aqcontacts](lib/aqcontacts.py) and [aqbasketgroups](lib/aqbasketgroups.py). 
 
-#### create & start the database container:
-
-`docker-compose up`
-
-#### stop container:
-
-`CTRL-C`
-
-or
-
-`docker-compose stop`
-
-
-#### start container:
-
-`docker-compose start`
-
-#### stop and remove container: 
-
-`docker-compose down`
-
-or
-
-`docker-compose down -v` (`-v` to also remove the database volumes, otherwise just the container is deleted) 
-
-
-## Resetting database (on Koha server)
-
-If you want to reset previously imported data in your Koha instance run the following script.
-
-```sql
-SET FOREIGN_KEY_CHECKS = 0;
-
-TRUNCATE TABLE koha_zenon.aqbasket;
-TRUNCATE TABLE koha_zenon.aqbasketgroups;
-TRUNCATE TABLE koha_zenon.aqbooksellers;
-TRUNCATE TABLE koha_zenon.aqbudgetperiods;
-TRUNCATE TABLE koha_zenon.aqbudgets;
-TRUNCATE TABLE koha_zenon.aqcontacts;
-TRUNCATE TABLE koha_zenon.aqinvoices;
-TRUNCATE TABLE koha_zenon.aqorders;
-TRUNCATE TABLE koha_zenon.aqorders_items;
-TRUNCATE TABLE koha_zenon.serial;
-TRUNCATE TABLE koha_zenon.serialitems;
-TRUNCATE TABLE koha_zenon.subscription;
-TRUNCATE TABLE koha_zenon.subscription_numberpatterns;
-TRUNCATE TABLE koha_zenon.subscription_frequencies;
-
-SET FOREIGN_KEY_CHECKS = 1;
-```
-
-
-## MARC exports
-
-(Work in progress)
-
-The scripts for processing MARC data exported from Aleph can be found in `aleph_marc_exports`.
-
-1. Authority data exported from Aleph has to be preprocessed by the `authority_preparation` script, which removes 
-obvious duplicates (authority data with the same value in field `001`) in the export, and copies Aleph's control number 
-from field `001` to `035a`. The latter is necessary because Koha will replace `001` with its own internal control number 
-on import.
-2. Importing the prepared authority data into Koha.
-3. Exporting the newly imported authority data out of Koha.
-4. Preprocessing bibliographic data exported from Aleph with the `bibliography_preparation`, also including the 
-authority data exported from __Koha__. The exported authority data is used to map the bibliographic data to the already 
-present authority data in Koha.
-5. Importing the prepared bibliographic data into Koha.
+1. Run the first 4 scripts in sequence.
+2. The intermediate values are saved in a [subdirectory](lib/mariadb_intermediate_values).
+3. Rebuild the database **image**.
+4. The intermediate values are now baked into the Docker image.
+5. Delete the old **container** und start a new one.
+6. Debug.
+7. Repeat steps 5 and 6 until finished.
