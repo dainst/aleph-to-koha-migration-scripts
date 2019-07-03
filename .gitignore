@@ -7,10 +7,10 @@
 .venv/
 
 # Input data directories
+authority_data_aleph/**/*.mrc
+authority_data_koha/**/*.mrc
 bibliographic_data_aleph/**/*.mrc
 bibliographic_data_koha/**/*.mrc
-authority_data_koha/**/*.mrc
-
 
 # (Intermediate) result data
 lib/ready_for_import/*import.sql
