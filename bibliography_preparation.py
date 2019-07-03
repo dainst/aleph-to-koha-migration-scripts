@@ -51,6 +51,13 @@ def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
                 koha_id = heading_to_authority_id_mapping.get(bibliographic_record_field['a'])
                 if koha_id is not None:
                     bibliographic_record_field.add_subfield('9', koha_id)
+                # Aleph does not only allow exact matches between headings, but is also able to match bibliographic
+                # headings with one or more '.' to authority headings without any '.'. As a fallback, we try to match
+                # again with the bibliographic heading stripped of all leading and trailing punctuation.
+                else:
+                    koha_id = heading_to_authority_id_mapping.get(bibliographic_record_field['a'].strip('.,- '))
+                    if koha_id is not None:
+                        bibliographic_record_field.add_subfield('9', koha_id)
 
     return bibliographic_record
 
