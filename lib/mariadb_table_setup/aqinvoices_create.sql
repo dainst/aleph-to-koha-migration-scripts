@@ -10,6 +10,7 @@ CREATE TABLE `aqinvoices` (
   `shipmentcost` decimal(28,6) DEFAULT NULL,
   `shipmentcost_budgetid` int(11) DEFAULT NULL,
   `message_id` int(11) DEFAULT NULL,
+  `ALEPH_Z75_REC_KEY_2` varchar(40) NOT NULL,
   `ALEPH_Z68_REC_KEY` varchar(25) NOT NULL,
   PRIMARY KEY (`invoiceid`),
   KEY `aqinvoices_fk_aqbooksellerid` (`booksellerid`),

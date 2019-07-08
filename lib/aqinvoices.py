@@ -55,6 +55,7 @@ def process_data(data):
     bookseller = mariadb.get_aqbookseller_by_aleph_vendor_key(data['z68'][25].strip())
 
     invoice_number = str(data['z77'][0][20:]).strip()
+
     result = {
         'invoicenumber': invoice_number,
         'booksellerid': bookseller[0],
@@ -63,6 +64,7 @@ def process_data(data):
         'closedate': dates_helper.process_aleph_date(data['z77'][18]),
         'shipmentcost': currency.parse_value(data['z77'][8]),
         'shipmentcost_budgetid': koha_budget_id,
+        'ALEPH_Z75_REC_KEY_2': data['z75'][1],
         'ALEPH_Z68_REC_KEY': data['z68'][0]
     }
     AQINVOICESDATA[invoice_number] = result
@@ -133,7 +135,7 @@ def generate_import_statements():
         mapping_statement += name
 
     insert_statement += ')\nVALUES'
-    mapping_statement += ',ALEPH_Z68_REC_KEY)\nVALUES'
+    mapping_statement += ',ALEPH_Z75_REC_KEY_2,ALEPH_Z68_REC_KEY)\nVALUES'
 
     first_row = True
     for aleph_key in AQINVOICESDATA:
@@ -161,7 +163,7 @@ def generate_import_statements():
                 mapping_statement += 'NULL'
 
         insert_statement += ')'
-        mapping_statement += ',"%s")' % period['ALEPH_Z68_REC_KEY']
+        mapping_statement += ',"%s", "%s")' % (period['ALEPH_Z75_REC_KEY_2'], period['ALEPH_Z68_REC_KEY'])
 
     return [insert_statement, mapping_statement]
 
