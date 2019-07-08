@@ -269,6 +269,14 @@ def get_orders_to_invoices_mapping():
                        'AND Z601.Z601_TYPE=:1', ('INV',))
 
 
+def get_invoice_by_rec_key_2(rec_key_2):
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT * FROM Z75 WHERE Z75.Z75_REC_KEY_2 = :1',
+                       (rec_key_2,))
+
+
 def get_z08_data():
     global connection
     cur = connection.cursor()

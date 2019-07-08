@@ -73,7 +73,7 @@ def map_from_deprecated_currency(aleph_currency):
         return DEPRECATED_CURRENCY_MAPPING[aleph_currency]
 
 
-def parse_value(aleph_value):
+def parse_value(aleph_value, aleph_currency, replace_deprecated):
     if aleph_value is None:
         return 0.0
 
@@ -81,12 +81,16 @@ def parse_value(aleph_value):
     match_decimal = re.search(PATTERN_CURRENCY_VALUE_DECIMAL, aleph_value)
     match_with_leading_zeroes = re.search(PATTERN_CURRENCY_VALUE_LEADING_ZEROES, aleph_value)
     match_digit = re.search(PATTERN_CURRENCY_VALUE_ONLY_DIGITS, aleph_value)
+
+    value = 0.0
     if match_decimal:
-        return float(aleph_value)
+        value = float(aleph_value)
     elif len(aleph_value) == 14 and match_with_leading_zeroes:
-        return float(aleph_value[0:-2] + '.' + aleph_value[-2:])
+        value = float(aleph_value[0:-2] + '.' + aleph_value[-2:])
     elif match_digit:
-        return float(aleph_value)
+        value = float(aleph_value)
     else:
         logger.warning('Unable to parse currency value:')
         logger.warning(aleph_value)
+
+    return round(value, 2)

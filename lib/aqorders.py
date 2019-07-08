@@ -73,7 +73,7 @@ def construct_probable_budget_code(data):
     return budget_code
 
 
-def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budget_data, order_to_title_id,  data):
+def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoice, order_to_budget_data, order_to_title_id, data):
     global MISSING_BUDGET
     global SYS_NUMBER_TO_BIB_ID_MAPPING
     global NO_BIBLIOGRAPHIC_ID
@@ -175,19 +175,25 @@ def process_z68_data(previous_results, basket_data, koha_invoice, order_to_budge
         'quantity': quantity,
         'quantityreceived': quantity_received,
         'currency': currency.map_from_currency(data[33], True),
-        'unitprice': currency.parse_value(data[31]),
-        'unitprice_tax_included': currency.parse_value(data[31]),
-        'listprice': currency.parse_value(data[34]),
-        'rrp': currency.parse_value(data[34]),
-        'rrp_tax_excluded': currency.parse_value(data[34]),
-        'rrp_tax_included': currency.parse_value(data[34]),
-        'ecost': currency.parse_value(data[37]),
-        'ecost_tax_excluded': currency.parse_value(data[37]),
-        'ecost_tax_included': currency.parse_value(data[37]),
+        'unitprice': currency.parse_value(data[31], data[33], True),
+        'unitprice_tax_included': currency.parse_value(data[31], data[33], True),
+        'listprice': currency.parse_value(data[34], data[33], True),
+        'rrp': currency.parse_value(data[34], data[33], True),
+        'rrp_tax_excluded': currency.parse_value(data[34], data[33], True),
+        'rrp_tax_included': currency.parse_value(data[34], data[33], True),
         'uncertainprice': 1,
-        'invoiceid': koha_invoice,
+        'invoiceid': koha_invoice_id,
         'discount': float(data[36][:-2] + '.' + data[36][-2:])
     }
+
+    if aleph_invoice is None:
+        result['ecost'] = result['unitprice']
+        result['ecost_tax_excluded'] = result['unitprice']
+        result['ecost_tax_included'] = result['unitprice']
+    else:
+        result['ecost'] = currency.parse_value(aleph_invoice[6], data[33], True)
+        result['ecost_tax_excluded'] = currency.parse_value(aleph_invoice[6], data[33], True)
+        result['ecost_tax_included'] = currency.parse_value(aleph_invoice[6], data[33], True)
 
     if data[1] == 'S':
         try:
@@ -275,10 +281,15 @@ def fetch_data(credentials):
             for koha_invoice in aqinvoice_data:
                 # check if multiple z75/aqinvoices associated
                 # for each, process data and set aqinvoices id
+                z75_invoices = oracle.get_invoice_by_rec_key_2(koha_invoice[9]).fetchall()
+                if len(z75_invoices) != 1:
+                    logger.warning(f'Expected 1 invoice for Z75_REC_KEY_2 {koha_invoice[9]}, got {len(z75_invoices)}!')
+                    continue
+
                 ORDER_COUNT += 1
-                results = process_z68_data(results, basket_data, koha_invoice[0], order_to_budget_mapping, order_to_title_id, query_result)
+                results = process_z68_data(results, basket_data, koha_invoice[0], z75_invoices[0], order_to_budget_mapping, order_to_title_id, query_result)
         else:
-            results = process_z68_data(results, basket_data, None, order_to_budget_mapping, order_to_title_id, query_result)
+            results = process_z68_data(results, basket_data, None, None, order_to_budget_mapping, order_to_title_id, query_result)
     data_cursor.close()
     logger.info('Done.')
 

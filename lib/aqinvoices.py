@@ -62,7 +62,7 @@ def process_data(data):
         'shipmentdate': dates_helper.process_aleph_date(data['z77'][15]),
         'billingdate': dates_helper.process_aleph_date(data['z77'][13]),
         'closedate': dates_helper.process_aleph_date(data['z77'][18]),
-        'shipmentcost': currency.parse_value(data['z77'][8]),
+        'shipmentcost': currency.parse_value(data['z77'][8], data['z68'][33], True),
         'shipmentcost_budgetid': koha_budget_id,
         'ALEPH_Z75_REC_KEY_2': data['z75'][1],
         'ALEPH_Z68_REC_KEY': data['z68'][0]
