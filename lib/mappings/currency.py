@@ -47,6 +47,23 @@ DEPRECATED_CURRENCY_MAPPING = {
     'TRL': 'TRY'
 }
 
+DEPRECATED_CURRENCY_CONVERSION_RATE = {
+    'ATS': 1 / 13.7603,
+    'BEF': 1 / 40.3399,
+    'BGL': 1 / 1000,
+    'CYP': 1 / 0.585274,
+    'DEM': 1 / 1.95583,
+    'ESP': 1 / 166.386,
+    'FIM': 1 / 5.94573,
+    'FRF': 1 / 6.55957,
+    'GRD': 1 / 340.750,
+    'IEP': 1 / 0.787564,
+    'ITL': 1 / 1936.27,
+    'NGL': 1 / 2.20371,
+    'PTE': 1 / 200.482,
+    # 'TRL': 1 / 1000000 # deactivated, results in too small values
+}
+
 
 def map_from_currency(aleph_currency, replace_deprecated):
     if aleph_currency is None:
@@ -92,5 +109,8 @@ def parse_value(aleph_value, aleph_currency, replace_deprecated):
     else:
         logger.warning('Unable to parse currency value:')
         logger.warning(aleph_value)
+
+    if replace_deprecated and aleph_currency in DEPRECATED_CURRENCY_CONVERSION_RATE:
+        value *= DEPRECATED_CURRENCY_CONVERSION_RATE[aleph_currency]
 
     return round(value, 2)
