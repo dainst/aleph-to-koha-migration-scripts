@@ -195,6 +195,9 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
         result['ecost_tax_excluded'] = currency.parse_value(aleph_invoice[6], data[33], True)
         result['ecost_tax_included'] = currency.parse_value(aleph_invoice[6], data[33], True)
 
+        if aleph_invoice[10] is not None:
+            result['order_internalnote'] = aleph_invoice[10].strip()
+
     if data[1] == 'S':
         try:
             subscription = order_to_subscription_mapping[aleph_rec_key]
