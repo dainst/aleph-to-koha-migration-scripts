@@ -30,6 +30,13 @@ MISSING_SUBSCRIPTION = []
 FOUND_SUBSCRIPTION_COUNT = 0
 
 
+def escape_double_quotes(string):
+    if string is None:
+        return None
+    else:
+        return string.replace('\"', '\'')
+
+
 def construct_probable_budget_code(data):
     order_type = data[2]
 
@@ -196,7 +203,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
         result['ecost_tax_included'] = currency.parse_value(aleph_invoice[6], data[33], True)
 
         if aleph_invoice[10] is not None:
-            result['order_internalnote'] = aleph_invoice[10].strip()
+            result['order_internalnote'] = escape_double_quotes(aleph_invoice[10].strip())
 
     if data[1] == 'S':
         try:
