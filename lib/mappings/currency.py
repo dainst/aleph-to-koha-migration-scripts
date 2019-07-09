@@ -30,6 +30,25 @@ CURRENCY_MAPPING = {
     'USD': 'USD'
 }
 
+# All conversions to Euros, same values as defined in Koha's "Currencies and exchange rates"
+CURRENCY_CONVERSION_RATE = {
+    'AUD': 0.62204,
+    'BGN': 0.51129,
+    'CAD': 0.68129,
+    'CHF': 0.89813,
+    'CNY': 0.12942,
+    'DKK': 0.13399,
+    'EGP': 0.05354,
+    'GBP': 1.11572,
+    'ILS': 0.24899,
+    'JPY': 0.00821,
+    'NOK': 0.10328,
+    'RUB': 0.01398,
+    'SEK': 0.09432,
+    'TRY': 0.15521,
+    'USD': 0.89118
+}
+
 DEPRECATED_CURRENCY_MAPPING = {
     'ATS': 'EUR',
     'BEF': 'EUR',
@@ -109,6 +128,9 @@ def parse_value(aleph_value, aleph_currency, replace_deprecated):
     else:
         logger.warning('Unable to parse currency value:')
         logger.warning(aleph_value)
+
+    if aleph_currency in CURRENCY_CONVERSION_RATE:
+        value *= CURRENCY_CONVERSION_RATE[aleph_currency]
 
     if replace_deprecated and aleph_currency in DEPRECATED_CURRENCY_CONVERSION_RATE:
         value *= DEPRECATED_CURRENCY_CONVERSION_RATE[aleph_currency]
