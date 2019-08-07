@@ -70,11 +70,11 @@ def prepare_record_linking(record):
             if 'a' in old_field and type(old_field['a']) == str:
                 new_field = None
                 if old_field['a'].strip() == 'ANA':
-                    new_field = Field(tag='773', indicators=['0', ' '])
+                    new_field = Field(tag='773', indicators=['0', '8'])
                 elif old_field['a'].strip() == 'PAR':
-                    new_field = Field(tag='776', indicators=['0', ' '])
+                    new_field = Field(tag='776', indicators=['0', '8'])
                 elif old_field['a'].strip() == 'UP':
-                    new_field = Field(tag='787', indicators=['0', ' '])
+                    new_field = Field(tag='787', indicators=['0', '8'])
 
                 if new_field is not None:
                     if old_field['b'] is not None:
