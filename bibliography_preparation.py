@@ -123,6 +123,11 @@ def process_bibliographic_data(input_path,
             writer = MARCWriter(output_file)
 
             for record in reader:
+                if '001' not in record:
+                    logger.error('Missing system number for ')
+                    logger.error(record)
+                    continue
+
                 record_error_count = 0
                 record = prepare_record_linking(record)
                 record = split_summary_language_keys(record)
@@ -149,13 +154,10 @@ def process_bibliographic_data(input_path,
                         ])
                     )
 
-                if record['001'] is not None:
-                    estimated_sys_number_to_bibliographic_number_mapping[record['001'].data] = file_record_count + 1
-                    writer.write(record)
-                    file_record_count += 1
-                else:
-                    logger.error('No system number 001 for record:')
-                    logger.error(record)
+                estimated_sys_number_to_bibliographic_number_mapping[record['001'].data] = file_record_count + 1
+                writer.write(record)
+                file_record_count += 1
+
                 file_error_count += record_error_count
 
     logger.info(f'Kept {kept_barcodes_count} barcodes, removed {deleted_barcodes_count}.')
