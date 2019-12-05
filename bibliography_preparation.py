@@ -92,17 +92,17 @@ def split_summary_language_keys(record):
 
     field = record['041']
 
-    if field is not None and field['b'] is not None and field['a'] is not None:
-        main_language_key_length = len(field['a'])
-
-        if len(field['b']) % main_language_key_length == 0 and len(field['b']) != main_language_key_length:
-            split_b = [
-                field['b'][i:i+main_language_key_length] for i in range(0, len(field['b']), main_language_key_length)
-            ]
-
+    if field is not None:
+        if field['a'] is not None:
+            split = [field['a'][i:i + 3] for i in range(0, len(field['a']), 3)]
+            field.delete_subfield('a')
+            for val in split:
+                field.add_subfield('a', val)
+        if field['b'] is not None:
+            split = [field['b'][i:i + 3] for i in range(0, len(field['b']), 3)]
             field.delete_subfield('b')
-            for split in split_b:
-                field.add_subfield('b', split)
+            for val in split:
+                field.add_subfield('b', val)
 
     return record
 
