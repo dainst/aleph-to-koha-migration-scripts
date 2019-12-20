@@ -8,6 +8,7 @@ logger.setLevel(logging.DEBUG)
 PATTERN_CURRENCY_VALUE_DECIMAL = re.compile(r'^\d+\.\d*$')
 PATTERN_CURRENCY_VALUE_LEADING_ZEROES = re.compile(r'[0]+(\d+)')
 PATTERN_CURRENCY_VALUE_ONLY_DIGITS = re.compile(r'^\d+$')
+PATTERN_CURRENCY_EURO = re.compile(r'(\d+\.\d+).*€')
 
 # See http://confluence:8090/pages/viewpage.action?pageId=44859465
 
@@ -117,6 +118,7 @@ def parse_value(aleph_value, aleph_currency, replace_deprecated):
     match_decimal = re.search(PATTERN_CURRENCY_VALUE_DECIMAL, aleph_value)
     match_with_leading_zeroes = re.search(PATTERN_CURRENCY_VALUE_LEADING_ZEROES, aleph_value)
     match_digit = re.search(PATTERN_CURRENCY_VALUE_ONLY_DIGITS, aleph_value)
+    match_euro = re.search(PATTERN_CURRENCY_EURO, aleph_value)
 
     value = 0.0
     if match_decimal:
@@ -125,6 +127,8 @@ def parse_value(aleph_value, aleph_currency, replace_deprecated):
         value = float(aleph_value[0:-2] + '.' + aleph_value[-2:])
     elif match_digit:
         value = float(aleph_value)
+    elif match_euro:
+        value = float(match_euro.group(1))
     else:
         logger.warning('Unable to parse currency value:')
         logger.warning(aleph_value)
