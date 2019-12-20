@@ -102,6 +102,10 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
     internal_note = ''
     if data[24] is not None:
         internal_note = data[24].replace('\"', '\'')
+    if data[28] is not None:
+        if internal_note != '':
+            internal_note += ', '
+        internal_note += data[28].replace('\"', '\'')
 
     suppliers_reference_nubmer = None
     if data[26] is not None:
@@ -203,7 +207,9 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
         result['ecost_tax_included'] = currency.parse_value(aleph_invoice[6], data[33], True)
 
         if aleph_invoice[10] is not None:
-            result['order_internalnote'] = escape_double_quotes(aleph_invoice[10].strip())
+            if result['order_internalnote'] != '':
+                result['order_internalnote'] += ', '
+            result['order_internalnote'] += escape_double_quotes(aleph_invoice[10].strip())
 
     if data[1] == 'S':
         try:
@@ -214,7 +220,9 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
             if aleph_rec_key not in MISSING_SUBSCRIPTION:
                 logger.debug(f'No subscription associated with {aleph_rec_key} despite being a serial order (Aleph '
                              f'ORDER_TYPE = "S").')
-                result['order_internalnote'] += f'-- Failed to map Aleph serial order {aleph_rec_key} to Koha subscription.'
+                if result['order_internalnote'] != '':
+                    result['order_internalnote'] += '\n'
+                result['order_internalnote'] += f'Failed to map Aleph serial order {aleph_rec_key} to Koha subscription.'
                 MISSING_SUBSCRIPTION += [{'aleph_rec_key': aleph_rec_key, 'biblionumber': koha_bib_id}]
 
     if aleph_rec_key in previous_results:
