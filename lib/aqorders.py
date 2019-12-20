@@ -117,7 +117,6 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
             final_description_string += item
 
         internal_note += final_description_string
-        internal_note += '\n'
 
     suppliers_reference_nubmer = None
     if data[26] is not None:
