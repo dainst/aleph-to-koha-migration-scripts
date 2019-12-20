@@ -332,3 +332,11 @@ def get_barcodes_by_z68_rec_key(order_number):
                        'WHERE ' +
                        'Z68.Z68_REC_KEY=:1 '
                        'AND TRIM(Z68.Z68_ORDER_NUMBER) = Z30.Z30_ORDER_NUMBER ', (order_number,))
+
+
+def get_z30_description_by_z75_rec_key_2(z75_rec_key_2):
+    global connection
+
+    cur = connection.cursor()
+    return cur.execute('SELECT Z30.Z30_DESCRIPTION FROM Z30 ' +
+                       'WHERE Z30.Z30_REC_KEY_3=:1 ', (z75_rec_key_2,))

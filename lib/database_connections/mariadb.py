@@ -198,6 +198,20 @@ def get_recent_budget(first_id, second_id):
         return second_budget[:-1]
 
 
+def get_invoices():
+    global connection
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT * FROM `aqinvoices`')
+
+    result = cursor.fetchall()
+
+    if len(result) == 0:
+        return None
+
+    return result
+
+
 def get_invoice_by_aleph_rec_key(aleph_rec_key):
     global connection
 

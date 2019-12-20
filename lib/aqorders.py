@@ -80,7 +80,7 @@ def construct_probable_budget_code(data):
     return budget_code
 
 
-def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoice, order_to_budget_data, order_to_title_id, data):
+def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoice, order_to_budget_data, order_to_title_id, data, koha_invoice_to_z30_description):
     global MISSING_BUDGET
     global SYS_NUMBER_TO_BIB_ID_MAPPING
     global NO_BIBLIOGRAPHIC_ID
@@ -101,19 +101,31 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
 
     internal_note = ''
     if data[24] is not None:
-        internal_note = data[24].replace('\"', '\'')
+        internal_note = escape_double_quotes(data[24])
     if data[28] is not None:
         if internal_note != '':
             internal_note += ', '
-        internal_note += data[28].replace('\"', '\'')
+        internal_note += escape_double_quotes(data[28])
+
+    if koha_invoice_id in koha_invoice_to_z30_description:
+        if internal_note != '':
+            internal_note += '\n'
+        final_description_string = 'Item descriptions: '
+        for item in koha_invoice_to_z30_description[koha_invoice_id]:
+            if final_description_string != 'Item descriptions: ':
+                final_description_string += ' | '
+            final_description_string += item
+
+        internal_note += final_description_string
+        internal_note += '\n'
 
     suppliers_reference_nubmer = None
     if data[26] is not None:
-        suppliers_reference_nubmer = data[26].replace('\"', '\'')
+        suppliers_reference_nubmer = escape_double_quotes(data[26])
 
     vendor_note = None
     if data[27] is not None:
-        vendor_note = data[27].replace('\"', '\'')
+        vendor_note = escape_double_quotes(data[27])
 
     quantity = int(data[30])
     # TODO: Hack, remove once data has been corrected
@@ -208,8 +220,8 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
 
         if aleph_invoice[10] is not None:
             if result['order_internalnote'] != '':
-                result['order_internalnote'] += ', '
-            result['order_internalnote'] += escape_double_quotes(aleph_invoice[10].strip())
+                result['order_internalnote'] += '\n'
+            result['order_internalnote'] += f'Aleph Invoice Notiz: {escape_double_quotes(aleph_invoice[10].strip())}'
 
     if data[1] == 'S':
         try:
@@ -281,6 +293,20 @@ def fetch_data(credentials):
     data_cursor.close()
     logger.info('Done.')
 
+    logger.info('Creating mapping: koha invoice -> z30 descriptions')
+    koha_invoice_to_z30_description = dict()
+    data_cursor = mariadb.get_invoices()
+    for query_result in data_cursor:
+        z30_result = oracle.get_z30_description_by_z75_rec_key_2(query_result[-2]).fetchall()
+        if len(z30_result) == 0:
+            continue
+        temp = []
+        for item in z30_result:
+            if item[0] is None:
+                continue
+            temp.append(item[0])
+        koha_invoice_to_z30_description[query_result[0]] = temp
+
     logger.info('Fetching title IDs...')
     order_to_title_id = dict()
     data_cursor = oracle.get_order_to_zenon_id_pairs()
@@ -305,9 +331,9 @@ def fetch_data(credentials):
                     continue
 
                 ORDER_COUNT += 1
-                results = process_z68_data(results, basket_data, koha_invoice[0], z75_invoices[0], order_to_budget_mapping, order_to_title_id, query_result)
+                results = process_z68_data(results, basket_data, koha_invoice[0], z75_invoices[0], order_to_budget_mapping, order_to_title_id, query_result, koha_invoice_to_z30_description)
         else:
-            results = process_z68_data(results, basket_data, None, None, order_to_budget_mapping, order_to_title_id, query_result)
+            results = process_z68_data(results, basket_data, None, None, order_to_budget_mapping, order_to_title_id, query_result, koha_invoice_to_z30_description)
     data_cursor.close()
     logger.info('Done.')
 
