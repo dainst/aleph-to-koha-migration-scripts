@@ -84,11 +84,6 @@ def fix_loc_number(record):
         else:
             updated_field = updated_field[:11] + ' '
 
-        # TODO remove hack, added to enable the script to finish, the datasets have multiple subfields a
-        if record['001'].data == '000105336' or record['001'].data == '000131634':
-            record.remove_field(loc_data)
-            return record
-
         record['010']['a'] = updated_field
         return record
 
