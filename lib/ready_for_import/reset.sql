@@ -3,6 +3,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE aqbasket;
 TRUNCATE TABLE aqbasketgroups;
 TRUNCATE TABLE aqbooksellers;
+TRUNCATE TABLE aqbudgetperiods;
+TRUNCATE TABLE aqbudgets;
 TRUNCATE TABLE aqcontacts;
 TRUNCATE TABLE aqinvoices;
 TRUNCATE TABLE aqorders;

@@ -201,7 +201,7 @@ def fetch_data(credentials):
 def generate_period_import_statements():
     global AQBUDGETPERIODS_DATA
 
-    mapping_statement = insert_statement = 'INSERT IGNORE INTO aqbudgetperiods ('
+    mapping_statement = insert_statement = 'INSERT INTO aqbudgetperiods ('
     column_names = ['budget_period_id', 'budget_period_startdate', 'budget_period_enddate', 'budget_period_active',
                     'budget_period_description', 'budget_period_total', 'budget_period_locked']
     first_column = True
@@ -250,7 +250,7 @@ def generate_period_import_statements():
 
 def generate_budget_import_statements():
     global AQBUDGET_DATA
-    mapping_statement = insert_statement = 'INSERT IGNORE INTO aqbudgets ('
+    mapping_statement = insert_statement = 'INSERT INTO aqbudgets ('
     column_names = ['budget_parent_id', 'budget_code', 'budget_name', 'budget_branchcode', 'budget_amount',
                     'budget_encumb', 'budget_expend', 'budget_notes', 'budget_period_id']
 
