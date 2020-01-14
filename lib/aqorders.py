@@ -184,6 +184,12 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
             }
         )
 
+    price = currency.parse_value(data[31], data[33], True)
+    if price == 0 and data[34] != 0:
+        # Sometimes only the total amount has been set in Aleph, calculate the
+        # individual price by dividing by quantity.
+        price = data[34] / quantity
+
     result = {
         'order_status': order_status,
         'entrydate': dates_helper.process_aleph_date(data[6]),
@@ -197,21 +203,21 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
         'quantity': quantity,
         'quantityreceived': quantity_received,
         'currency': currency.map_from_currency(data[33], True),
-        'unitprice': currency.parse_value(data[31], data[33], True),
-        'unitprice_tax_included': currency.parse_value(data[31], data[33], True),
-        'listprice': currency.parse_value(data[34], data[33], True),
-        'rrp': currency.parse_value(data[34], data[33], True),
-        'rrp_tax_excluded': currency.parse_value(data[34], data[33], True),
-        'rrp_tax_included': currency.parse_value(data[34], data[33], True),
+        'unitprice': price,
+        'unitprice_tax_included': price,
+        'listprice': price,
+        'rrp': price,
+        'rrp_tax_excluded': price,
+        'rrp_tax_included': price,
         'uncertainprice': 1,
         'invoiceid': koha_invoice_id,
         'discount': float(data[36][:-2] + '.' + data[36][-2:])
     }
 
     if aleph_invoice is None:
-        result['ecost'] = result['unitprice']
-        result['ecost_tax_excluded'] = result['unitprice']
-        result['ecost_tax_included'] = result['unitprice']
+        result['ecost'] = price
+        result['ecost_tax_excluded'] = price
+        result['ecost_tax_included'] = price
     else:
         result['ecost'] = currency.parse_value(aleph_invoice[6], data[33], True)
         result['ecost_tax_excluded'] = currency.parse_value(aleph_invoice[6], data[33], True)
