@@ -204,6 +204,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
         'quantityreceived': quantity_received,
         'currency': currency.map_from_currency(data[33], True),
         'unitprice': price,
+        'unitprice_tax_excluded': price,
         'unitprice_tax_included': price,
         'listprice': price,
         'rrp': price,
