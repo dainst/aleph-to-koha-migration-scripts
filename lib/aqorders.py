@@ -191,7 +191,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
         price = data[34] / quantity
 
     result = {
-        'order_status': order_status,
+        'orderstatus': order_status,
         'entrydate': dates_helper.process_aleph_date(data[6]),
         'datereceived': date_received,
         'order_internalnote': internal_note,
