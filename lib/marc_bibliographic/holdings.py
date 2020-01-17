@@ -5,6 +5,8 @@ import lib.mappings.library_keys as library_keys
 import lib.mappings.marc_mappings as marc_mappings
 import lib.oracle_helper.dates as dates_helper
 
+from pymarc import Field
+
 HOLDING_FIELD_CODE = '952'
 ALEPH_ITEM_PRICE_LIST = dict()
 ALEPH_VENDOR_CODE_KOHA_BOOKSELLER_NAME_MAPPING = dict()
@@ -601,6 +603,27 @@ def prepare_marc(record):
         holding_field_max[0] = record.leader
         holding_field_max[1] = holding_field_count
 
+    article_indicators = [
+        'aath', 'bath', 'acai', 'bcai', 'aaek', 'baek', 'aeur', 'beur', 'aist', 'bist', 'akaa', 'bkaa', 'amad',
+        'bmad', 'aori', 'bori', 'argk', 'brgk', 'arom', 'brom', 'azen', 'bzen', 'abays', 'bbays', 'alibl',
+        'blubl', 'aschw', 'bschw', 'absa'
+    ]
+
+    article_indicator_fields = record.get_fields('590')
+    indicator_found = False
+
+    for field_590 in article_indicator_fields:
+        if field_590['a'] in article_indicators:
+            indicator_found = True
+            break
+
+    if indicator_found:
+        record.add_field(Field(
+            tag=942, indicators=(' ', ' '), subfields=[
+                'c', 'AN'
+            ])
+        )
+
     holding_field_counter = 1
     for field_952 in marc_holding_fields:
         if logger.isEnabledFor(logging.DEBUG):
@@ -825,7 +848,7 @@ def prepare_marc(record):
 
             # '952$y' Item type (required by Koha)
             koha_item_type = map_item_type(field_952['y'])
-            if koha_item_type is None:
+            if koha_item_type is None and indicator_found is False:
                 logger.error('Field No. %s: Skipping field: %s in %s', holding_field_counter, field_952, record['001'].value())
                 record.remove_field(field_952)
                 is_record_format_error = True
