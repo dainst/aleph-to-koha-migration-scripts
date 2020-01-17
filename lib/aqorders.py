@@ -185,10 +185,11 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
         )
 
     price = currency.parse_value(data[31], data[33], True)
-    if price == 0 and data[34] != 0:
+    total_price = currency.parse_value(data[34], data[33], True)
+    if price == 0 and total_price != 0:
         # Sometimes only the total amount has been set in Aleph, calculate the
         # individual price by dividing by quantity.
-        price = data[34] / quantity
+        price = total_price / quantity
 
     result = {
         'orderstatus': order_status,
