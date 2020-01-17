@@ -136,40 +136,15 @@ def parse_z16(parsed_results, data):
     else:
         result['aqbooksellerid'] = bookseller[0]
 
-    if data[0] in parsed_results:
-        result['subscriptionid'] = parsed_results[data[0]]['subscriptionid']
-        existing_data = parsed_results[data[0]]
-        if existing_data == result:
-            ORDER_TO_SUBSCRIPTION_MAPPING[data[-1]] = existing_data
-            return parsed_results
-
-        if 'aqbudgetid' not in existing_data and 'aqbudgetid' in result:
-            existing_data['aqbudgetid'] = result['aqbudgetid']
-        elif 'aqbudgetid' not in result and 'aqbudgetid' in existing_data:
-            result['aqbudgetid'] = existing_data['aqbudgetid']
-        elif 'aqbudgetid' in result and 'aqbudgetid' in existing_data \
-                and existing_data['aqbudgetid'] != result['aqbudgetid']:
-            recent_budget_id = mariadb.get_recent_budget(existing_data['aqbudgetid'], result['aqbudgetid'])[0]
-
-            existing_data['aqbudgetid'] = recent_budget_id
-            result['aqbudgetid'] = recent_budget_id
-
-        if existing_data == result:
-            parsed_results[data[0]] = existing_data
-            ORDER_TO_SUBSCRIPTION_MAPPING[data[-1]] = existing_data
-            return parsed_results
-
-        logger.error('Unhandled case of different results for same Z16 dataset: ')
-        logger.error(parsed_results[data[0]])
-        logger.error(result)
-
     result['subscriptionid'] = SUBSCRIPTION_COUNTER
-
     ORDER_TO_SUBSCRIPTION_MAPPING[data[-1]] = result
 
     SUBSCRIPTION_COUNTER += 1
 
-    parsed_results[data[0]] = result
+    if data[0] in parsed_results:
+        parsed_results[data[0]] += result
+    else:
+        parsed_results[data[0]] = [result]
 
     return parsed_results
 
@@ -241,26 +216,27 @@ def generate_insert_statements(data_dict, database_columns):
     counter = 0
 
     for aleph_key in data_dict:
-        subscription = data_dict[aleph_key]
-        if counter != 0:
-            import_table_statement += ','
+        subscriptions = data_dict[aleph_key]
+        for subscription in subscriptions:
+            if counter != 0:
+                import_table_statement += ','
 
-        import_table_statement += '\n('
+            import_table_statement += '\n('
 
-        for idx, key in enumerate(database_columns):
-            if idx == keys_len - 1:
-                if key in subscription and subscription[key] is not None:
-                    import_table_statement += '"' + str(subscription[key]) + '"'
+            for idx, key in enumerate(database_columns):
+                if idx == keys_len - 1:
+                    if key in subscription and subscription[key] is not None:
+                        import_table_statement += '"' + str(subscription[key]) + '"'
+                    else:
+                        import_table_statement += 'NULL'
                 else:
-                    import_table_statement += 'NULL'
-            else:
-                if key in subscription and subscription[key] is not None:
-                    import_table_statement += '"' + str(subscription[key]) + '",'
-                else:
-                    import_table_statement += 'NULL,'
+                    if key in subscription and subscription[key] is not None:
+                        import_table_statement += '"' + str(subscription[key]) + '",'
+                    else:
+                        import_table_statement += 'NULL,'
 
-        import_table_statement += ')'
-        counter = counter + 1
+            import_table_statement += ')'
+            counter = counter + 1
 
     import_table_statement += ';\n'
 
