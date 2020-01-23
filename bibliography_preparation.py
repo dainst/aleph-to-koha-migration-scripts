@@ -1,4 +1,4 @@
-from pymarc import MARCReader, MARCWriter, Field
+from pymarc import MARCReader, MARCWriter, Field, parse_xml_to_array
 
 import logging
 import os
@@ -169,7 +169,7 @@ def create_authority_data_to_authority_id_mapping(file_path):
     heading_to_authority_id_mapping = {}
     gazetteer_id_to_authority_id_mapping = {}
     with open(file_path, 'rb') as authority_file:
-        reader = MARCReader(authority_file, force_utf8=True)
+        reader = parse_xml_to_array(authority_file)
         for authority_record in reader:
             for field in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
                 auth_field = field[0]

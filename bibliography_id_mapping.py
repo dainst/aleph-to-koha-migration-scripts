@@ -1,4 +1,4 @@
-from pymarc import MARCReader
+from pymarc import parse_xml_to_array
 
 import pickle
 import logging
@@ -17,7 +17,7 @@ def create_mapping(input_path):
     global SYS_NUMBER_TO_BIB_ID_MAPPING
 
     with open(input_path, 'rb') as input_file:
-        reader = MARCReader(input_file, force_utf8=True)
+        reader = parse_xml_to_array(input_file)
 
         for record in reader:
             if '001' not in record:
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         input_directory += '/'
 
     for filename in os.listdir(input_directory):
-        if filename.endswith('.mrc'):
+        if filename.endswith('.xml'):
             logger.info('Reading file %s.' % filename)
             create_mapping(input_directory + filename)
 
