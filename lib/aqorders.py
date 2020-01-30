@@ -184,10 +184,19 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
             }
         )
 
+    # Try reading price from Z68_UNIT_PRICE
     price = currency.parse_value(data[31], data[33], True)
+    if price == 0 and aleph_invoice is not None:
+        # If unit price not set, try parsing from invoice
+        price = currency.parse_value(aleph_invoice[6], data[33], True)
+
+    if price == 0:
+        # If still no price, try Z68_E_LISTED_PRICE.
+        price = currency.parse_value(data[34], data[33], True)
+
     total_price = currency.parse_value(data[34], data[33], True)
     if price == 0 and total_price != 0:
-        # Sometimes only the total amount has been set in Aleph, calculate the
+        # If still no price, check if total amount is set and calculate
         # individual price by dividing by quantity.
         price = total_price / quantity
 
@@ -211,24 +220,18 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
         'rrp': price,
         'rrp_tax_excluded': price,
         'rrp_tax_included': price,
+        'ecost': price,
+        'ecost_tax_excluded': price,
+        'ecost_tax_included': price,
         'uncertainprice': 1,
         'invoiceid': koha_invoice_id,
         'discount': float(data[36][:-2] + '.' + data[36][-2:])
     }
 
-    if aleph_invoice is None:
-        result['ecost'] = price
-        result['ecost_tax_excluded'] = price
-        result['ecost_tax_included'] = price
-    else:
-        result['ecost'] = currency.parse_value(aleph_invoice[6], data[33], True)
-        result['ecost_tax_excluded'] = currency.parse_value(aleph_invoice[6], data[33], True)
-        result['ecost_tax_included'] = currency.parse_value(aleph_invoice[6], data[33], True)
-
-        if aleph_invoice[10] is not None:
-            if result['order_internalnote'] != '':
-                result['order_internalnote'] += '\n'
-            result['order_internalnote'] += f'Aleph Invoice Notiz: {escape_double_quotes(aleph_invoice[10].strip())}'
+    if aleph_invoice is not None and aleph_invoice[10] is not None:
+        if result['order_internalnote'] != '':
+            result['order_internalnote'] += '\n'
+        result['order_internalnote'] += f'Aleph Invoice Notiz: {escape_double_quotes(aleph_invoice[10].strip())}'
 
     if data[1] == 'S':
         try:
