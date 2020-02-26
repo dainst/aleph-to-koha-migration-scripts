@@ -98,7 +98,7 @@ def parse_z16(parsed_results, data):
     result['status'] = 1  # status == 1 means "expected"
     result['countissuesperunit'] = 1
     result['serialsadditems'] = 0  # does receiving this serial create an item record
-    result['manualhistory'] = 0  # yes or no to managing the history manually
+    result['manualhistory'] = 1  # yes or no to managing the history manually
     result['skip_serialseq'] = 0
     result['graceperiod'] = 0
     result['closed'] = 0
