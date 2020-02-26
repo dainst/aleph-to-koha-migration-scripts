@@ -45,6 +45,14 @@ def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
                     and bibliographic_record_field['2'] in gazetteer_mapper.mapping:
                 gazetteer_id = gazetteer_mapper.mapping[bibliographic_record_field['2']]
 
+            # Fallback for Notations provided by Madrid
+            # see: http://195.37.175.38/Record/000055439#details / https://gazetteer.dainst.org/app/#!/show/2074984
+            if bibliographic_record_field.tag == '651' \
+                        and bibliographic_record_field['2'] is not None \
+                        and bibliographic_record_field['a'] is not None \
+                        and f"{bibliographic_record_field['a'].strip()} {bibliographic_record_field['2'].strip()}" in gazetteer_mapper.mapping:
+                gazetteer_id = gazetteer_mapper.mapping[f"{bibliographic_record_field['a'].strip()} {bibliographic_record_field['2'].strip()}"]
+
             if gazetteer_id is not None and gazetteer_id in gazetteer_id_to_authority_id_mapping:
                 bibliographic_record_field.add_subfield('9', gazetteer_id_to_authority_id_mapping[gazetteer_id])
             else:
