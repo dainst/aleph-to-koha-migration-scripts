@@ -442,6 +442,34 @@ def write_data(data):
         mariadb.commit()
         cursor.close()
 
+    update_parent_ordernumbers()
+
+
+def update_parent_ordernumbers():
+
+    orders_with_subscription_ids = mariadb.get_orders_with_subscription_ids()
+
+    last_subscription_id = None
+    parent_ordernumber = None
+
+    with open(IMPORT_SQL_OUTPUT_PATH, 'w+') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w+') as mapping_file:
+        for order in orders_with_subscription_ids:
+            subscription_id = order[1]
+
+            if last_subscription_id != subscription_id:
+                last_subscription_id = subscription_id
+                parent_ordernumber = order[0]
+
+            update_query = f"UPDATE aqorders SET parent_ordernumber = {parent_ordernumber} WHERE ordernumber = {order[0]};"
+
+            import_file.write(update_query)
+            mapping_file.write(update_query)
+
+            cursor = mariadb.get_cursor()
+            cursor.execute(update_query)
+            mariadb.commit()
+            cursor.close()
+
 
 def start(oracle_credentials, sys_number_to_bibliographic_number_mapping):
     global SYS_NUMBER_TO_BIB_ID_MAPPING

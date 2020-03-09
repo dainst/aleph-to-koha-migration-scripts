@@ -257,3 +257,16 @@ def get_subscription_id_and_biblionumber_pairs():
     cursor.execute(query)
     result = cursor.fetchall()
     return result
+
+
+def get_orders_with_subscription_ids():
+    global connection
+
+    cursor = connection.cursor()
+    query = 'SELECT ordernumber, subscriptionid, parent_ordernumber FROM aqorders ' \
+            'WHERE subscriptionid IS NOT NULL ' \
+            'ORDER BY subscriptionid, ordernumber;'
+
+    cursor.execute(query)
+    result = cursor.fetchall()
+    return result
