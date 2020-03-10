@@ -452,7 +452,7 @@ def update_parent_ordernumbers():
     last_subscription_id = None
     parent_ordernumber = None
 
-    with open(IMPORT_SQL_OUTPUT_PATH, 'w+') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w+') as mapping_file:
+    with open(IMPORT_SQL_OUTPUT_PATH, 'a+') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'a+') as mapping_file:
         for order in orders_with_subscription_ids:
             subscription_id = order[1]
 
