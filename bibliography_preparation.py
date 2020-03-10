@@ -31,6 +31,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 
 estimated_sys_number_to_bibliographic_number_mapping = dict()
 gazetteer_mapper = GazetteerThesaurusMapper()
+special_systemnumber_mapping = {}
 
 
 def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
@@ -136,6 +137,12 @@ def process_bibliographic_data(input_path,
                     logger.error(record)
                     continue
 
+                if record['001'].data in special_systemnumber_mapping:
+                    new_field = Field(tag='093',  indicators=[' ', ' '])
+                    new_field.add_subfield('b', record['001'].data)
+                    record.add_field(new_field)
+                    record['001'].data = special_systemnumber_mapping[record['001'].data]
+
                 record_error_count = 0
                 record = prepare_record_linking(record)
                 record = split_summary_language_keys(record)
@@ -210,6 +217,12 @@ if __name__ == '__main__':
         logger.info("2) Path to authority data (file) export from Koha.")
         logger.info("3) Path to output directory for results.")
         sys.exit()
+
+    with open('./special_systemnumber_mapping.csv', 'r') as input_file:
+        lines = input_file.readlines()
+        for line in lines:
+            line_split = line.split(',')
+            special_systemnumber_mapping[line_split[0].strip()] = line_split[1].strip()
 
     authority_heading_to_authority_id_mapping, gazetteer_id_to_authority_id_mapping = \
         create_authority_data_to_authority_id_mapping(sys.argv[2])
