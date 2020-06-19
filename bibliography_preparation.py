@@ -33,10 +33,15 @@ estimated_sys_number_to_bibliographic_number_mapping = dict()
 gazetteer_mapper = GazetteerThesaurusMapper()
 special_systemnumber_mapping = {}
 
+authority_mapped = 0
+authority_not_mapped = 0
+
 
 def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
-                                                  heading_to_authority_id_mapping,
+                                                  authority_data_to_authority_id_mapping,
                                                   gazetteer_id_to_authority_id_mapping):
+    global authority_mapped
+    global authority_not_mapped
     for field in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
         for bibliographic_record_field in bibliographic_record.get_fields(field[1]):
             gazetteer_id = None
@@ -49,25 +54,42 @@ def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
             # Fallback for Notations provided by Madrid
             # see: http://195.37.175.38/Record/000055439#details / https://gazetteer.dainst.org/app/#!/show/2074984
             if bibliographic_record_field.tag == '651' \
-                        and bibliographic_record_field['2'] is not None \
-                        and bibliographic_record_field['a'] is not None \
-                        and f"{bibliographic_record_field['a'].strip()} {bibliographic_record_field['2'].strip()}" in gazetteer_mapper.mapping:
+                    and bibliographic_record_field['2'] is not None \
+                    and bibliographic_record_field['a'] is not None \
+                    and f"{bibliographic_record_field['a'].strip()} {bibliographic_record_field['2'].strip()}" in gazetteer_mapper.mapping:
                 gazetteer_id = gazetteer_mapper.mapping[f"{bibliographic_record_field['a'].strip()} {bibliographic_record_field['2'].strip()}"]
 
             if gazetteer_id is not None and gazetteer_id in gazetteer_id_to_authority_id_mapping:
                 bibliographic_record_field.add_subfield('9', gazetteer_id_to_authority_id_mapping[gazetteer_id])
+                authority_mapped += 1
             else:
-                koha_id = heading_to_authority_id_mapping.get(bibliographic_record_field['a'])
+                koha_id = authority_data_to_authority_id_mapping.get(
+                    (bibliographic_record_field['a'], bibliographic_record_field['b'], bibliographic_record_field['g'],
+                     bibliographic_record_field['v'], bibliographic_record_field['x'], bibliographic_record_field['y'],
+                     bibliographic_record_field['z'])
+                )
                 if koha_id is not None:
                     bibliographic_record_field.add_subfield('9', koha_id)
+                    authority_mapped += 1
+
                 # Aleph does not only allow exact matches between headings, but is also able to match bibliographic
                 # headings with one or more '.' to authority headings without any '.'. As a fallback, we try to match
                 # again with the bibliographic heading stripped of all leading and trailing punctuation.
                 else:
-                    koha_id = heading_to_authority_id_mapping.get(bibliographic_record_field['a'].strip('.,- '))
-                    if koha_id is not None:
-                        bibliographic_record_field.add_subfield('9', koha_id)
-
+                    try:
+                        koha_id = authority_data_to_authority_id_mapping.get(
+                            (bibliographic_record_field['a'].strip('.,- '),
+                             None, None, None, None, None, None)
+                        )
+                        if koha_id is not None:
+                            bibliographic_record_field.add_subfield('9', koha_id)
+                            authority_mapped += 1
+                        else:
+                            authority_not_mapped += 1
+                    except AttributeError as e:
+                        logger.error(bibliographic_record_field)
+                        logger.error("Record: %s", bibliographic_record['001'].data)
+                        authority_not_mapped += 1
     return bibliographic_record
 
 
@@ -118,7 +140,7 @@ def split_summary_language_keys(record):
 
 def process_bibliographic_data(input_path,
                                output_path,
-                               authority_heading_to_authority_id_mapping,
+                               authority_data_to_authority_id_mapping,
                                gazetteer_id_to_authority_id_mapping):
     global file_record_count
     global file_error_count
@@ -156,7 +178,7 @@ def process_bibliographic_data(input_path,
                 record_error_count += thesaurus.prepare_marc(record)
 
                 record = link_bibliographic_data_to_koha_authority_ids(record,
-                                                                       authority_heading_to_authority_id_mapping,
+                                                                       authority_data_to_authority_id_mapping,
                                                                        gazetteer_id_to_authority_id_mapping)
 
                 if record['003'] is None:
@@ -181,20 +203,23 @@ def process_bibliographic_data(input_path,
 def create_authority_data_to_authority_id_mapping(file_path):
     logger.info('Creating authority-heading-to-authority-id mapping based on exported authority data...')
 
-    heading_to_authority_id_mapping = {}
+    authority_data_to_authority_id_mapping = {}
     gazetteer_id_to_authority_id_mapping = {}
     with open(file_path, 'rb') as authority_file:
         reader = parse_xml_to_array(authority_file)
         for authority_record in reader:
             for field in marc_mappings.AUTHORITY_FIELDS_TO_BIBLIOGRAPHIC_FIELDS_MAPPING:
-                auth_field = field[0]
-                if authority_record[auth_field] is not None:
-
-                    authority_heading = authority_record[auth_field]['a']
+                auth_field_tag = field[0]
+                if authority_record[auth_field_tag] is not None:
+                    field = authority_record[auth_field_tag]
+                    authority_field_data = (
+                        field['a'], field['b'], field['g'], field['v'],
+                        field['x'], field['y'], field['z']
+                    )
                     authority_id = authority_record['001'].data
-                    heading_to_authority_id_mapping[authority_heading] = authority_id
+                    authority_data_to_authority_id_mapping[authority_field_data] = authority_id
 
-                    if auth_field == '151' \
+                    if auth_field_tag == '151' \
                             and authority_record['024'] is not None \
                             and authority_record['024']['2'] == 'iDAI.gazetteer':
 
@@ -203,7 +228,7 @@ def create_authority_data_to_authority_id_mapping(file_path):
 
     logger.info('Done.\n')
 
-    return heading_to_authority_id_mapping, gazetteer_id_to_authority_id_mapping
+    return authority_data_to_authority_id_mapping, gazetteer_id_to_authority_id_mapping
 
 
 if __name__ == '__main__':
@@ -224,7 +249,7 @@ if __name__ == '__main__':
             line_split = line.split(',')
             special_systemnumber_mapping[line_split[0].strip()] = line_split[1].strip()
 
-    authority_heading_to_authority_id_mapping, gazetteer_id_to_authority_id_mapping = \
+    authority_data_to_authority_id_mapping, gazetteer_id_to_authority_id_mapping = \
         create_authority_data_to_authority_id_mapping(sys.argv[2])
     input_directory = sys.argv[1]
     output_directory = sys.argv[3]
@@ -248,7 +273,7 @@ if __name__ == '__main__':
             process_bibliographic_data(
                 input_directory + '/' + filename,
                 output_directory + without_extension + '-preprocessed.mrc',
-                authority_heading_to_authority_id_mapping,
+                authority_data_to_authority_id_mapping,
                 gazetteer_id_to_authority_id_mapping
             )
             total_record_count += file_record_count
@@ -262,6 +287,9 @@ if __name__ == '__main__':
         "Holding field number maximum: %s (in: '%s')", holdings.holding_field_max[1], holdings.holding_field_max[0])
     logger.info("Total number of record errors: %s", total_error_count)
     logger.info("Total number of records: %s", total_record_count)
+
+    logger.info("Number of authorities mapped: %s", authority_mapped)
+    logger.info("Number of potential authority fields not mapped: %s", authority_not_mapped)
 
     with open('./pickles/estimated_sys_number_to_bibliographic_number_mapping.pickle', 'wb') as mapping_file:
         pickle.dump(estimated_sys_number_to_bibliographic_number_mapping, mapping_file)
