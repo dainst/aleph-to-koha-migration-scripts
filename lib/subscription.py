@@ -54,7 +54,7 @@ missing_budget = []
 '''
 
 
-def parse_z16(parsed_results, data):
+def parse_z16(parsed_results, data, subscriptionhistory_results):
     global SUBSCRIPTION_COUNTER
     global FREQUENCY_MAPPING
     global PATTERN_MAPPING
@@ -64,15 +64,16 @@ def parse_z16(parsed_results, data):
     global ORDER_TO_SUBSCRIPTION_MAPPING
     global missing_budget
 
-    result = dict()
+    subscription_result = dict()
+    subscriptionhistory_result = dict()
     doc_key = data[0][0:-3]
 
     try:
         budget = mariadb.get_budget_by_code(order_to_budget_mapping[data[-1]][0:50])
         if budget is not None:
-            result['aqbudgetid'] = budget[0]
+            subscription_result['aqbudgetid'] = budget[0]
     except KeyError as e:
-        result['aqbudgetid'] = mariadb.get_budget_by_code(
+        subscription_result['aqbudgetid'] = mariadb.get_budget_by_code(
             fallback_budgets.get_budget_for_method_of_acquisition(data[-2].strip())
         )[0]
         missing_budget.append((doc_key, data[-1]))
@@ -83,49 +84,51 @@ def parse_z16(parsed_results, data):
         except KeyError:
             logger.error(f'Koha bibliographic ID missing system number {sys_number}, linked to'
                          f' subscription (Z16): {data[0]}.')
-            return parsed_results
+            return parsed_results, subscriptionhistory_results
     except KeyError:
         logger.error(f'Unable map subscription {doc_key} to system number.')
-        return parsed_results
+        return parsed_results, subscriptionhistory_results
 
-    result['biblionumber'] = koha_bib_id
-    result['branchcode'] = library_keys.map_aleph_key(data[2].strip())
-    result['startdate'] = date_helper.process_aleph_date(data[3])  # TODO: Check if this is a valid interpretation
-    result['firstacquidate'] = date_helper.process_aleph_date(data[3])  # ^---
+    subscription_result['biblionumber'] = koha_bib_id
+    subscriptionhistory_result['biblionumber'] = subscription_result['biblionumber']
+    subscription_result['branchcode'] = library_keys.map_aleph_key(data[2].strip())
+    subscription_result['startdate'] = date_helper.process_aleph_date(data[3])  # TODO: Check if this is a valid interpretation
+    subscriptionhistory_result['histstartdate'] = subscription_result['startdate']
+    subscription_result['firstacquidate'] = date_helper.process_aleph_date(data[3])  # ^---
 
-    result['itemtype'] = 'CR'
-    result['internalnotes'] = data[24]
-    result['status'] = 1  # status == 1 means "expected"
-    result['countissuesperunit'] = 1
-    result['serialsadditems'] = 0  # does receiving this serial create an item record
-    result['manualhistory'] = 1  # yes or no to managing the history manually
-    result['skip_serialseq'] = 0
-    result['graceperiod'] = 0
-    result['closed'] = 0
+    subscription_result['itemtype'] = 'CR'
+    subscription_result['internalnotes'] = data[24]
+    subscription_result['status'] = 1  # status == 1 means "expected"
+    subscription_result['countissuesperunit'] = 1
+    subscription_result['serialsadditems'] = 0  # does receiving this serial create an item record
+    subscription_result['manualhistory'] = 1  # yes or no to managing the history manually
+    subscription_result['skip_serialseq'] = 0
+    subscription_result['graceperiod'] = 0
+    subscription_result['closed'] = 0
 
     if data[4] == 20991231:
         end_date = None
     else:
         end_date = date_helper.process_aleph_date(data[4])
-    result['enddate'] = end_date
+    subscription_result['enddate'] = end_date
 
     if data[13] is not None:
-        result['location'] = marc_mapping.map_shelving_location(data[13].strip(), result['branchcode'])
+        subscription_result['location'] = marc_mapping.map_shelving_location(data[13].strip(), subscription_result['branchcode'])
     else:
-        result['location'] = marc_mapping.map_shelving_location(None, result['branchcode'])
+        subscription_result['location'] = marc_mapping.map_shelving_location(None, subscription_result['branchcode'])
 
     if doc_key[0:9] in PATTERN_MAPPING:
-        result['numberpattern'] = PATTERN_MAPPING[doc_key[0:9]]['id']
+        subscription_result['numberpattern'] = PATTERN_MAPPING[doc_key[0:9]]['id']
     else:
         logger.warning('No number pattern for Aleph subscription (Z16): %s.' % data[0])
 
     if doc_key[0:9] in FREQUENCY_MAPPING:
         frequency_list = FREQUENCY_MAPPING[doc_key[0:9]]
         if len(frequency_list) == 1:
-            result['periodicity'] = frequency_list[0][0]
+            subscription_result['periodicity'] = frequency_list[0][0]
         else:
             [issue_frequency] = [frequency[0:2] for frequency in frequency_list if frequency[2] == 'issue']
-            result['periodicity'] = issue_frequency[0]
+            subscription_result['periodicity'] = issue_frequency[0]
     else:
         logger.warning('No periodicity information for Aleph subscription (Z16): %s.' % data[0])
 
@@ -134,19 +137,28 @@ def parse_z16(parsed_results, data):
         logger.warning('No bookseller found for Aleph vendor code "%s". Aleph subscription (Z16): %s.'
                        % (data[5], data[0]))
     else:
-        result['aqbooksellerid'] = bookseller[0]
+        subscription_result['aqbooksellerid'] = bookseller[0]
 
-    result['subscriptionid'] = SUBSCRIPTION_COUNTER
-    ORDER_TO_SUBSCRIPTION_MAPPING[data[-1]] = result
+    subscriptionhistory_result['missinglist'] = ""
+    subscriptionhistory_result['recievedlist'] = ""
+
+    subscription_result['subscriptionid'] = SUBSCRIPTION_COUNTER
+    subscriptionhistory_result['subscriptionid'] = SUBSCRIPTION_COUNTER
+    ORDER_TO_SUBSCRIPTION_MAPPING[data[-1]] = subscription_result
 
     SUBSCRIPTION_COUNTER += 1
 
     if data[0] in parsed_results:
-        parsed_results[data[0]] += result
+        parsed_results[data[0]] += subscription_result
     else:
-        parsed_results[data[0]] = [result]
+        parsed_results[data[0]] = [subscription_result]
 
-    return parsed_results
+    if data[0] in subscriptionhistory_results:
+        subscriptionhistory_results[data[0]] += subscriptionhistory_result
+    else:
+        subscriptionhistory_results[data[0]] = [subscriptionhistory_result]
+
+    return parsed_results, subscriptionhistory_results
 
 
 def fetch_data(credentials):
@@ -190,18 +202,21 @@ def fetch_data(credentials):
 
     cursor = oracle.get_subscription_data()
     subscriptions = dict()
+    subscriptionhistories = dict()
     for row in cursor:
-        subscriptions = parse_z16(subscriptions, row)
+        (subscriptions, subscriptionhistories) = parse_z16(
+            subscriptions, row, subscriptionhistories
+        )
     cursor.close()
 
     with open(script_dir + '/../pickles/order_to_subscription_mapping.pickle', 'wb') as mapping_file:
         pickle.dump(ORDER_TO_SUBSCRIPTION_MAPPING, mapping_file)
 
-    return subscriptions
+    return subscriptions, subscriptionhistories
 
 
-def generate_insert_statements(data_dict, database_columns):
-    import_table_statement = 'INSERT INTO subscription ('
+def generate_insert_statements(data_dict, db_table, database_columns):
+    import_table_statement = 'INSERT INTO ' + db_table + ' ('
     keys_len = len(database_columns)
 
     for idx, key in enumerate(database_columns):
@@ -243,17 +258,14 @@ def generate_insert_statements(data_dict, database_columns):
     return import_table_statement
 
 
-def write_data(result_dict):
+def write_data(result_dict, db_table, columns):
 
-    database_columns = ['biblionumber', 'subscriptionid', 'aqbudgetid', 'librarian', 'startdate', 'aqbooksellerid', 'cost',
-                        'weeklength', 'monthlength', 'numberlength', 'periodicity', 'countissuesperunit',  'status',
-                        'lastvalue1', 'innerloop1', 'lastvalue2', 'innerloop2', 'lastvalue3', 'innerloop3',
-                        'firstacquidate', 'manualhistory', 'irregularity', 'skip_serialseq', 'letter', 'numberpattern',
-                        'locale', 'distributedto', 'internalnotes', 'callnumber', 'location', 'branchcode',
-                        'lastbranch', 'serialsadditems', 'staffdisplaycount', 'opacdisplaycount', 'graceperiod',
-                        'enddate', 'closed', 'reneweddate', 'itemtype', 'previousitemtype']
+    if db_table == 'subscription':
+        flag = 'w'
+    else:
+        flag = 'a'
 
-    with open(IMPORT_SQL_OUTPUT_PATH, 'w') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'w') as mapping_file:
+    with open(IMPORT_SQL_OUTPUT_PATH, flag) as import_file, open(MAPPING_SQL_OUTPUT_PATH, flag) as mapping_file:
 
         mapping_file.write('USE ' + mariadb.get_db_name() + ";\n\n")
         mariadb.establish_connection()
@@ -261,7 +273,7 @@ def write_data(result_dict):
         cursor = mariadb.get_cursor()
 
         import_table_statement = \
-            generate_insert_statements(result_dict, database_columns)
+            generate_insert_statements(result_dict, db_table, columns)
 
         import_file.write(import_table_statement)
         mapping_file.write(import_table_statement)
@@ -277,9 +289,21 @@ def start(credentials, sys_number_to_bib_number_mapping):
 
     SYS_NUMBER_TO_BIB_ID_MAPPING = sys_number_to_bib_number_mapping
 
-    subscriptions = fetch_data(credentials)
-    write_data(subscriptions)
+    subscriptions, subscription_histories = fetch_data(credentials)
 
+    subscription_columns = ['biblionumber', 'subscriptionid', 'aqbudgetid', 'librarian', 'startdate', 'aqbooksellerid',
+                            'cost', 'weeklength', 'monthlength', 'numberlength', 'periodicity', 'countissuesperunit',
+                            'status', 'lastvalue1', 'innerloop1', 'lastvalue2', 'innerloop2', 'lastvalue3',
+                            'innerloop3', 'firstacquidate', 'manualhistory', 'irregularity', 'skip_serialseq',
+                            'letter', 'numberpattern', 'locale', 'distributedto', 'internalnotes', 'callnumber',
+                            'location', 'branchcode', 'lastbranch', 'serialsadditems', 'staffdisplaycount',
+                            'opacdisplaycount', 'graceperiod', 'enddate', 'closed', 'reneweddate', 'itemtype',
+                            'previousitemtype']
+    write_data(subscriptions, 'subscription', subscription_columns)
+
+    history_columns = ['biblionumber', 'subscriptionid', 'histstartdate', 'histenddate', 'missinglist', 'recievedlist',
+                       'opacnote', 'librariannote']
+    write_data(subscription_histories, 'subscriptionhistory', history_columns)
     logger.info(f'Missing budgets Z16_DOC_NUMBER ' 
                 f'{len(missing_budget)} of {len(subscriptions.keys())}, defaulted to fallback budgets:')
     for (z16_doc_number, z68_rec_key) in missing_budget:

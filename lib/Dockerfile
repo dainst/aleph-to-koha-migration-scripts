@@ -33,6 +33,7 @@ COPY mariadb_table_setup/aqbasketgroups_create.sql /docker-entrypoint-initdb.d/0
 COPY mariadb_table_setup/aqbasket_create.sql /docker-entrypoint-initdb.d/000038_aqbasket_create.sql
 COPY mariadb_table_setup/items_create.sql /docker-entrypoint-initdb.d/000041_items_create.sql
 COPY mariadb_table_setup/subscription_create.sql /docker-entrypoint-initdb.d/000043_subscription_create.sql
+COPY mariadb_table_setup/subscriptionhistory_create.sql /docker-entrypoint-initdb.d/000044_subscriptionhistory_create.sql
 COPY mariadb_table_setup/aqinvoices_create.sql /docker-entrypoint-initdb.d/000046_aqinvoices_create.sql
 COPY mariadb_table_setup/aqorders_create.sql /docker-entrypoint-initdb.d/000050_aqorders_create.sql
 COPY mariadb_table_setup/aqcontacts_create.sql /docker-entrypoint-initdb.d/000113_aqcontacts_create.sql
