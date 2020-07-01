@@ -223,7 +223,7 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
         'ecost': price,
         'ecost_tax_excluded': price,
         'ecost_tax_included': price,
-        'uncertainprice': 1,
+        'uncertainprice': 0,
         'invoiceid': koha_invoice_id,
         'discount': float(data[36][:-2] + '.' + data[36][-2:])
     }
