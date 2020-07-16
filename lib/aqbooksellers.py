@@ -283,6 +283,24 @@ def fetch_data(connection_credentials):
 
     combined_results = combine_table_results(z70_result, z72_result, hardcoded)
 
+    for key_name in combined_results:
+        for key_type in combined_results[key_name]:
+            result = combined_results[key_name][key_type]
+            main_address = None
+            if 'address1' in result:
+                main_address = result['address1']
+            if 'address2' in result:
+                main_address = result['address2']
+            if 'address3' in result:
+                main_address = result['address3']
+            if 'address4' in result:
+                main_address = result['address4']
+
+            if 'postal' not in result or result['postal'] is None:
+                combined_results[key_name][key_type]['postal'] = main_address
+            else:
+                combined_results[key_name][key_type]['postal'] = "(" + combined_results[key_name][key_type]["postal"] + ")" + main_address
+
     # Still unhandled fields for aqbookseller:
     # 'othersupplier': '',
     # 'gstreg': '',
