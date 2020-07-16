@@ -1,9 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# This script filters duplicate authority data (based on field 001) and
-# copies Aleph's internal control number to 035a (because 001 gets overwritten
-# by Koha on import with its own control number).
+# This script copies Aleph's internal control number to 035a (because 001 gets
+# overwritten by Koha on import with its own control number).
 
 from pymarc import MARCReader, Field
 
@@ -37,6 +36,11 @@ VALID_CATALOGING_AGENCIES = [
     'RPB', 'SaFITSA', 'SaPrNL', 'SaPRUSA', 'ScU', 'SdMadT', 'STEdNL', 'TNJ', 'TxCM', 'Uk', 'UkCU', 'UkOxU', 'UPB',
     'VIAF', 'ViU', 'TxU'
 ]
+
+thesaurus_tag_rewrite = {
+    '551': '901', '552': '902', '553': '903', '554': '904', '555': '905', '556': '906',
+    '557': '907', '558': '908', '559': '909', '563': '910', '565': '911', '591': '912', '001': '921'
+}
 
 
 def has_relevant_data(record):
@@ -145,34 +149,73 @@ def filter_cataloging_sources(record):
     return record
 
 
-def process_records(input_path, output_path):
+def process_records(default_input, thesaurus_input, output_path_default, output_path_thesaurus):
 
     # If target folder does not exist, create it.
-    if not os.path.exists(os.path.dirname(output_path)) and os.path.dirname(output_path) != '':
-        os.makedirs(os.path.dirname(output_path))
+    if not os.path.exists(os.path.dirname(output_path_default)) and os.path.dirname(output_path_default) != '':
+        os.makedirs(os.path.dirname(output_path_default))
 
-    with open(input_path, 'rb') as authority_file, open(output_path, 'wb') as output_file:
-        reader = MARCReader(authority_file, force_utf8=True)
-        for record in reader:
+    with open(output_path_default, 'wb') as output_file:
+        with open(default_input, 'rb') as authority_file:
+            reader = MARCReader(authority_file, force_utf8=True)
+            for record in reader:
 
-            if not has_relevant_data(record):
-                logger.info('No relevant data found in record, skipping:')
-                logger.info(record)
+                if not has_relevant_data(record):
+                    logger.info('No relevant data found in record, skipping:')
+                    logger.info(record)
+                    continue
+
+                record = fix_loc_number(record)
+                record = filter_cataloging_sources(record)
+                output_file.write(record.as_marc())
+
+    if not os.path.exists(os.path.dirname(output_path_thesaurus)) and os.path.dirname(output_path_thesaurus) != '':
+        os.makedirs(os.path.dirname(output_path_thesaurus))
+
+    with open(output_path_thesaurus, 'wb') as output_file:
+        for filename in os.listdir(thesaurus_input):
+            if not filename.endswith('.mrc'):
                 continue
 
-            record = fix_loc_number(record)
-            record = filter_cataloging_sources(record)
-            output_file.write(record.as_marc())
+            with open(thesaurus_input + filename, 'rb') as input_file:
+                reader = MARCReader(input_file, force_utf8=True)
+
+                for record in reader:
+                    print(record)
+                    fields = record.get_fields()
+                    for field in fields:
+                        if field.tag not in thesaurus_tag_rewrite:
+                            continue
+
+                        if field.tag == '001':
+                            new_field = Field(
+                                tag=thesaurus_tag_rewrite[field.tag],
+                                indicators=[' ', ' '],
+                                subfields=['a', field.data]
+                            )
+                            record.add_field(new_field)
+                            field.data = 'ths-' + field.data
+                        else:
+                            field.tag = thesaurus_tag_rewrite[field.tag]
+
+                    record.add_field(
+                        Field(
+                            tag='920', indicators=[' ', ' '], subfields=['a', "old_thesaurus"]
+                        )
+                    )
+                    output_file.write(record.as_marc())
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 5:
 
         logger.info("Please provide as argument:")
-        logger.info("1) Path to input file.")
-        logger.info("2) Path/filename for filtered results.")
+        logger.info("1) Path to input default authority file.")
+        logger.info("1) Path to input thesaurus authorities.")
+        logger.info("2) Path/filename for default results.")
+        logger.info("2) Path/filename for thesaurus results.")
 
         sys.exit()
 
-    process_records(sys.argv[1], sys.argv[2])
+    process_records(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
 
