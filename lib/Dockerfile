@@ -1,4 +1,4 @@
-FROM mariadb
+FROM mariadb/server:10.2
 
 ENV REFRESHED_AT 2018-02-19
 LABEL maintainer="Deutsches Archäologisches Institut: dev@dainst.de"
