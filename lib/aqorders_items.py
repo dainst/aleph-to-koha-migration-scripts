@@ -42,6 +42,7 @@ def process_data(credentials, item_data_path):
 
     logger.info('Creating mapping: barcode -> Koha order number.')
     koha_aleph_order_pairs = mariadb.get_koha_and_aleph_order_id_pairs()
+    mariadb.close_mariadb_connection()
     for pair in koha_aleph_order_pairs:
         koha_id, aleph_rec_key = pair
 
@@ -52,6 +53,7 @@ def process_data(credentials, item_data_path):
         barcode_query_cursor.close()
 
     logger.info('Creating Koha order number <-> item number pairs.')
+    mariadb.establish_connection()
     query_result = mariadb.get_item_barcode_and_itemnumber_pairs()
     for barcode, itemnumber in query_result:
 
