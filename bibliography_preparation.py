@@ -86,10 +86,27 @@ def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
                             authority_mapped += 1
                         else:
                             authority_not_mapped += 1
-                    except AttributeError as e:
-                        logger.error(bibliographic_record_field)
-                        logger.error("Record: %s", bibliographic_record['001'].data)
-                        authority_not_mapped += 1
+                    except AttributeError:
+                        try:
+                            koha_id = authority_data_to_authority_id_mapping.get(
+                                (bibliographic_record_field['b'].strip('.,- '),
+                                 None, None, None, None, None, None)
+                            )
+                            logger.warning('Record %s field has subfield $b but not $a:', bibliographic_record['001'].data)
+                            logger.warning(bibliographic_record_field)
+                            logger.warning('Copying $b to $a, removing $b.')
+                            if koha_id is not None:
+                                bibliographic_record_field.add_subfield('9', koha_id)
+                                bibliographic_record_field.add_subfield('a', bibliographic_record_field['b'].strip('.,- '))
+                                bibliographic_record_field.delete_subfield('b')
+                                authority_mapped += 1
+                            else:
+                                authority_not_mapped += 1
+                        except AttributeError as e:
+                            logger.warning('No field $a in:')
+                            logger.error(bibliographic_record_field)
+                            logger.error("Record: %s", bibliographic_record['001'].data)
+                            authority_not_mapped += 1
     return bibliographic_record
 
 
