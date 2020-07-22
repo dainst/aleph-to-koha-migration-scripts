@@ -12,6 +12,7 @@ TRUNCATE TABLE aqorders_items;
 TRUNCATE TABLE serial;
 TRUNCATE TABLE serialitems;
 TRUNCATE TABLE subscription;
+TRUNCATE TABLE subscriptionhistory;
 TRUNCATE TABLE subscription_numberpatterns;
 TRUNCATE TABLE subscription_frequencies;
 
