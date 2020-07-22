@@ -88,7 +88,7 @@ def process_z72_result(previous_results, query_result):
 
     if aqcontacts_data['notes'] is None:
         aqcontacts_data['notes'] = ''
-    aqcontacts_data['notes'] += '\nHinweis: ' + str(query_result[0][:-2]).rstrip()
+    aqcontacts_data['notes'] += '\n' + str(query_result[0][:-2]).rstrip()
 
     if all(value is None for value in aqcontacts_data.values()):
         return previous_results
