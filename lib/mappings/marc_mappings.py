@@ -82,7 +82,7 @@ SHELVING_LOCATION_MAPPING = {
     ('GROSS', 'DAII'): 'GROSS',
     ('GROSS', 'DAIK'): 'GROSS',
     ('GROSS', 'DAIO'): 'GROSS',
-    ('GROSS', 'DAIZ'): 'GROSS',
+    ('GROSS', 'DAIZ'): 'GROSF',
     ('HINKL', 'DAIZ'): 'HINKL',
     ('KART', 'DAII'): 'KART',
     ('KART', 'DAIK'): 'KART',
