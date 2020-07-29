@@ -109,7 +109,7 @@ SHELVING_LOCATION_MAPPING = {
     ('NATUR', 'DAIE'): 'NATUR',
     ('OG', 'DAIF'): 'OG',
     ('ONL', 'DAIF'): 'ONL',
-    ('PERGA', 'DAII'): 'GH',
+    ('PERGA', 'DAII'): 'PERGA',
     ('RARA', 'BWINCK'): 'RARA',
     ('RARA', 'DAIE'): 'RARA',
     ('RARA', 'DAIF'): 'RARA',
