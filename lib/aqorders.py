@@ -447,7 +447,7 @@ def write_data(data):
 
 def update_parent_ordernumbers():
 
-    orders_with_subscription_ids = mariadb.get_orders_with_subscription_ids()
+    orders_with_subscription_ids = mariadb.get_standing_orders()
 
     last_subscription_id = None
     parent_ordernumber = None

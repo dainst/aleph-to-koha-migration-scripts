@@ -270,3 +270,16 @@ def get_orders_with_subscription_ids():
     cursor.execute(query)
     result = cursor.fetchall()
     return result
+
+
+def get_standing_orders():
+    global connection
+
+    cursor = connection.cursor()
+    query = 'SELECT aqorders.ordernumber, aqorders.subscriptionid, aqorders.parent_ordernumber FROM aqorders, aqbasket ' \
+            'WHERE aqbasket.basketno = aqorders.basketno AND aqbasket.is_standing = 1 ' \
+            'ORDER BY aqorders.subscriptionid, aqorders.ordernumber;'
+
+    cursor.execute(query)
+    result = cursor.fetchall()
+    return result
