@@ -69,7 +69,9 @@ def process_z68_data(previous_results, query_result, basket_groups):
 
     result['is_standing'] = z68.evaluate_is_standing(query_result[1])
 
-    result['basketgroupid'] = basket_groups[query_result[0]][0]
+    if not z68.evaluate_is_subscription(query_result[1]):
+        result['basketgroupid'] = basket_groups[query_result[0]][0]
+
     result['booksellerid'] = basket_groups[query_result[0]][3]
     result['ALEPH_Z601_REC_KEY_2'] = basket_groups[query_result[0]][-1]
 
