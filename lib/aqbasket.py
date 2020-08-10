@@ -21,13 +21,15 @@ MAPPING_SQL_OUTPUT_PATH = script_dir + '/mariadb_intermediate_values/038000_aqba
 IMPORT_SQL_OUTPUT_PATH = script_dir + '/ready_for_import/aqbasket_data_import.sql'
 
 
-def evaluate_is_standing(aleph_order_type):
-    aleph_order_type = aleph_order_type.strip()
+def construct_name(query_result):
+    name = '[aleph order] ' + query_result[2].strip()
 
-    if aleph_order_type == 'O':
-        return 1
+    if query_result[3] is not None and query_result[3].strip() not in name:
+        name += '-' + query_result[3].strip()
+    if query_result[4] is not None and query_result[4].strip() not in name:
+        name += '-' + query_result[4].strip()
 
-    return 0
+    return name
 
 
 def process_z68_data(previous_results, query_result, basket_groups):
@@ -49,6 +51,12 @@ def process_z68_data(previous_results, query_result, basket_groups):
         result['basketname'] = method_of_acquisition.map_aleph_key(query_result[14].strip())
     else:
         result['basketname'] = 'Automatically generated'
+
+    result['basketname'] += " | " + construct_name(query_result)
+    if len(result['basketname']) > 50:  # Koha table is varchar(50)
+        logger.warning('Basketgroup name is too long, cutting to 50 chars: ')
+        logger.warning(' ' + result['basketname'])
+        result['basketname'] = result['basketname'][0:50]
 
     parsed_order_date = dates_helper.process_aleph_date(query_result[15])
     if parsed_order_date is not None:
