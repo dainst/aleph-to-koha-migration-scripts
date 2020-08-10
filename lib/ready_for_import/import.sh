@@ -22,6 +22,7 @@ else
     mysql -u$1 -p$2 $3 < aqcontacts_data_import.sql
     mysql -u$1 -p$2 $3 < aqorders_items_data_import.sql
     mysql -u$1 -p$2 $3 < serialitems_data_import.sql
+    mysql -u$1 -p$2 $3 < finalize.sql
 fi
 
 
