@@ -65,8 +65,8 @@ def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
             else:
                 koha_id = authority_data_to_authority_id_mapping.get(
                     (bibliographic_record_field['a'], bibliographic_record_field['b'], bibliographic_record_field['g'],
-                     bibliographic_record_field['v'], bibliographic_record_field['x'], bibliographic_record_field['y'],
-                     bibliographic_record_field['z'])
+                     bibliographic_record_field['t'], bibliographic_record_field['v'], bibliographic_record_field['x'],
+                     bibliographic_record_field['y'], bibliographic_record_field['z'])
                 )
                 if koha_id is not None:
                     bibliographic_record_field.add_subfield('9', koha_id)
@@ -79,7 +79,7 @@ def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
                     try:
                         koha_id = authority_data_to_authority_id_mapping.get(
                             (bibliographic_record_field['a'].strip('.,- '),
-                             None, None, None, None, None, None)
+                             None, None, None, None, None, None, None)
                         )
                         if koha_id is not None:
                             bibliographic_record_field.add_subfield('9', koha_id)
@@ -90,11 +90,8 @@ def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
                         try:
                             koha_id = authority_data_to_authority_id_mapping.get(
                                 (bibliographic_record_field['b'].strip('.,- '),
-                                 None, None, None, None, None, None)
+                                 None, None, None, None, None, None, None)
                             )
-                            logger.warning('Record %s field has subfield $b but not $a:', bibliographic_record['001'].data)
-                            logger.warning(bibliographic_record_field)
-                            logger.warning('Copying $b to $a, removing $b.')
                             if koha_id is not None:
                                 bibliographic_record_field.add_subfield('9', koha_id)
                                 bibliographic_record_field.add_subfield('a', bibliographic_record_field['b'].strip('.,- '))
@@ -103,7 +100,7 @@ def link_bibliographic_data_to_koha_authority_ids(bibliographic_record,
                             else:
                                 authority_not_mapped += 1
                         except AttributeError as e:
-                            logger.warning('No field $a in:')
+                            logger.error('No field $a in:')
                             logger.error(bibliographic_record_field)
                             logger.error("Record: %s", bibliographic_record['001'].data)
                             authority_not_mapped += 1
@@ -169,7 +166,6 @@ def process_bibliographic_data(input_path,
         with open(output_path, 'wb') as output_file:
             reader = MARCReader(input_file, force_utf8=True)
             writer = MARCWriter(output_file)
-
             for record in reader:
                 if '001' not in record:
                     logger.error('Missing system number for ')
@@ -230,8 +226,8 @@ def create_authority_data_to_authority_id_mapping(file_path):
                 if authority_record[auth_field_tag] is not None:
                     field = authority_record[auth_field_tag]
                     authority_field_data = (
-                        field['a'], field['b'], field['g'], field['v'],
-                        field['x'], field['y'], field['z']
+                        field['a'], field['b'], field['g'], field['t'],
+                        field['v'], field['x'], field['y'], field['z']
                     )
                     authority_id = authority_record['001'].data
                     authority_data_to_authority_id_mapping[authority_field_data] = authority_id
