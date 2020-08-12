@@ -190,7 +190,7 @@ def get_still_valid_budgets():
     global connection
 
     cur = connection.cursor()
-    return cur.execute('SELECT * FROM Z76 WHERE Z76_VALID_DATE_TO > 20180000')
+    return cur.execute('SELECT * FROM Z76 WHERE Z76_VALID_DATE_TO > 20200000')
 
 
 def get_orders_to_budgets_mapping():
