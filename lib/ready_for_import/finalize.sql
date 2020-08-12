@@ -1,11 +1,9 @@
-
 SET SQL_SAFE_UPDATES = 0;
 
 # Setze überall quantityreceived = quantity wo es eine invoice id gibt, sorgt für ("erh." Anzeige).
 UPDATE `aqorders` SET `quantityreceived` = quantity WHERE `invoiceid` IS NOT NULL;
 
 # Setze closedate auf null in baskets mit standing order, damit im Interface wieder die Optionen angezeigt werden.
-SET SQL_SAFE_UPDATES = 0;
 UPDATE `aqbasket` SET `closedate` = null WHERE `is_standing` = 1;
 
 # Bestellstatus auf complete/partial für alle standing order
@@ -14,6 +12,8 @@ UPDATE `aqorders` SET `orderstatus` = 'partial' WHERE `invoiceid` IS NOT NULL AN
 
 # "Zugegangen Datum" basierend auf Rechnung setzen
 UPDATE `aqorders`, `aqinvoices` SET `aqorders`.`datereceived` = `aqinvoices`.`closedate` WHERE `aqorders`.`invoiceid` = `aqinvoices`.`invoiceid`;
+UPDATE `aqorders` SET `quantityreceived` = 0, `datereceived` = null WHERE `orderstatus` = 'partial' AND `quantityreceived` = `quantity`;
+
 SET SQL_SAFE_UPDATES = 1;
 
 # Zusätzliche numberpatterns
