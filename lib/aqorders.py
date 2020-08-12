@@ -184,12 +184,13 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
             }
         )
 
-    # Try reading price from Z68_UNIT_PRICE
-    price = currency.parse_value(data[31], data[33], True)
-    if price == 0 and aleph_invoice is not None:
-        # If unit price not set, try parsing from invoice
+    price = 0
+    # Try parsing from invoice
+    if aleph_invoice is not None:
         price = currency.parse_value(aleph_invoice[6], data[33], True)
-
+    if price == 0:
+        # Try reading price from Z68_UNIT_PRICE
+        price = currency.parse_value(data[31], data[33], True)
     if price == 0:
         # If still no price, try Z68_E_LISTED_PRICE.
         price = currency.parse_value(data[34], data[33], True)
