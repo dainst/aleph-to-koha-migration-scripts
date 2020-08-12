@@ -47,7 +47,9 @@ def process_data(data):
         budget_code = INVOICE_TO_BUDGET_MAPPING[(data['z75'][0], data['z75'][1])].strip()
 
         if mariadb.get_budget_by_code(budget_code) is None:
-            koha_budget_id = None
+            koha_budget_id = mariadb.get_budget_by_code(
+                fallback_budgets.get_budget_for_method_of_acquisition(data['z68'][14].strip())
+            )[0]
             MISSING_BUDGET_KOHA.append((data['z75'][0], data['z75'][1]))
         else:
             koha_budget_id = mariadb.get_budget_by_code(budget_code)[0]
@@ -67,7 +69,7 @@ def process_data(data):
         'ALEPH_Z75_REC_KEY_2': data['z75'][1],
         'ALEPH_Z68_REC_KEY': data['z68'][0]
     }
-    AQINVOICESDATA[invoice_number] = result
+    AQINVOICESDATA[data['z75'][1]] = result
 
 
 def fetch_data(credentials):

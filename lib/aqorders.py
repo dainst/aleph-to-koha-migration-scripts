@@ -8,6 +8,7 @@ import lib.database_connections.mariadb as mariadb
 import lib.oracle_helper.dates as dates_helper
 import lib.mappings.currency as currency
 import lib.mappings.order_status as order_status_helper
+import lib.mappings.fallback_budgets as fallback_budgets
 
 logging.basicConfig(format='%(asctime)s-%(levelname)s-%(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -146,10 +147,14 @@ def process_z68_data(previous_results, basket_data, koha_invoice_id, aleph_invoi
 
     aqinvoice_data = mariadb.get_budget_by_code(budget_code)
 
+    budget_id = None
+
     if aqinvoice_data is not None:
         budget_id = aqinvoice_data[0]
-    else:
-        budget_id = None
+    elif data[14] is not None:
+        budget_id = mariadb.get_budget_by_code(
+            fallback_budgets.get_budget_for_method_of_acquisition(data[14].strip())
+        )[0]
 
     if budget_id is None:
         if data[2] is not None:
@@ -497,6 +502,10 @@ def start(oracle_credentials, sys_number_to_bibliographic_number_mapping):
 
     logger.info(f'Missing baskets for order:')
     for item in MISSING_BASKET:
+        logger.info(item)
+
+    logger.info(f'Missing budget, used fallbacks:')
+    for item in MISSING_BUDGET:
         logger.info(item)
 
     with open(script_dir + '/../log/successful_mapping.tsv', 'w') as log:
