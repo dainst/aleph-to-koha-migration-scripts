@@ -447,13 +447,13 @@ def write_data(data):
 
 def update_parent_ordernumbers():
 
-    orders_with_subscription_ids = mariadb.get_standing_orders()
+    standing_orders = mariadb.get_standing_orders()
 
     last_subscription_id = None
     parent_ordernumber = None
 
     with open(IMPORT_SQL_OUTPUT_PATH, 'a+') as import_file, open(MAPPING_SQL_OUTPUT_PATH, 'a+') as mapping_file:
-        for order in orders_with_subscription_ids:
+        for order in standing_orders:
             subscription_id = order[1]
 
             if last_subscription_id != subscription_id:

@@ -276,9 +276,9 @@ def get_standing_orders():
     global connection
 
     cursor = connection.cursor()
-    query = 'SELECT aqorders.ordernumber, aqorders.subscriptionid, aqorders.parent_ordernumber FROM aqorders, aqbasket ' \
+    query = 'SELECT aqorders.ordernumber, aqorders.basketno, aqorders.parent_ordernumber FROM aqorders, aqbasket ' \
             'WHERE aqbasket.basketno = aqorders.basketno AND aqbasket.is_standing = 1 ' \
-            'ORDER BY aqorders.subscriptionid, aqorders.ordernumber;'
+            'ORDER BY aqorders.basketno, aqorders.ordernumber;'
 
     cursor.execute(query)
     result = cursor.fetchall()
