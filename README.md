@@ -3,7 +3,7 @@
 A collection of scripts used for migrating iDAI.bibliograhpy/Zenon from Aleph to Koha.
 
 For anyone wanting to use this repository as inspiration:
-* The DAI has no circulation of books/journals, everything is to be read on premise, which made the migration significantly easier.
+* The DAI has no circulation of books/journals (on premise only), which made the migration significantly easier.
 * The most complex part in our migration was the migration of acquisition data.
 
 ## Prerequisites
