@@ -6,6 +6,7 @@ For anyone wanting to use this repository as inspiration:
 * The DAI has no circulation of books/journals (on premise only), which made the migration significantly easier.
 * The most complex part in our migration was the migration of acquisition data.
 * One major error others should avoid: At the time of our migration, Koha did not track records with marc 001 as their primary database identifier - instead it uses the primary key "biblionumber", which is also automatically added as field 999 to marc records. We _should have_ forced our existing marc 001 values as biblionumbers to ensure that both align. This makes life easier for several aspects later on, as biblionumber is the primary key used to link a record to anything else in Koha's database.
+* [iDAI.bibliography/zenon](https://zenon.dainst.org/) uses [VuFind](https://vufind.org/vufind/) as the public facing frontend, so we did not touch Koha's own OPAC UI at all.
 
 ## Prerequisites
 
